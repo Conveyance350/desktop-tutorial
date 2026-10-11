@@ -15,7 +15,7 @@ main{padding:12px;max-width:640px;margin:0 auto}
 .card{background:#fff;border-radius:10px;padding:14px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
 h2{font-size:16px;margin:0 0 10px}
 label{display:block;font-size:13px;color:#555;margin:10px 0 4px}
-input[type=text],input[type=number],select{width:100%;font-size:18px;padding:10px;border:1px solid #bbb;border-radius:8px;background:#fff}
+input[type=search],input[type=number],select{width:100%;font-size:18px;padding:10px;border:1px solid #bbb;border-radius:8px;background:#fff}
 input[type=range]{width:100%}
 .btn{display:block;width:100%;padding:14px;font-size:17px;font-weight:bold;border:none;border-radius:10px;margin-top:10px;color:#fff;background:#1f3a5f}
 .btn.sub{background:#6b7785}.btn.warn{background:#c0392b}.btn.ok{background:#1e8e3e}.btn.big{padding:20px;font-size:20px}
@@ -73,8 +73,7 @@ th,td{border-bottom:1px solid #eee;padding:5px 4px;text-align:left;vertical-alig
 .backbar{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .backbar button{padding:8px 12px;border-radius:8px;border:1px solid #999;background:#fff;font-size:14px}
 .backbar b{font-size:17px}
-.qbtns{display:flex;gap:6px;margin-top:6px}.qbtns button{flex:1;padding:10px 0;font-size:16px;border-radius:8px;border:1px solid #bbb;background:#fff}
-#runInfo{font-size:20px!important;font-weight:bold;color:#1f3a5f!important;text-align:center}
+#runInfo{font-size:20px;font-weight:bold;color:#1f3a5f;text-align:center}
 textarea{width:100%;font-size:13px;font-family:"Meiryo UI",Meiryo,monospace;padding:8px;border:1px solid #bbb;border-radius:8px}
 button,input,select,textarea{font-family:inherit}
 </style>
@@ -125,7 +124,7 @@ button,input,select,textarea{font-family:inherit}
 
  <div id="run" class="hidden">
   <div class="card">
-   <div style="font-size:13px;color:#555" id="runInfo"></div>
+   <div id="runInfo"></div>
    <div id="remainBox"><div style="font-size:14px;color:#555">残り箱数</div><div id="remain">0</div>
     <div style="font-size:14px" id="cntTxt"></div>
     <div class="prog"><div id="progBar"></div></div></div>
@@ -133,7 +132,7 @@ button,input,select,textarea{font-family:inherit}
   <div class="card">
    <div class="cwrap"><canvas id="view" width="480" height="360"></canvas><div id="stateTag">起動中</div></div>
    <div id="live">—</div>
-   <div class="meter" id="meter"><div class="th ng" id="mNg"></div><div class="th ok" id="mOk"></div><div class="cur" id="mCur"></div></div>
+   <div class="meter"><div class="th ng" id="mNg"></div><div class="th ok" id="mOk"></div><div class="cur" id="mCur"></div></div>
    <div class="hint" style="display:flex;justify-content:space-between"><span>白地（NG側）</span><span>枠内の黒い部分の割合</span><span>黒地（OK側）</span></div>
    <div class="dbg" id="dbg"></div>
    <button class="btn ok big hidden" id="btnJudge">判定する</button>
@@ -284,11 +283,11 @@ video.setAttribute('playsinline','');video.muted=true;
 async function startCam(canvas){
  targetCanvas=canvas;
  if(stream){loop();return true;}
- if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){alert('この環境ではカメラを使えません。HTTPSのURLで開いてください。');return false;}
+ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){alert('このブラウザではカメラを使えません。Chromeで開き直してください。');return false;}
  try{
   stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});
   video.srcObject=stream;await video.play();loop();return true;
- }catch(e){alert('カメラを起動できません：'+e.message+'\nブラウザのカメラ許可、HTTPSでの表示を確認してください。');return false;}
+ }catch(e){alert('カメラを起動できません：'+e.message+'\nブラウザのカメラ許可を確認してください。');return false;}
 }
 function stopCam(){cancelAnimationFrame(loopId);if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}torchOn=false;}
 function loop(){
@@ -400,7 +399,7 @@ function renderDest(){
  });
 }
 function openBins(d){
- selDest=d;$('stepDest').classList.add('hidden');$('stepBin').classList.remove('hidden');
+ $('stepDest').classList.add('hidden');$('stepBin').classList.remove('hidden');
  $('binTitle').textContent=d+'（'+BINS[d].length+'便）';
  $('binList').innerHTML=BINS[d].map(b=>{const st=todayStat(d,b);return '<button data-b="'+esc(b)+'" class="'+(st||'')+'">'+(b===''?'<span style="font-size:14px">便なし</span>':esc(b))+(st==='done'?'<span class="mk">✔</span>':st==='part'?'<span class="mk">△</span>':'')+'</button>';}).join('');
  $('binList').querySelectorAll('button').forEach(x=>x.onclick=()=>choose(d,x.dataset.b));
@@ -444,8 +443,8 @@ buildIndex();resetPicker();
 let cur=load(LS.cur,null);
 let streakV=null,streak=0,armed=true,paused=false,manualReq=0;
 $('btnStart').onclick=async()=>{
- $('eQty').textContent='';$('eSel').style.color='';
- if(selDest===null){$('eSel').textContent='納入先・便を選択してください。';window.scrollTo(0,0);return;}
+ $('eQty').textContent='';
+ if(selDest===null||selBin===null){$('eSel').textContent='納入先・便を選択してください。';window.scrollTo(0,0);return;}
  const q=$('boxQty').value.trim();
  if(!/^\d+$/.test(q)||+q<1||+q>999){$('eQty').textContent='箱数は1〜999の整数で入力してください。';return;}
  if(todayStat(selDest,selBin)==='done'&&!confirm(fmtSel(selDest,selBin)+' は本日すでに完了しています。もう一度チェックしますか？'))return;
@@ -523,11 +522,11 @@ $('btnStop').onclick=()=>{
 };
 
 /* ---------- 調整 ---------- */
-let calTarget=null,calBuf=[],calLast=null;const calVals=load('kbbw_cal',{});
+let calTarget=null,calBuf=[];const calVals=load('kbbw_cal',{});
 $('btnCalCam').onclick=()=>startCam($('calView'));
 $('btnCalStop').onclick=()=>{stopCam();};
 function onCalFrame(r){
- calLast=r;$('calDbg').textContent='黒 '+Math.round(r.dark*100)+'%　コントラスト '+Math.round(r.sep)+'　外周の白 '+Math.round(r.ring*100)+'%　→ '+VTXT[r.v];
+ $('calDbg').textContent='黒 '+Math.round(r.dark*100)+'%　コントラスト '+Math.round(r.sep)+'　外周の白 '+Math.round(r.ring*100)+'%　→ '+VTXT[r.v];
  if(calTarget){calBuf.push(r);if(calBuf.length>=15)finishCal();}
 }
 function startCal(kind){$('calErr').textContent='';if(!stream){$('calErr').textContent='先に「カメラ起動」を押してください。';return;}calTarget=kind;calBuf=[];$('calRes').textContent='測定中…枠を永久略番に合わせたまま動かさないでください';}
@@ -569,7 +568,7 @@ $('btnResetSet').onclick=()=>{if(!confirm('判定パラメータを初期値に�
 /* ---------- 履歴 ---------- */
 function renderHist(){
  const h=load(LS.hist,[]);
- $('histBody').innerHTML=h.length?h.map(x=>'<tr><td>'+esc(x.start.slice(5,16))+'</td><td>'+esc(x.dest!=null?fmtSel(x.dest,x.bin):(x.slip||'-'))+'</td><td>'+x.qty+'</td><td>'+x.ok+'</td><td class="'+(x.ng?'tagng':'')+'">'+x.ng+'</td><td>'+esc(x.status)+'</td></tr>').join(''):'<tr><td colspan="6">履歴はありません</td></tr>';
+ $('histBody').innerHTML=h.length?h.map(x=>'<tr><td>'+esc(x.start.slice(5,16))+'</td><td>'+esc(x.dest!=null?fmtSel(x.dest,x.bin):'-')+'</td><td>'+x.qty+'</td><td>'+x.ok+'</td><td class="'+(x.ng?'tagng':'')+'">'+x.ng+'</td><td>'+esc(x.status)+'</td></tr>').join(''):'<tr><td colspan="6">履歴はありません</td></tr>';
 }
 $('btnCsv').onclick=()=>{
  const h=load(LS.hist,[]);if(!h.length){alert('履歴がありません。');return;}
