@@ -30,7 +30,8 @@ input[type=range]{width:100%}
 .prog{height:10px;background:#dde;border-radius:5px;overflow:hidden;margin-top:6px}
 .prog div{height:100%;background:#1e8e3e;width:0}
 .cwrap{position:relative;background:#000;border-radius:10px;overflow:hidden}
-canvas#view{width:100%;display:block}
+/* 作業画面・調整画面のカメラ映像を同じ表示にする（調整画面は幅指定がなく、480pxのまま右側が切れて枠がずれて見えていた） */
+.cwrap canvas{width:100%;height:auto;display:block}
 #stateTag{position:absolute;left:8px;top:8px;padding:4px 10px;border-radius:14px;font-size:13px;font-weight:bold;color:#fff;background:rgba(0,0,0,.55)}
 #live{font-size:22px;font-weight:bold;text-align:center;padding:8px;border-radius:8px;margin-top:8px;background:#eee}
 .meter{position:relative;height:16px;background:linear-gradient(90deg,#fff,#000);border:1px solid #999;border-radius:4px;margin-top:6px}
