@@ -215,6 +215,13 @@ button,input,select,textarea{font-family:inherit}
   <input type="range" id="sRingMin" min="10" max="95" step="1">
   <label>確定までの連続フレーム数（大きいほど慎重）<span class="sv" id="vStab"></span></label>
   <input type="range" id="sStab" min="2" max="20" step="1">
+  <label>NGだけ追加で確認するフレーム数（正しいかんばんの誤NG防止）<span class="sv" id="vNgx"></span></label>
+  <input type="range" id="sNgx" min="0" max="10" step="1">
+  <label>手ぶれ許容（「動き」がこれを超えるフレームは確定に使わない）<span class="sv" id="vMot"></span></label>
+  <input type="range" id="sMot" min="3" max="40" step="1">
+  <label><input type="checkbox" id="sPol"> 枠の周辺部の地色でも確認（黒の割合と食い違えば確定しない）</label>
+  <label>地色の境目（地色の黒がこれ以上で黒地とみなす）<span class="sv" id="vBg"></span></label>
+  <input type="range" id="sBg" min="20" max="80" step="1">
   <label>再読取許可までの離脱フレーム数<span class="sv" id="vClr"></span></label>
   <input type="range" id="sClr" min="2" max="20" step="1">
   <label>ガイド枠の幅（%）<span class="sv" id="vGw"></span></label>
@@ -260,7 +267,7 @@ const localStore=(()=>{try{const s=window.localStorage;s.setItem('__t','1');s.re
 const sessionStore=(()=>{try{const s=window.sessionStorage;s.setItem('__t','1');s.removeItem('__t');return s;}catch(e){return memStore();}})();
 const $=id=>document.getElementById(id);
 const LS={set:'kbbw_settings',hist:'kbbw_history',cur:'kbbw_current'};
-const DEF={mode:'auto',okTh:55,ngTh:42,minSep:50,ringOn:true,ringMin:50,stab:6,clr:5,gw:60,gh:22,sound:true,vib:true};
+const DEF={mode:'auto',okTh:55,ngTh:42,minSep:50,ringOn:true,ringMin:50,stab:6,clr:5,gw:60,gh:22,sound:true,vib:true,ngExtra:3,motMax:12,polOn:true,bgTh:50};
 let S=Object.assign({},DEF,load(LS.set,{}));
 function load(k,d){try{const v=JSON.parse(localStore.getItem(k));return v==null?d:v}catch(e){return d}}
 function save(k,v){localStore.setItem(k,JSON.stringify(v))}
@@ -281,31 +288,54 @@ document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
 
 /* ---------- 画像判定 ---------- */
 // 枠内（内側80%）を大津の二値化で白黒に分け、黒の割合・コントラスト・外周の白さを算出
+// 精度改善：①枠の周辺部（背景）の黒さで地色を二重確認 ②反射（白飛び）の部分を除外 ③手ぶれ中のフレームは確定に使わない
+let prevSmp=null;
 function analyze(ctx,W,H){
  const gw=W*S.gw/100, gh=H*S.gh/100, cx=W/2, cy=H/2;
- const img=ctx.getImageData(0,0,W,H).data;
- const gray=(x,y)=>{const i=(y*W+x)*4;return (img[i]*299+img[i+1]*587+img[i+2]*114)/1000};
  const rect=s=>[Math.max(0,Math.round(cx-gw*s/2)),Math.max(0,Math.round(cy-gh*s/2)),Math.min(W,Math.round(cx+gw*s/2)),Math.min(H,Math.round(cy+gh*s/2))];
- const [ax1,ay1,ax2,ay2]=rect(0.8);
- const hist=new Array(256).fill(0);let n=0;
- for(let y=ay1;y<ay2;y+=2)for(let x=ax1;x<ax2;x+=2){hist[gray(x,y)|0]++;n++;}
+ // 必要な範囲（枠の1.5倍）だけ読み出して高速化
+ const [R1,R2,R3,R4]=rect(1.5),RW=Math.max(1,R3-R1),RH=Math.max(1,R4-R2);
+ const img=ctx.getImageData(R1,R2,RW,RH).data;
+ const gray=(x,y)=>{const i=((y-R2)*RW+(x-R1))*4;return (img[i]*299+img[i+1]*587+img[i+2]*114)/1000};
+ const [ax1,ay1,ax2,ay2]=rect(0.8),[b1,b2,b3,b4]=rect(0.5);
+ const cap=(Math.ceil((ax2-ax1)/2)+1)*(Math.ceil((ay2-ay1)/2)+1);
+ const smp=new Uint8Array(cap),bgm=new Uint8Array(cap),hist=new Uint32Array(256);
+ let n=0,sat=0;
+ for(let y=ay1;y<ay2;y+=2)for(let x=ax1;x<ax2;x+=2){
+  const g=gray(x,y)|0;smp[n]=g;bgm[n]=(x<b1||x>=b3||y<b2||y>=b4)?1:0;hist[g]++;if(g>=250)sat++;n++;
+ }
+ if(!n)return {v:'NONE',dark:0,sep:0,ring:0,th:128,bg:0,glare:0,mot:0,mov:false,why:'',box:[cx-gw/2,cy-gh/2,gw,gh]};
+ // 動き（前フレームとの平均差）
+ let mot=99;
+ if(prevSmp&&prevSmp.length===n){let d=0;for(let i=0;i<n;i++)d+=Math.abs(smp[i]-prevSmp[i]);mot=d/n;}
+ prevSmp=smp.slice(0,n);
  // 大津
  let sum=0;for(let i=0;i<256;i++)sum+=i*hist[i];
  let sB=0,wB=0,best=-1,th=128;
  for(let t=0;t<256;t++){wB+=hist[t];if(!wB)continue;const wF=n-wB;if(!wF)break;sB+=t*hist[t];const mB=sB/wB,mF=(sum-sB)/wF,v=wB*wF*(mB-mF)*(mB-mF);if(v>best){best=v;th=t;}}
  let dk=0,sd=0,sl=0;for(let i=0;i<256;i++){if(i<=th){dk+=hist[i];sd+=i*hist[i]}else sl+=i*hist[i];}
- const dark=dk/n, lo=dk?sd/dk:0, hi=(n-dk)?sl/(n-dk):255, sep=hi-lo;
+ const lo=dk?sd/dk:0, hi=(n-dk)?sl/(n-dk):255, sep=hi-lo;
+ // 反射：白飛びが部分的（2〜25%）なら、その画素を除外して黒の割合を計算
+ const glare=sat/n, useG=glare>0.02&&glare<0.25&&th<250;
+ let bgN=0,bgD=0;
+ for(let i=0;i<n;i++){if(!bgm[i])continue;if(useG&&smp[i]>=250)continue;bgN++;if(smp[i]<=th)bgD++;}
+ const dark=useG?dk/Math.max(1,n-sat):dk/n, bg=bgN?bgD/bgN:dark;
  // 外周（枠の1.15〜1.5倍の帯）
  const [o1,o2,o3,o4]=rect(1.5),[i1,i2,i3,i4]=rect(1.15);let rb=0,rn=0;
  for(let y=o2;y<o4;y+=3)for(let x=o1;x<o3;x+=3){if(x>=i1&&x<i3&&y>=i2&&y<i4)continue;rn++;if(gray(x,y)>th)rb++;}
  const ring=rn?rb/rn:0;
- let v;
+ let v,why='';
  if(sep<S.minSep||Math.min(dark,1-dark)<0.03)v='NONE';
  else if(S.ringOn&&ring<S.ringMin/100)v='NONE';
  else if(dark*100>=S.okTh)v='OK';
  else if(dark*100<=S.ngTh)v='NG';
  else v='UNK';
- return {v,dark,sep,ring,th,box:[cx-gw/2,cy-gh/2,gw,gh]};
+ // 地色の二重確認：黒の割合と枠周辺部の地色が食い違う場合は確定しない
+ if(S.polOn&&v==='OK'&&bg*100<S.bgTh){v='UNK';why='地色が白寄り';}
+ if(S.polOn&&v==='NG'&&bg*100>S.bgTh){v='UNK';why='地色が黒寄り';}
+ if(why&&useG)why+='・反射';
+ const mov=mot>S.motMax;
+ return {v,dark,sep,ring,th,bg,glare,mot,mov,why,box:[cx-gw/2,cy-gh/2,gw,gh]};
 }
 function drawGuide(ctx,r,color){
  const [x,y,w,h]=r.box;ctx.lineWidth=4;ctx.strokeStyle=color;ctx.strokeRect(x,y,w,h);
@@ -332,7 +362,7 @@ function loop(){
  cancelAnimationFrame(loopId);
  const step=t=>{
   loopId=requestAnimationFrame(step);
-  if(t-lastT<80||!video.videoWidth||!targetCanvas)return;lastT=t;
+  if(t-lastT<66||!video.videoWidth||!targetCanvas)return;lastT=t;
   const c=targetCanvas,W=480,H=Math.round(480*video.videoHeight/video.videoWidth);
   if(c.width!==W||c.height!==H){c.width=W;c.height=H;}
   const ctx=c.getContext('2d',{willReadFrequently:true});
@@ -604,7 +634,7 @@ $('btnStart').onclick=async()=>{
 function showRun(){
  $('setup').classList.add('hidden');$('run').classList.remove('hidden');
  $('btnJudge').classList.toggle('hidden',S.mode!=='manual');
- armed=S.mode==='auto';paused=false;streak=0;
+ armed=S.mode==='auto';paused=false;streak=0;resetWin();
  renderRun();startCam($('view'));
 }
 function renderRun(){
@@ -617,25 +647,36 @@ function renderRun(){
  $('mOk').style.left=S.okTh+'%';$('mNg').style.left=S.ngTh+'%';
 }
 function addLog(r,d,m){cur.log.push({t:now(),r,rem:cur.qty-cur.ok,d,dark:m?Math.round(m.dark*100):''});save(LS.cur,cur);renderRun();syncCur();}
+// 直近フレームの判定履歴（ちらつき1〜2フレームで最初からやり直しにならないようにする）
+const win=[];
+function resetWin(){win.length=0;}
+function confirmed(r){
+ if(r.mov||(r.v!=='OK'&&r.v!=='NG'))return null;
+ const v=r.v,o=v==='OK'?'NG':'OK',need=v==='OK'?S.stab:S.stab+S.ngExtra,w=win.slice(-(need+2));
+ let c=0,opp=0;w.forEach(x=>{if(x===v)c++;else if(x===o)opp++;});
+ return (c>=need&&opp===0)?v:null;
+}
 function onFrame(r){
  $('mCur').style.left=(r.dark*100)+'%';
- $('dbg').textContent='黒 '+Math.round(r.dark*100)+'%　コントラスト '+Math.round(r.sep)+'　外周の白 '+Math.round(r.ring*100)+'%';
- const live=$('live');live.textContent=VTXT[r.v];live.style.background=VCOL[r.v];live.style.color='#fff';
+ $('dbg').textContent='黒 '+Math.round(r.dark*100)+'%　地色の黒 '+Math.round(r.bg*100)+'%　コントラスト '+Math.round(r.sep)+'　外周の白 '+Math.round(r.ring*100)+'%　反射 '+Math.round(r.glare*100)+'%　動き '+(r.mot>=99?'-':Math.round(r.mot));
+ const live=$('live');live.textContent=r.mov&&r.v!=='NONE'?'静止してください（手ぶれ）':VTXT[r.v]+(r.why?'：'+r.why:'');live.style.background=r.mov&&r.v!=='NONE'?'#607d8b':VCOL[r.v];live.style.color='#fff';
  if(paused)return;
  if(r.v===streakV)streak++;else{streakV=r.v;streak=1;}
+ win.push(r.mov?'MOV':r.v);const L=S.stab+S.ngExtra+2;while(win.length>L)win.shift();
+ const cf=confirmed(r);
  const tag=$('stateTag');
  if(S.mode==='manual'){
   if(manualReq&&Date.now()>manualReq){manualReq=0;beep('wn');tag.textContent='判定できませんでした';}
-  if(manualReq&&(r.v==='OK'||r.v==='NG')&&streak>=S.stab){manualReq=0;decide(r);}
+  if(manualReq&&cf){manualReq=0;resetWin();decide(r);}
   else if(!manualReq)tag.textContent='「判定する」を押してください';
   return;
  }
  if(armed){
-  tag.textContent='読取可';tag.style.background='rgba(30,142,62,.85)';
-  if((r.v==='OK'||r.v==='NG')&&streak>=S.stab){armed=false;decide(r);}
+  tag.textContent=r.mov?'読取可（静止してください）':'読取可';tag.style.background='rgba(30,142,62,.85)';
+  if(cf){armed=false;resetWin();decide(r);}
  }else{
   tag.textContent='カメラをかんばんから外してください';tag.style.background='rgba(224,138,0,.9)';
-  if((r.v==='NONE'||r.v==='UNK')&&streak>=S.clr)armed=true;
+  if((r.v==='NONE'||(r.v==='UNK'&&!r.why))&&streak>=S.clr){armed=true;resetWin();}
  }
 }
 function decide(r){
@@ -653,9 +694,9 @@ function showOverlay(kind,big,msg){
  paused=true;const o=$('overlay');o.className='bg-'+kind;$('ovBig').textContent=big;$('ovMsg').innerHTML=msg;
  $('ovBtn').textContent=kind==='ok'?'閉じる':'確認しました';beep(kind==='ok'?'ok':kind);
 }
-$('ovBtn').onclick=()=>{$('overlay').className='hidden';paused=false;streak=0;armed=false;};
-$('btnJudge').onclick=()=>{if(paused)return;manualReq=Date.now()+3000;streak=0;$('stateTag').textContent='判定中…';};
-$('btnRearm').onclick=()=>{armed=true;streak=0;};
+$('ovBtn').onclick=()=>{$('overlay').className='hidden';paused=false;streak=0;resetWin();armed=false;};
+$('btnJudge').onclick=()=>{if(paused)return;manualReq=Date.now()+3000;streak=0;resetWin();$('stateTag').textContent='判定中…';};
+$('btnRearm').onclick=()=>{armed=true;streak=0;resetWin();};
 $('btnUndo').onclick=()=>{
  if(!cur||cur.ok<1){alert('取り消せるOKがありません。');return;}
  if(!confirm('直前のOKを1件取り消し、残数を1戻しますか？'))return;
@@ -675,17 +716,17 @@ let calTarget=null,calBuf=[];const calVals=load('kbbw_cal',{});
 $('btnCalCam').onclick=()=>startCam($('calView'));
 $('btnCalStop').onclick=()=>{stopCam();};
 function onCalFrame(r){
- $('calDbg').textContent='黒 '+Math.round(r.dark*100)+'%　コントラスト '+Math.round(r.sep)+'　外周の白 '+Math.round(r.ring*100)+'%　→ '+VTXT[r.v];
- if(calTarget){calBuf.push(r);if(calBuf.length>=15)finishCal();}
+ $('calDbg').textContent='黒 '+Math.round(r.dark*100)+'%　地色の黒 '+Math.round(r.bg*100)+'%　コントラスト '+Math.round(r.sep)+'　外周の白 '+Math.round(r.ring*100)+'%　反射 '+Math.round(r.glare*100)+'%　動き '+(r.mot>=99?'-':Math.round(r.mot))+'　→ '+(r.mov?'手ぶれ中':VTXT[r.v]+(r.why?'：'+r.why:''));
+ if(calTarget&&!r.mov){calBuf.push(r);if(calBuf.length>=15)finishCal();}
 }
 function startCal(kind){$('calErr').textContent='';if(!stream){$('calErr').textContent='先に「カメラ起動」を押してください。';return;}calTarget=kind;calBuf=[];$('calRes').textContent='測定中…枠を永久略番に合わせたまま動かさないでください';}
 $('btnCalOk').onclick=()=>startCal('ok');$('btnCalNg').onclick=()=>startCal('ng');
 function finishCal(){
  const k=calTarget;calTarget=null;
  const avg=a=>a.reduce((s,x)=>s+x,0)/a.length;
- const d=avg(calBuf.map(x=>x.dark))*100,sep=avg(calBuf.map(x=>x.sep)),ring=avg(calBuf.map(x=>x.ring))*100;
+ const d=avg(calBuf.map(x=>x.dark))*100,sep=avg(calBuf.map(x=>x.sep)),ring=avg(calBuf.map(x=>x.ring))*100,bg=avg(calBuf.map(x=>x.bg))*100;
  if(sep<20){$('calErr').textContent='コントラストが低すぎます。かんばんに近づけ、反射を避けて再測定してください。';$('calRes').textContent='';return;}
- calVals[k]={d,sep,ring};save('kbbw_cal',calVals);
+ calVals[k]={d,sep,ring,bg};save('kbbw_cal',calVals);
  let msg='OK見本 黒'+(calVals.ok?Math.round(calVals.ok.d)+'%':'未測定')+'／NG見本 黒'+(calVals.ng?Math.round(calVals.ng.d)+'%':'未測定');
  if(calVals.ok&&calVals.ng){
   const a=calVals.ok.d,b=calVals.ng.d;
@@ -694,22 +735,25 @@ function finishCal(){
    const mid=(a+b)/2;S.okTh=Math.round(mid+(a-mid)*0.3);S.ngTh=Math.round(mid-(mid-b)*0.3);
    S.minSep=Math.max(20,Math.round(Math.min(calVals.ok.sep,calVals.ng.sep)*0.5));
    const rmin=Math.min(calVals.ok.ring,calVals.ng.ring);S.ringMin=Math.max(10,Math.min(80,Math.round(rmin*0.6)));
-   save(LS.set,S);renderSet();msg+='　→ しきい値を自動設定しました（OK≧'+S.okTh+'%／NG≦'+S.ngTh+'%）';
+   if(calVals.ok.bg!=null&&calVals.ng.bg!=null){const ob=calVals.ok.bg,nb=calVals.ng.bg;
+    if(ob-nb>=30){S.polOn=true;S.bgTh=Math.round((ob+nb)/2);}else{S.polOn=false;}}
+   save(LS.set,S);renderSet();msg+='　→ しきい値を自動設定しました（OK≧'+S.okTh+'%／NG≦'+S.ngTh+'%'+(S.polOn?'／地色の境目 '+S.bgTh+'%':'／地色チェックは差が小さいため無効')+'）';
   }
  }
  $('calRes').textContent=msg;
 }
-const SL=[['sOk','okTh','vOk','%'],['sNg','ngTh','vNg','%'],['sSep','minSep','vSep',''],['sRingMin','ringMin','vRing','%'],['sStab','stab','vStab',''],['sClr','clr','vClr',''],['sGw','gw','vGw','%'],['sGh','gh','vGh','%']];
+const SL=[['sNgx','ngExtra','vNgx',''],['sMot','motMax','vMot',''],['sBg','bgTh','vBg','%'],['sOk','okTh','vOk','%'],['sNg','ngTh','vNg','%'],['sSep','minSep','vSep',''],['sRingMin','ringMin','vRing','%'],['sStab','stab','vStab',''],['sClr','clr','vClr',''],['sGw','gw','vGw','%'],['sGh','gh','vGh','%']];
 function renderSet(){
- $('sMode').value=S.mode;$('sRing').checked=S.ringOn;$('sSound').checked=S.sound;$('sVib').checked=S.vib;
+ $('sMode').value=S.mode;$('sRing').checked=S.ringOn;$('sPol').checked=S.polOn;$('sSound').checked=S.sound;$('sVib').checked=S.vib;
  SL.forEach(([id,k,v,u])=>{$(id).value=S[k];$(v).textContent=S[k]+u;});
 }
 SL.forEach(([id,k,v,u])=>$(id).oninput=()=>{S[k]=+$(id).value;$(v).textContent=S[k]+u;});
 $('sRing').onchange=()=>S.ringOn=$('sRing').checked;
+$('sPol').onchange=()=>S.polOn=$('sPol').checked;
 $('btnSaveSet').onclick=()=>{
  $('eSet').textContent='';
  if(S.okTh-S.ngTh<5){$('eSet').textContent='OKしきい値はNGしきい値より5ポイント以上大きくしてください。';return;}
- S.mode=$('sMode').value;S.ringOn=$('sRing').checked;S.sound=$('sSound').checked;S.vib=$('sVib').checked;
+ S.mode=$('sMode').value;S.ringOn=$('sRing').checked;S.polOn=$('sPol').checked;S.sound=$('sSound').checked;S.vib=$('sVib').checked;
  save(LS.set,S);alert('保存しました。');
 };
 $('btnResetSet').onclick=()=>{if(!confirm('判定パラメータを初期値に戻しますか？'))return;S=Object.assign({},DEF);save(LS.set,S);renderSet();};
