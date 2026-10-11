@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>かんばん白黒判定スキャナー（納入先・便選択）</title>
+<title>かんばん白黒判定スキャナー（共有版）</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;font-family:"Meiryo UI","メイリオ",Meiryo,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;background:#f2f4f7;color:#222}
@@ -15,7 +15,7 @@ main{padding:12px;max-width:640px;margin:0 auto}
 .card{background:#fff;border-radius:10px;padding:14px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
 h2{font-size:16px;margin:0 0 10px}
 label{display:block;font-size:13px;color:#555;margin:10px 0 4px}
-input[type=search],input[type=number],select{width:100%;font-size:18px;padding:10px;border:1px solid #bbb;border-radius:8px;background:#fff}
+input[type=text],input[type=number],select{width:100%;font-size:18px;padding:10px;border:1px solid #bbb;border-radius:8px;background:#fff}
 input[type=range]{width:100%}
 .btn{display:block;width:100%;padding:14px;font-size:17px;font-weight:bold;border:none;border-radius:10px;margin-top:10px;color:#fff;background:#1f3a5f}
 .btn.sub{background:#6b7785}.btn.warn{background:#c0392b}.btn.ok{background:#1e8e3e}.btn.big{padding:20px;font-size:20px}
@@ -53,7 +53,6 @@ th,td{border-bottom:1px solid #eee;padding:5px 4px;text-align:left;vertical-alig
 
 .selBox{border:2px solid #1f3a5f;border-radius:10px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;background:#f5f8fc}
 .selBox .v{font-size:22px;font-weight:bold;color:#1f3a5f;word-break:break-all}
-.selBox .v.none{color:#999;font-size:16px;font-weight:normal}
 .selBox button{font-size:14px;padding:8px 12px;border-radius:8px;border:1px solid #1f3a5f;background:#fff;color:#1f3a5f;white-space:nowrap}
 .sub-h{font-size:12px;color:#666;margin:12px 0 6px;font-weight:bold}
 .chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}
@@ -73,13 +72,27 @@ th,td{border-bottom:1px solid #eee;padding:5px 4px;text-align:left;vertical-alig
 .backbar{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .backbar button{padding:8px 12px;border-radius:8px;border:1px solid #999;background:#fff;font-size:14px}
 .backbar b{font-size:17px}
-#runInfo{font-size:20px;font-weight:bold;color:#1f3a5f;text-align:center}
+#runInfo{font-size:20px!important;font-weight:bold;color:#1f3a5f!important;text-align:center}
 textarea{width:100%;font-size:13px;font-family:"Meiryo UI",Meiryo,monospace;padding:8px;border:1px solid #bbb;border-radius:8px}
 button,input,select,textarea{font-family:inherit}
+.srv{float:right;font-size:12px;font-weight:normal;padding:3px 9px;border-radius:10px;background:#888;margin-top:1px}
+.srv.on{background:#1e8e3e}.srv.off{background:#c0392b}
+.bins button.busy{background:#e3f2fd;border-color:#1565c0;color:#1565c0}
+.recent button.busy{background:#e3f2fd;border-color:#1565c0}
+.who{display:block;font-size:10px;color:#888}
+
+#jsWarn{background:#c0392b;color:#fff;padding:12px 14px;font-size:14px;line-height:1.6}
+#errBar{position:fixed;left:0;right:0;bottom:0;z-index:99;background:#7f0000;color:#fff;font-size:12px;padding:8px 10px;white-space:pre-wrap;max-height:30vh;overflow:auto}
+.selBtns{display:flex;flex-direction:column;gap:6px}
+.selBox button.del{border-color:#c0392b;color:#c0392b;font-size:12px}
+.recentHead{display:flex;justify-content:space-between;align-items:center}
+.recentHead button{font-size:12px;padding:4px 10px;border-radius:6px;border:1px solid #c0392b;background:#fff;color:#c0392b}
 </style>
 </head>
 <body>
-<header>かんばん白黒判定スキャナー</header>
+<div id="jsWarn">このアプリが動いていません。<br>ファイルの<b>プレビュー表示</b>（メール・チャット・ファイルアプリ等）ではプログラムが動かず、入力・選択ができません。<br>Chrome（Android）／Safari（iPhone）で、共有サーバーのURL（https://…:8443/）を開いてください。</div>
+<noscript><div style="background:#c0392b;color:#fff;padding:12px">JavaScriptが無効です。ブラウザの設定でJavaScriptを有効にしてください。</div></noscript>
+<header>かんばん白黒判定スキャナー<span id="srv" class="srv off">接続確認中</span></header>
 <nav>
  <button data-tab="work" class="on">作業</button>
  <button data-tab="set">設定・調整</button>
@@ -90,10 +103,10 @@ button,input,select,textarea{font-family:inherit}
 <section id="tab-work">
  <div id="setup" class="card">
   <h2>① 納入先・便を選ぶ</h2>
-  <div class="selBox"><div class="v none" id="selTxt">未選択</div><button id="btnReselect" class="hidden">選び直す</button></div>
+  <div class="selBox hidden" id="selBox"><div class="v" id="selTxt"></div><div class="selBtns"><button id="btnReselect">選び直す</button><button id="btnDelRecent" class="del hidden">最近使ったから削除</button></div></div>
   <div class="err" id="eSel"></div>
   <div id="picker">
-   <div id="recentWrap"><div class="sub-h">最近使った（タップで即選択）</div><div class="chips recent" id="recent"></div></div>
+   <div id="recentWrap"><div class="sub-h recentHead"><span>最近使った（タップで即選択）</span><button id="btnClrRecent" type="button">すべて消去</button></div><div class="chips recent" id="recent"></div></div>
    <div class="sub-h">検索（一部でOK・全角半角/大小文字は区別しない。例：高岡K1、碧南、吉原 7）</div>
    <input type="search" id="q" placeholder="納入先名の一部を入力" autocomplete="off">
    <div id="stepDest">
@@ -106,7 +119,7 @@ button,input,select,textarea{font-family:inherit}
    <div id="stepBin" class="hidden">
     <div class="backbar"><button id="btnBackDest">← 戻る</button><b id="binTitle"></b></div>
     <div class="bins" id="binList"></div>
-    <div class="hint" style="margin-top:6px">✔緑＝本日完了済　△橙＝本日未完了で終了</div>
+    <div class="hint" style="margin-top:6px">✔緑＝本日完了済　●青＝他の端末で作業中　△橙＝本日未完了で終了</div>
    </div>
   </div>
   <h2 style="margin-top:16px">② 指示書の箱数</h2>
@@ -124,7 +137,7 @@ button,input,select,textarea{font-family:inherit}
 
  <div id="run" class="hidden">
   <div class="card">
-   <div id="runInfo"></div>
+   <div style="font-size:13px;color:#555" id="runInfo"></div>
    <div id="remainBox"><div style="font-size:14px;color:#555">残り箱数</div><div id="remain">0</div>
     <div style="font-size:14px" id="cntTxt"></div>
     <div class="prog"><div id="progBar"></div></div></div>
@@ -132,7 +145,7 @@ button,input,select,textarea{font-family:inherit}
   <div class="card">
    <div class="cwrap"><canvas id="view" width="480" height="360"></canvas><div id="stateTag">起動中</div></div>
    <div id="live">—</div>
-   <div class="meter"><div class="th ng" id="mNg"></div><div class="th ok" id="mOk"></div><div class="cur" id="mCur"></div></div>
+   <div class="meter" id="meter"><div class="th ng" id="mNg"></div><div class="th ok" id="mOk"></div><div class="cur" id="mCur"></div></div>
    <div class="hint" style="display:flex;justify-content:space-between"><span>白地（NG側）</span><span>枠内の黒い部分の割合</span><span>黒地（OK側）</span></div>
    <div class="dbg" id="dbg"></div>
    <button class="btn ok big hidden" id="btnJudge">判定する</button>
@@ -151,6 +164,18 @@ button,input,select,textarea{font-family:inherit}
 
 <!-- ===== 設定・調整 ===== -->
 <section id="tab-set" class="hidden">
+ <div class="card">
+  <h2>共有サーバー</h2>
+  <div class="hint" id="svStat">接続確認中…</div>
+  <label>この端末の名前（履歴・作業中表示に使います）</label>
+  <input type="text" id="devName" maxlength="20" placeholder="例：出荷場1号機">
+  <div class="err" id="eDev"></div>
+  <div class="row">
+   <button class="btn" id="btnDevSave">端末名を保存</button>
+   <button class="btn sub" id="btnSync">今すぐ同期</button>
+  </div>
+  <div class="hint" id="obStat" style="margin-top:6px"></div>
+ </div>
  <div class="card">
   <h2>納入先・便リスト <span class="sv" id="mCount"></span></h2>
   <div class="hint">Excelで「A列：納入先／B列：便」を範囲選択してコピーし、下に貼り付けて「取り込む」。納入先＋便が同じ行は自動で1件にまとめます（前後の空白は無視）。見出し行があっても構いません。</div>
@@ -207,10 +232,15 @@ button,input,select,textarea{font-family:inherit}
 <!-- ===== 履歴 ===== -->
 <section id="tab-hist" class="hidden">
  <div class="card">
-  <h2>作業履歴（この端末）</h2>
+  <h2 id="histTitle">作業履歴</h2>
+  <label>期間</label>
+  <select id="histDays"><option value="1">今日</option><option value="3">3日間</option><option value="7" selected>7日間</option><option value="31">31日間</option></select>
   <table><thead><tr><th>開始</th><th>納入先・便</th><th>指示</th><th>OK</th><th>NG</th><th>状態</th></tr></thead><tbody id="histBody"></tbody></table>
-  <button class="btn" id="btnCsv">明細CSVを出力</button>
-  <button class="btn warn" id="btnClrHist">履歴を全削除</button>
+  <button class="btn" id="btnCsv">明細CSVを保存（ダウンロード）</button>
+  <div class="hint">保存先：Android＝「ダウンロード」フォルダ／iPhone＝「ファイル」アプリの「ダウンロード」。Excelでそのまま開けます（文字化けしない形式）。</div>
+  <div class="err" id="eCsv"></div>
+  <button class="btn warn" id="btnClrHist">この端末内の履歴を削除</button>
+  <div class="hint">共有サーバーに接続中は、全端末の履歴を表示・出力します。サーバー側の履歴は削除されません。</div>
  </div>
 </section>
 </main>
@@ -220,12 +250,20 @@ button,input,select,textarea{font-family:inherit}
 
 <script>
 'use strict';
+/* ---------- 起動時の安全策 ---------- */
+window.addEventListener('error',e=>showErr((e.message||'エラー')+(e.lineno?'（'+e.lineno+'行）':'')));
+window.addEventListener('unhandledrejection',e=>{const m=e.reason&&e.reason.message||String(e.reason);if(!/abort|fetch|network/i.test(m))showErr(m);});
+function showErr(m){let b=document.getElementById('errBar');if(!b){b=document.createElement('div');b.id='errBar';b.onclick=()=>b.remove();document.body.appendChild(b);}b.textContent='エラーが発生しました（タップで閉じる）：'+m;}
+function memStore(){const m={};return {getItem:k=>k in m?m[k]:null,setItem:(k,v)=>{m[k]=String(v)},removeItem:k=>{delete m[k]}};}
+let STORAGE_OK=true;
+const localStore=(()=>{try{const s=window.localStorage;s.setItem('__t','1');s.removeItem('__t');return s;}catch(e){STORAGE_OK=false;return memStore();}})();
+const sessionStore=(()=>{try{const s=window.sessionStorage;s.setItem('__t','1');s.removeItem('__t');return s;}catch(e){return memStore();}})();
 const $=id=>document.getElementById(id);
 const LS={set:'kbbw_settings',hist:'kbbw_history',cur:'kbbw_current'};
 const DEF={mode:'auto',okTh:55,ngTh:42,minSep:50,ringOn:true,ringMin:50,stab:6,clr:5,gw:60,gh:22,sound:true,vib:true};
 let S=Object.assign({},DEF,load(LS.set,{}));
-function load(k,d){try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch(e){return d}}
-function save(k,v){localStorage.setItem(k,JSON.stringify(v))}
+function load(k,d){try{const v=JSON.parse(localStore.getItem(k));return v==null?d:v}catch(e){return d}}
+function save(k,v){localStore.setItem(k,JSON.stringify(v))}
 const now=()=>{const d=new Date(),p=n=>String(n).padStart(2,'0');return d.getFullYear()+'/'+p(d.getMonth()+1)+'/'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds())};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
@@ -283,11 +321,11 @@ video.setAttribute('playsinline','');video.muted=true;
 async function startCam(canvas){
  targetCanvas=canvas;
  if(stream){loop();return true;}
- if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){alert('このブラウザではカメラを使えません。Chromeで開き直してください。');return false;}
+ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){alert('この環境ではカメラを使えません。HTTPSのURLで開いてください。');return false;}
  try{
   stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});
   video.srcObject=stream;await video.play();loop();return true;
- }catch(e){alert('カメラを起動できません：'+e.message+'\nブラウザのカメラ許可を確認してください。');return false;}
+ }catch(e){alert('カメラを起動できません：'+e.message+'\nブラウザのカメラ許可、HTTPSでの表示を確認してください。');return false;}
 }
 function stopCam(){cancelAnimationFrame(loopId);if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}torchOn=false;}
 function loop(){
@@ -323,6 +361,82 @@ function beep(type){
 }
 
 
+/* ---------- 共有サーバー連携 ---------- */
+const CAN_SERVER=/^https?:$/.test(location.protocol);
+const SV={on:false,today:[]};
+const LSO='kbbw_outbox',LSD='kbbw_device',LSMV='kbbw_master_ver';
+let DEVICE=localStore.getItem(LSD)||('端末-'+Math.random().toString(36).slice(2,6).toUpperCase());
+localStore.setItem(LSD,DEVICE);
+let ADMIN_KEY=sessionStore.getItem('kbbw_admin')||'';
+async function api(path,opt={},ms=8000){
+ const ac=new AbortController(),t=setTimeout(()=>ac.abort(),ms);
+ const hd={'Content-Type':'application/json'};if(ADMIN_KEY)hd['X-Admin-Key']=encodeURIComponent(ADMIN_KEY);
+ try{
+  const r=await fetch(path,Object.assign({signal:ac.signal,cache:'no-store',headers:hd},opt));
+  let j=null;try{j=await r.json();}catch(e){}
+  if(!r.ok){const er=new Error((j&&j.error)||('HTTP '+r.status));er.status=r.status;throw er;}
+  return j;
+ }finally{clearTimeout(t);}
+}
+function setSrv(on,msg){
+ SV.on=on;const e=$('srv');e.textContent=on?'共有中':'端末内保存';e.className='srv '+(on?'on':'off');
+ $('svStat').textContent=msg||(on?'共有サーバーに接続中（'+location.host+'）。マスタ・履歴・作業中状況を全端末で共有しています。':'共有サーバーに接続できません。データはこの端末に保存し、接続が戻ると自動で送信します。');
+ updOutbox();
+}
+function updOutbox(){const n=load(LSO,[]).length;$('obStat').textContent=n?'未送信の作業データ：'+n+'件（接続回復時に自動送信）':'未送信データはありません。';}
+function queueJob(job){
+ if(!CAN_SERVER)return;
+ const x=JSON.parse(JSON.stringify(job));x.device=DEVICE;x.rev=Date.now();
+ const o=load(LSO,[]).filter(y=>y.id!==x.id);o.push(x);save(LSO,o);flushOutbox();
+}
+let flushing=false;
+async function flushOutbox(){
+ if(!CAN_SERVER||flushing)return;flushing=true;
+ try{
+  let o=load(LSO,[]);
+  while(o.length){
+   const x=o[0];await api('api/jobs',{method:'POST',body:JSON.stringify(x)});
+   save(LSO,load(LSO,[]).filter(y=>!(y.id===x.id&&y.rev===x.rev)));o=load(LSO,[]);
+  }
+  if(!SV.on)setSrv(true);
+ }catch(e){if(!e.status)setSrv(false);}
+ finally{flushing=false;updOutbox();}
+}
+let curSyncT=null;
+function syncCur(){if(!cur)return;clearTimeout(curSyncT);curSyncT=setTimeout(()=>{if(cur)queueJob(Object.assign({},cur,{status:'作業中'}));},1200);}
+async function syncShared(){
+ if(!CAN_SERVER)return;
+ try{
+  const r=await api('api/today');SV.today=r.jobs||[];setSrv(true);
+  if(r.master_version&&r.master_version!==localStore.getItem(LSMV))await loadMasterFromServer();
+  flushOutbox();
+ }catch(e){setSrv(false);}
+ if(!cur)refreshPicker();
+}
+async function loadMasterFromServer(){
+ try{
+  const r=await api('api/master');
+  if(r.rows&&r.rows.length){MASTER=r.rows;save(LSM,MASTER);localStore.setItem(LSMV,r.version||'');buildIndex();if(!cur)resetPicker();}
+ }catch(e){}
+}
+async function saveMasterShared(rows){
+ for(let i=0;i<2;i++){
+  try{return await api('api/master',{method:'PUT',body:JSON.stringify({rows,device:DEVICE})},15000);}
+  catch(e){
+   if(e.status===403&&i===0){const k=prompt('リストの変更には管理者キーが必要です。管理者キーを入力してください。');if(!k)throw new Error('キャンセルしました');ADMIN_KEY=k;sessionStore.setItem('kbbw_admin',k);continue;}
+   if(e.status===403){ADMIN_KEY='';sessionStore.removeItem('kbbw_admin');}
+   throw e;
+  }
+ }
+}
+$('devName').value=DEVICE;
+$('btnDevSave').onclick=()=>{
+ const v=$('devName').value.trim();$('eDev').textContent='';
+ if(!v||v.length>20){$('eDev').textContent='端末名は1〜20文字で入力してください。';return;}
+ DEVICE=v;localStore.setItem(LSD,v);alert('端末名を保存しました：'+v);
+};
+$('btnSync').onclick=async()=>{if(!CAN_SERVER){alert('ファイルとして開いているため同期できません。サーバーのURLで開いてください。');return;}await syncShared();await loadMasterFromServer();alert(SV.on?'同期しました。':'共有サーバーに接続できません。');};
+
 /* ---------- 納入先・便マスタ ---------- */
 const MASTER0=[["TYいなべA8","15"],["TYいなべA8","16"],["TYいなべA8","17"],["TY吉原31","1"],["TY吉原7F","1"],["TY吉原7H","2"],["岐阜車体G6","5"],["岐阜車体J6","10"],["岐阜車体J6","11"],["織機碧南N1","1"],["大豊花本01","1"],["日野羽村06","7"],["日野羽村06","8"],["日野羽村68","1"],["日野羽村B1","7"],["日野羽村B1","8"],["日野羽村B6","7"],["日野羽村B6","8"],["日野羽村M6","7"],["日野羽村M6","8"],["TMC田原E3","3"],["TMC田原E4","3"],["TMC田原8M","2"],["TMC田原C5","4"],["TMC田原C5（林テ）","4"],["TMC元町31","1"],["TMC元町64","1"],["TMC元町70","1"],["TMC元町96","1"],["TMC元町H0","1"],["TMC元町NA","2"],["織機長草21","4"],["織機長草23","8"],["織機長草23","9"],["織機長草23","10"],["織機長草61","4"],["織機長草63","5"],["TYいなべA8","18"],["TYいなべA8","19"],["TYいなべA8","20"],["TY刈谷R5","2"],["岐阜車体G6","6"],["岐阜車体J1","2"],["岐阜車体J6","12"],["岐阜車体J6","13"],["岐阜車体N2","1"],["フタバ知立10","2"],["フタバ知立23","2"],["フタバ知立33","2"],["織機長草21","5"],["織機長草23","11"],["織機長草23","12"],["織機長草61","5"],["織機長草63","6"],["日野羽村06","1"],["日野羽村06","2"],["日野羽村B1","1"],["日野羽村B1","2"],["日野羽村B2","1"],["日野羽村B6","1"],["日野羽村B6","2"],["日野羽村M6","1"],["日野羽村M6","2"],["日野羽村S1","1"],["東洋ゴム桑名A1","1"],["東洋ゴム桑名C1","1"],["綾部トーヨーゴムIK","1"],["TMC田原E3","4"],["TMC田原E4","4"],["TMC田原W2","3"],["TMC田原W2（林テ）","3"],["TMC田原W5","2"],["日野羽村03","1"],["日野羽村03","2"],["日野羽村03","3"],["日野羽村03","4"],["DH京都52","8"],["DH京都52","1"],["DH京都52","2"],["DH滋賀141","1"],["DH滋賀220","1"],["ナミコー滋賀","1"],["三五福田4W","1"],["三五福田95","1"],["三五福田B4","1"],["TYいなべA8","21"],["TYいなべA8","22"],["TYいなべA8","23"],["岐阜車体G6","7"],["岐阜車体J6","14"],["岐阜車体J6","15"],["TMC田原8K","1"],["TMC田原C5","1"],["TMC田原C5（林テ）","1"],["TMC田原D3","1"],["織機長草21","6"],["織機長草23","13"],["織機長草23","14"],["織機長草61","6"],["織機長草63","7"],["織機長草63","8"],["VUTEQ豊田01","1"],["豊生土岐04","1"],["TMC本社4A","3"],["アイシンAW12","1"],["アイシンAW18","1"],["アイシンAW30","1"],["アイシン刈谷",""],["織機高浜05","1"],["織機高浜20","1"],["TMC元町65","2"],["TMC元町7B","2"],["TMC元町7P","2"],["TMC元町NA","3"],["フタバ知立10","3"],["フタバ知立23","3"],["フタバ知立33","3"],["AGCA1","1"],["JTEKT豊橋01","1"],["JTEKT豊橋F0","1"],["VUTEQ田原02","1"],["トピー豊川","1"],["フタバ幸田32","1"],["中庸スプリング01","1"],["日野羽村06","3"],["日野羽村06","4"],["日野羽村B1","3"],["日野羽村B1","4"],["日野羽村B6","3"],["日野羽村B6","4"],["日野羽村C1","1"],["日野羽村D8","1"],["日野羽村M6","3"],["日野羽村M6","4"],["旭鉄工5A","1"],["東プレ東海J4","1"],["TMC上郷87","1"],["TMC上郷J1","1"],["TYいなべA8","1"],["TYいなべA8","2"],["TYいなべA8","24"],["TYいなべA8(林テ)","1"],["岐阜車体G6","8"],["岐阜車体J1","3"],["岐阜車体J6","1"],["岐阜車体J6","16"],["岐阜車体N2","2"],["TY富士松65(林テ)","2"],["織機長草21","7"],["織機長草23","15"],["織機長草23","16"],["織機長草23","17"],["織機長草61","7"],["織機長草63","9"],["TMC田原E3","5"],["TMC田原E4","5"],["TMC田原W2","4"],["TMC田原W2（林テ）","4"],["TMC堤21","3"],["TMC堤4X","3"],["TMC堤5R","1"],["TMC堤AS","1"],["TMC堤R7","1"],["TMC堤R9","1"],["TY吉原32","14"],["TY吉原32","15"],["TY吉原32","16"],["TY吉原7D","6"],["TY吉原Q4","3"],["TY吉原Q5","3"],["TY富士松66","4"],["TMC堤21","4"],["TMC堤4X","4"],["TMC高岡07","1"],["TMC高岡19","4"],["TMC高岡K1","3"],["TMEJ大衡B9","1"],["TMEJ大衡J3","1"],["TMEJ大衡S2","1"],["TMEJ岩手D1","4"],["TMEJ岩手D1","5"],["TMEJ岩手W1","2"],["TMK宮田34","4"],["TMK宮田B4","1"],["TMK宮田B7","2"],["TMK宮田F0","2"],["TMK宮田L4","1"],["TY吉原32","17"],["TY吉原32","18"],["TY吉原32","19"],["TY吉原7D","7"],["TMC堤21","5"],["TMC堤37","1"],["TMC堤4X","5"],["TMC高岡19","5"],["TMC高岡K1","4"],["TBKサテライトE0","6"],["TBKサテライトE0","1"],["フタバオンサイトS1","1"],["TY吉原32","20"],["TY吉原32","21"],["TY吉原32","22"],["TY吉原7D","8"],["TY吉原Q4","4"],["TY吉原Q5","4"],["TY富士松66","5"],["トヨタTVCG5","2"],["TMC高岡19","6"],["TMC堤21","6"],["TMC堤2X","2"],["TMC堤4X","6"],["KVCF7","1"],["TMEJ大衡(KIK)M7","2"],["TMEJ岩手A1","2"],["TMEJ岩手D1","6"],["TMEJ岩手D1","7"],["TMEJ岩手G7","2"],["TMEJ岩手W1","3"],["TMK宮田34","5"],["TMK宮田34","6"],["TMK宮田B3","2"],["TMK宮田B7","3"],["TMK宮田F0","3"],["TMK宮田F3","2"],["TMC高岡19","7"],["TMC高岡K1","5"],["TMC高岡K5","2"],["TTAI","1"],["TTCA","1"],["TTMA","1"],["TTTX","1"],["VtoV","1"],["TY吉原32","23"],["TY吉原32","24"],["TY吉原32","1"],["TY吉原7D","1"],["TY富士松66","6"],["トヨタTVCE5","1"],["トヨタTVCE6","1"],["TMC堤21","7"],["TMC堤4X","7"],["TMC堤R9","2"],["TMC高岡19","8"],["TMC高岡K1","6"],["TBKサテライトE0","2"],["フタバ岡崎22","1"],["協豊三好物流30","1"],["協豊三好物流E2","1"],["TMC堤21","8"],["TMC堤4X","8"],["TMC堤R7","2"],["DH京都52","3"],["DH京都58","2"],["DH京都58","3"],["TBSK各務原E1","1"],["小島プレス真和Q1","1"],["小島プレス真和Q9","1"],["小島プレス（真和）3R","1"],["小島プレス（真和）3V","1"],["織機長草21","8"],["織機長草23","18"],["織機長草23","19"],["織機長草61","8"],["織機長草63","10"],["日野羽村03","5"],["日野羽村03","6"],["日野羽村03","7"],["日野羽村03","8"],["TMC田原8G","1"],["TMC田原8M","1"],["TMC田原C4","1"],["TMC田原C5","2"],["TMC田原C5（林テ）","2"],["TMC田原D1","1"],["TYいなべA8","3"],["TYいなべA8","4"],["TYいなべA8","5"],["TY刈谷特装RZ","1"],["TY吉原7H","1"],["岐阜車体G6","1"],["岐阜車体J6","2"],["岐阜車体J6","3"],["織機碧南B1","1"],["織機碧南B5","1"],["織機碧南G1","1"],["フタバ知立32","4"],["ジェータックス　名港センター31","1"],["ジェータックス　東海センター41","1"],["豊生土岐04","2"],["TMC本社4A","4"],["TMC元町H0","2"],["TMC元町NA","4"],["織機長草21","9"],["織機長草23","20"],["織機長草23","21"],["織機長草23","22"],["織機長草61","9"],["織機長草63","11"],["中発碧南01","1"],["高木額田01","1"],["高木額田11","1"],["高木額田M5","1"],["TYいなべA8","6"],["TYいなべA8","7"],["TYいなべA8","8"],["TY刈谷R5","1"],["岐阜車体G6","2"],["岐阜車体J1","4"],["岐阜車体J6","4"],["岐阜車体J6","5"],["岐阜車体N2","3"],["織機長草21","10"],["織機長草23","23"],["織機長草23","24"],["織機長草61","10"],["織機長草63","12"],["日野羽村06","5"],["日野羽村06","6"],["日野羽村B1","5"],["日野羽村B1","6"],["日野羽村B6","5"],["日野羽村B6","6"],["日野羽村M6","5"],["日野羽村M6","6"],["TMC田原E3","1"],["TMC田原E4","1"],["TMC田原W2","1"],["TMC田原W2（林テ）","1"],["DH京都52","4"],["DH京都52","5"],["DH滋賀220","2"],["東和ブロー","1"],["TMC元町63","1"],["TMC元町65","1"],["TMC元町66","1"],["TMC元町7B","1"],["TMC元町7P","1"],["TMC元町7W","1"],["TMC元町NA","1"],["TMC田原8A","1"],["TMC田原C5","3"],["TMC田原C5（林テ）","3"],["TMC上郷83","1"],["TYいなべA8","9"],["TYいなべA8","10"],["TYいなべA8","11"],["TY富士松65","1"],["岐阜車体G6","3"],["岐阜車体J6","6"],["岐阜車体J6","7"],["フタバ知立10","1"],["フタバ知立23","1"],["フタバ知立33","1"],["ミヤマ工業01","1"],["物流センター","1"],["SUBARUQ3","1"],["武部鉄工F2","1"],["TMC田原E3","2"],["TMC田原E4","2"],["TMC田原W1","1"],["TMC田原W2","2"],["TMC田原W5","1"],["織機長草21","1"],["織機長草23","1"],["織機長草23","2"],["織機長草61","1"],["織機長草63","1"],["織機長草63","2"],["三五豊橋A6","1"],["三五豊橋B6","1"],["TMC本社4A","1"],["三栄A1","1"],["三栄F0","1"],["三栄S1","1"],["三栄S5","1"],["織機長草21","2"],["織機長草23","3"],["織機長草23","4"],["織機長草23","5"],["織機長草61","2"],["織機長草63","3"],["TYいなべA8","12"],["TYいなべA8","13"],["TYいなべA8","14"],["岐阜車体G6","4"],["岐阜車体J1","1"],["岐阜車体J6","8"],["岐阜車体J6","9"],["岐阜車体N2","4"],["織機東知多Y1","1"],["TY富士松65(林テ)","1"],["DH京都52","6"],["DH京都52","7"],["DH京都58","4"],["DH京都58","1"],["DH池田95","1"],["TBSK各務原E1","2"],["ソミック石川01","1"],["ソミック石川11","1"],["旭洋工業本社01","1"],["日野羽村03","9"],["日野羽村03","10"],["日野羽村03","11"],["日野羽村03","12"],["織機長草21","3"],["織機長草23","6"],["織機長草23","7"],["織機長草61","3"],["織機長草63","4"],["TMC高岡07","2"],["TMC高岡19","9"],["TMC高岡K1","7"],["TY吉原32","2"],["TY吉原32","3"],["TY吉原32","4"],["TY吉原7D","2"],["TY吉原Q4","1"],["TY吉原Q5","1"],["TY富士松66","1"],["TY富士松71","1"],["TMEJ大衡B9","2"],["TMEJ大衡J3","2"],["TMEJ大衡S2","2"],["TMEJ岩手D1","1"],["TMEJ岩手D1","8"],["TMEJ岩手W1","4"],["TMK宮田34","1"],["TMK宮田B7","4"],["TMK宮田F0","4"],["TMK宮田F2","1"],["TMK宮田L6","1"],["トヨタKVCF2","1"],["トヨタKVCF8","1"],["TMC堤21","9"],["TMC堤4X","9"],["TMC高岡19","10"],["TMC高岡K1","8"],["TY吉原32","5"],["TY吉原32","6"],["TY吉原32","7"],["TY吉原7D","3"],["TMC堤21","10"],["TMC堤4X","10"],["住友理工C1","1"],["TMC堤21","1"],["TMC堤2X","1"],["TMC堤4X","1"],["TBKサテライトE0","3"],["TBKサテライトE0","4"],["フタバ伊万里70","1"],["フタバ直方80","1"],["TMEJ大和(旧東北)50","1"],["TMEJ大衡(KIK)M7","1"],["TMEJ岩手A1","1"],["TMEJ岩手D1","2"],["TMEJ岩手D1","3"],["TMEJ岩手D7","1"],["TMEJ岩手G7","1"],["TMEJ岩手W1","1"],["TMK宮田34","2"],["TMK宮田34","3"],["TMK宮田B3","1"],["TMK宮田B7","1"],["TMK宮田F0","1"],["TMK宮田F3","1"],["トヨタKVCF9","1"],["TY吉原32","8"],["TY吉原32","9"],["TY吉原32","10"],["TY吉原7D","4"],["TY吉原Q4","2"],["TY吉原Q5","2"],["TY富士松66","2"],["トヨタTVCG5","1"],["TMC高岡19","1"],["ハイレックス宮城90","1"],["太平洋工業栗原09","1"],["TY吉原32","11"],["TY吉原32","12"],["TY吉原32","13"],["TY吉原7D","5"],["TY富士松66","3"],["豊臣11","1"],["豊臣24","1"],["豊臣41","1"],["豊臣42","1"],["豊臣D1","1"],["TMC堤21","2"],["TMC堤4X","2"],["TMC堤R3","1"],["TMC高岡19","2"],["TMC高岡K1","1"],["TMC高岡K5","1"],["TBKサテライトE0","5"],["VUTEQK0","1"],["フタバオンサイトS1","2"],["三五八和田山7N","1"],["三五米野八和田山AC","1"],["GTAP","1"],["TTTI","1"],["豊通三好D","1"],["TTAI","2"],["TTCA","2"],["TTMA","2"],["TTTX","2"],["VtoV","2"],["豊通松田","21"],["TMC高岡08","1"],["TMC高岡19","3"],["TMC高岡5D","1"],["TMC高岡5W","1"],["フタバ六ッ美20","1"]];
 const LSM='kbbw_master',LSR='kbbw_recent';
@@ -350,14 +464,23 @@ function buildIndex(){
 let selDest=null,selBin=null,curGroup=-1,curSub='';
 function subKey(g,d){const n=d.normalize('NFKC');const rest=n.startsWith(g.label)?n.slice(g.label.length):n;const m=rest.match(/^[^\x00-\x7F（(]+/);return m?m[0]:'';}
 function todayStat(d,b){
- const t=now().slice(0,10),h=load(LS.hist,[]);let st=null;
- h.forEach(x=>{if(x.dest===d&&x.bin===b&&String(x.start).slice(0,10)===t){if(x.status==='完了')st='done';else if(!st)st='part';}});
+ const t=now().slice(0,10),rank={part:1,busy:2,done:3};let st=null;
+ const put=s=>{if(!st||rank[s]>rank[st])st=s;};
+ load(LS.hist,[]).forEach(x=>{if(x.dest===d&&x.bin===b&&String(x.start).slice(0,10)===t)put(x.status==='完了'?'done':'part');});
+ SV.today.forEach(x=>{if(x.dest!==d||x.bin!==b)return;
+  if(x.status==='完了')put('done');
+  else if(x.status==='作業中'){if(x.active&&x.device!==DEVICE&&(!cur||x.id!==cur.id))put('busy');}
+  else put('part');});
  return st;
+}
+function todayWho(d,b,st){
+ const x=SV.today.find(x=>x.dest===d&&x.bin===b&&(st==='done'?x.status==='完了':st==='busy'?(x.status==='作業中'&&x.active):true));
+ return x?x.device+'（'+String(x.status==='作業中'?x.updated||x.start:x.end||x.start).slice(11,16)+'）':'';
 }
 function renderRecent(){
  const r=load(LSR,[]).filter(k=>{const [d,b]=k.split('\t');return BINS[d]&&BINS[d].includes(b);});
  $('recentWrap').classList.toggle('hidden',!r.length);
- $('recent').innerHTML=r.map((k,i)=>{const [d,b]=k.split('\t');const st=todayStat(d,b);return '<button data-i="'+i+'">'+(st==='done'?'✔ ':'')+esc(fmtSel(d,b))+'</button>';}).join('');
+ $('recent').innerHTML=r.map((k,i)=>{const [d,b]=k.split('\t');const st=todayStat(d,b);return '<button data-i="'+i+'" class="'+(st==='busy'?'busy':'')+'">'+(st==='done'?'✔ ':st==='busy'?'● ':'')+esc(fmtSel(d,b))+'</button>';}).join('');
  $('recent').querySelectorAll('button').forEach(btn=>btn.onclick=()=>{const [d,b]=r[+btn.dataset.i].split('\t');choose(d,b);});
 }
 function renderGroups(){
@@ -398,30 +521,42 @@ function renderDest(){
   else openBins(d);
  });
 }
-function openBins(d){
- $('stepDest').classList.add('hidden');$('stepBin').classList.remove('hidden');
+let binDest=null;
+function openBins(d,keep){
+ binDest=d;if(!keep)window.scrollTo(0,$('picker').offsetTop-10);$('stepDest').classList.add('hidden');$('stepBin').classList.remove('hidden');
  $('binTitle').textContent=d+'（'+BINS[d].length+'便）';
- $('binList').innerHTML=BINS[d].map(b=>{const st=todayStat(d,b);return '<button data-b="'+esc(b)+'" class="'+(st||'')+'">'+(b===''?'<span style="font-size:14px">便なし</span>':esc(b))+(st==='done'?'<span class="mk">✔</span>':st==='part'?'<span class="mk">△</span>':'')+'</button>';}).join('');
+ $('binList').innerHTML=BINS[d].map(b=>{const st=todayStat(d,b);return '<button data-b="'+esc(b)+'" class="'+(st||'')+'">'+(b===''?'<span style="font-size:14px">便なし</span>':esc(b))+(st==='done'?'<span class="mk">✔</span>':st==='busy'?'<span class="mk">●</span>':st==='part'?'<span class="mk">△</span>':'')+'</button>';}).join('');
  $('binList').querySelectorAll('button').forEach(x=>x.onclick=()=>choose(d,x.dataset.b));
- window.scrollTo(0,$('picker').offsetTop-10);
 }
 $('btnBackDest').onclick=()=>{$('stepBin').classList.add('hidden');$('stepDest').classList.remove('hidden');};
 function choose(d,b){
  selDest=d;selBin=b;$('eSel').textContent='';
- $('selTxt').textContent=fmtSel(d,b);$('selTxt').classList.remove('none');
- $('picker').classList.add('hidden');$('btnReselect').classList.remove('hidden');
+ $('selTxt').textContent=fmtSel(d,b);
+ $('picker').classList.add('hidden');$('selBox').classList.remove('hidden');
+ $('btnDelRecent').classList.toggle('hidden',!load(LSR,[]).includes(keyOf(d,b)));
  const st=todayStat(d,b);
- if(st==='done')$('eSel').textContent='※この納入先・便は本日すでに「完了」の記録があります。';
+ if(st==='done')$('eSel').textContent='※この納入先・便は本日すでに「完了」の記録があります。'+(todayWho(d,b,st)?' 担当：'+todayWho(d,b,st):'');
+ else if(st==='busy')$('eSel').textContent='※他の端末が作業中です。担当：'+todayWho(d,b,st);
  $('boxQty').focus();
 }
 function resetPicker(){
- selDest=null;selBin=null;$('selTxt').textContent='未選択';$('selTxt').classList.add('none');
- $('picker').classList.remove('hidden');$('btnReselect').classList.add('hidden');$('eSel').textContent='';
+ selDest=null;selBin=null;$('selTxt').textContent='';
+ $('picker').classList.remove('hidden');$('selBox').classList.add('hidden');$('eSel').textContent='';
  $('stepBin').classList.add('hidden');$('stepDest').classList.remove('hidden');
  renderRecent();renderGroups();renderDest();
 }
 $('btnReselect').onclick=()=>{$('q').value='';curGroup=-1;curSub='';resetPicker();};
-let qTimer;$('q').addEventListener('input',()=>{clearTimeout(qTimer);qTimer=setTimeout(()=>{$('stepBin').classList.add('hidden');$('stepDest').classList.remove('hidden');renderDest();},120);});
+let qTimer;$('q').addEventListener('input',()=>{clearTimeout(qTimer);qTimer=setTimeout(()=>{if($('q').value.trim()&&(curGroup!==-1||curSub)){curGroup=-1;curSub='';renderGroups();}$('stepBin').classList.add('hidden');$('stepDest').classList.remove('hidden');renderDest();},120);});
+function refreshPicker(){if($('picker').classList.contains('hidden'))return;renderRecent();if(!$('stepBin').classList.contains('hidden')&&binDest)openBins(binDest,true);}
+$('btnDelRecent').onclick=()=>{
+ if(selDest===null)return;const k=keyOf(selDest,selBin);
+ if(!confirm(fmtSel(selDest,selBin)+' を「最近使った」から削除しますか？\n（作業履歴・CSVの記録は消えません）'))return;
+ save(LSR,load(LSR,[]).filter(x=>x!==k));$('btnDelRecent').classList.add('hidden');renderRecent();
+};
+$('btnClrRecent').onclick=()=>{
+ if(!confirm('「最近使った」をすべて消去しますか？\n（作業履歴・CSVの記録は消えません）'))return;
+ localStore.removeItem(LSR);renderRecent();
+};
 function pushRecent(d,b){const k=keyOf(d,b);const r=load(LSR,[]).filter(x=>x!==k);r.unshift(k);save(LSR,r.slice(0,8));}
 /* マスタ取込 */
 $('btnMImport').onclick=()=>{
@@ -433,25 +568,38 @@ $('btnMImport').onclick=()=>{
  const {out,dup}=dedupe(rows);
  if(!out.length){$('mMsg').textContent='取り込める行がありません（A列：納入先、B列：便）。';return;}
  if(!confirm(out.length+'件を取り込みます（重複'+dup+'件を削除）。現在のリストを置き換えますか？'))return;
+ if(CAN_SERVER&&SV.on){
+  $('mMsg').style.color='#555';$('mMsg').textContent='共有サーバーに保存中…';
+  saveMasterShared(out).then(r=>{
+   MASTER=out;save(LSM,MASTER);localStore.setItem(LSMV,r.version||'');buildIndex();resetPicker();
+   $('mMsg').style.color='#1e8e3e';$('mMsg').textContent='取込完了（全端末に共有）：'+r.count+'件（重複削除 '+dup+'件）';$('mPaste').value='';
+  }).catch(e=>{$('mMsg').style.color='#c0392b';$('mMsg').textContent='共有サーバーに保存できませんでした：'+e.message;});
+  return;
+ }
+ if(CAN_SERVER&&!confirm('共有サーバーに接続していないため、この端末だけに反映します。よろしいですか？'))return;
  MASTER=out;save(LSM,MASTER);buildIndex();resetPicker();
- $('mMsg').style.color='#1e8e3e';$('mMsg').textContent='取込完了：'+out.length+'件（重複削除 '+dup+'件）';$('mPaste').value='';
+ $('mMsg').style.color='#1e8e3e';$('mMsg').textContent='取込完了（この端末のみ）：'+out.length+'件（重複削除 '+dup+'件）';$('mPaste').value='';
 };
-$('btnMReset').onclick=()=>{if(!confirm('初期リスト（'+MASTER0.length+'件）に戻しますか？'))return;localStorage.removeItem(LSM);MASTER=MASTER0;buildIndex();resetPicker();$('mMsg').style.color='#1e8e3e';$('mMsg').textContent='初期リストに戻しました。';};
+$('btnMReset').onclick=()=>{if(!confirm('初期リスト（'+MASTER0.length+'件）に戻しますか？'+(CAN_SERVER&&SV.on?'\n※全端末の共有リストが初期リストに戻ります。':'')))return;
+ if(CAN_SERVER&&SV.on){saveMasterShared(MASTER0).then(r=>{MASTER=MASTER0;save(LSM,MASTER);localStore.setItem(LSMV,r.version||'');buildIndex();resetPicker();$('mMsg').style.color='#1e8e3e';$('mMsg').textContent='初期リストに戻しました（全端末に共有）。';}).catch(e=>{$('mMsg').style.color='#c0392b';$('mMsg').textContent='共有サーバーに保存できませんでした：'+e.message;});return;}
+ localStore.removeItem(LSM);MASTER=MASTER0;buildIndex();resetPicker();$('mMsg').style.color='#1e8e3e';$('mMsg').textContent='初期リストに戻しました。';};
 buildIndex();resetPicker();
 
 /* ---------- 作業 ---------- */
 let cur=load(LS.cur,null);
 let streakV=null,streak=0,armed=true,paused=false,manualReq=0;
 $('btnStart').onclick=async()=>{
- $('eQty').textContent='';
- if(selDest===null||selBin===null){$('eSel').textContent='納入先・便を選択してください。';window.scrollTo(0,0);return;}
+ $('eQty').textContent='';$('eSel').style.color='';
+ if(selDest===null||selBin===null){const inBin=!$('stepBin').classList.contains('hidden')&&binDest;$('eSel').textContent=inBin?'便を選択してください（上の便ボタンをタップ）。':'納入先を選択してください（下の一覧からタップ）。';window.scrollTo(0,0);return;}
  const q=$('boxQty').value.trim();
  if(!/^\d+$/.test(q)||+q<1||+q>999){$('eQty').textContent='箱数は1〜999の整数で入力してください。';return;}
- if(todayStat(selDest,selBin)==='done'&&!confirm(fmtSel(selDest,selBin)+' は本日すでに完了しています。もう一度チェックしますか？'))return;
+ const st0=todayStat(selDest,selBin);
+ if(st0==='done'&&!confirm(fmtSel(selDest,selBin)+' は本日すでに完了しています。もう一度チェックしますか？'))return;
+ if(st0==='busy'&&!confirm(fmtSel(selDest,selBin)+' は他の端末（'+todayWho(selDest,selBin,'busy')+'）で作業中です。この端末でも作業しますか？'))return;
  try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();actx.resume();}catch(e){}
  cur={id:Date.now(),start:now(),dest:selDest,bin:selBin,qty:+q,ok:0,ng:0,log:[]};
  pushRecent(selDest,selBin);
- save(LS.cur,cur);showRun();
+ save(LS.cur,cur);queueJob(Object.assign({},cur,{status:'作業中'}));showRun();
 };
 function showRun(){
  $('setup').classList.add('hidden');$('run').classList.remove('hidden');
@@ -468,7 +616,7 @@ function renderRun(){
  $('runLog').innerHTML=cur.log.slice().reverse().map(l=>'<tr><td>'+esc(l.t.slice(11))+'</td><td class="'+(l.r==='OK'?'tagok':l.r==='NG'?'tagng':'tagwn')+'">'+esc(l.r)+'</td><td>'+l.rem+'</td><td>'+esc(l.d)+'</td></tr>').join('');
  $('mOk').style.left=S.okTh+'%';$('mNg').style.left=S.ngTh+'%';
 }
-function addLog(r,d,m){cur.log.push({t:now(),r,rem:cur.qty-cur.ok,d,dark:m?Math.round(m.dark*100):''});save(LS.cur,cur);renderRun();}
+function addLog(r,d,m){cur.log.push({t:now(),r,rem:cur.qty-cur.ok,d,dark:m?Math.round(m.dark*100):''});save(LS.cur,cur);renderRun();syncCur();}
 function onFrame(r){
  $('mCur').style.left=(r.dark*100)+'%';
  $('dbg').textContent='黒 '+Math.round(r.dark*100)+'%　コントラスト '+Math.round(r.sep)+'　外周の白 '+Math.round(r.ring*100)+'%';
@@ -494,7 +642,7 @@ function decide(r){
  if(r.v==='OK'){
   if(cur.ok>=cur.qty){addLog('超過','指示箱数を超えて読取',r);showOverlay('wn','超過','指示書の箱数（'+cur.qty+'箱）を超えています。<br>この箱は荷山に積まないでください。');return;}
   cur.ok++;addLog('OK','黒地に白文字（納入先）',r);beep('ok');flash();
-  if(cur.ok===cur.qty){setTimeout(()=>showOverlay('ok','完了','指示書の '+cur.qty+' 箱がすべてOKです。<br>荷山を形成してください。'),400);}
+  if(cur.ok===cur.qty){const q=cur.qty;setTimeout(()=>{if(cur)showOverlay('ok','完了','指示書の '+q+' 箱がすべてOKです。<br>荷山を形成してください。');},400);}
  }else{
   cur.ng++;addLog('NG','白地に黒文字（仕入先かんばん等）',r);
   showOverlay('ng','NG','納入先かんばんではありません。<br>（白地に黒文字＝仕入先かんばんの可能性）<br>この箱は荷山に積まないでください。');
@@ -517,8 +665,9 @@ $('btnStop').onclick=()=>{
  const rem=cur.qty-cur.ok;
  if(!confirm(rem>0?'残り '+rem+' 箱あります。未完了のまま作業を終了しますか？':'作業を終了して履歴に保存しますか？'))return;
  const h=load(LS.hist,[]);cur.end=now();cur.status=rem===0?'完了':'未完了('+rem+')';h.unshift(cur);save(LS.hist,h.slice(0,300));
- localStorage.removeItem(LS.cur);cur=null;stopCam();
- $('run').classList.add('hidden');$('setup').classList.remove('hidden');$('boxQty').value='';$('q').value='';resetPicker();
+ clearTimeout(curSyncT);queueJob(cur);
+ localStore.removeItem(LS.cur);cur=null;stopCam();
+ $('run').classList.add('hidden');$('setup').classList.remove('hidden');$('boxQty').value='';$('q').value='';curGroup=-1;curSub='';resetPicker();
 };
 
 /* ---------- 調整 ---------- */
@@ -566,23 +715,57 @@ $('btnSaveSet').onclick=()=>{
 $('btnResetSet').onclick=()=>{if(!confirm('判定パラメータを初期値に戻しますか？'))return;S=Object.assign({},DEF);save(LS.set,S);renderSet();};
 
 /* ---------- 履歴 ---------- */
-function renderHist(){
- const h=load(LS.hist,[]);
- $('histBody').innerHTML=h.length?h.map(x=>'<tr><td>'+esc(x.start.slice(5,16))+'</td><td>'+esc(x.dest!=null?fmtSel(x.dest,x.bin):'-')+'</td><td>'+x.qty+'</td><td>'+x.ok+'</td><td class="'+(x.ng?'tagng':'')+'">'+x.ng+'</td><td>'+esc(x.status)+'</td></tr>').join(''):'<tr><td colspan="6">履歴はありません</td></tr>';
+const histRow=x=>'<tr><td>'+esc(String(x.start).slice(5,16))+'</td><td>'+esc(x.dest!=null?fmtSel(x.dest,x.bin):'-')+(x.device?'<span class="who">'+esc(x.device)+'</span>':'')+'</td><td>'+x.qty+'</td><td>'+x.ok+'</td><td class="'+(x.ng?'tagng':'')+'">'+x.ng+'</td><td>'+esc(x.status)+'</td></tr>';
+function localHist(){const days=+$('histDays').value,lim=new Date(Date.now()-(days-1)*864e5),p=n=>String(n).padStart(2,'0'),c=lim.getFullYear()+'/'+p(lim.getMonth()+1)+'/'+p(lim.getDate());return load(LS.hist,[]).filter(x=>String(x.start).slice(0,10)>=c);}
+async function renderHist(){
+ if(CAN_SERVER){
+  try{const r=await api('api/history?days='+$('histDays').value);setSrv(true);
+   $('histTitle').textContent='作業履歴（全端末・共有サーバー）';
+   $('histBody').innerHTML=r.jobs.length?r.jobs.map(histRow).join(''):'<tr><td colspan="6">履歴はありません</td></tr>';return;
+  }catch(e){setSrv(false);}
+ }
+ $('histTitle').textContent='作業履歴（この端末のみ）';
+ const h=localHist();
+ $('histBody').innerHTML=h.length?h.map(histRow).join(''):'<tr><td colspan="6">履歴はありません</td></tr>';
 }
-$('btnCsv').onclick=()=>{
- const h=load(LS.hist,[]);if(!h.length){alert('履歴がありません。');return;}
+$('histDays').onchange=renderHist;
+function csvName(){const d=new Date(),p=n=>String(n).padStart(2,'0');return 'kanban_check_'+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+'_'+p(d.getHours())+p(d.getMinutes())+'.csv';}
+// CSVデータを作成（共有サーバー接続中＝全端末分、未接続＝この端末分）
+async function makeCsv(){
+ if(CAN_SERVER&&SV.on){
+  try{
+   const r=await fetch('api/history.csv?days='+encodeURIComponent($('histDays').value),{cache:'no-store'});
+   if(r.ok){const b=await r.blob();return {blob:new Blob([b],{type:'text/csv'}),src:'全端末'};}
+  }catch(e){}
+ }
+ const h=localHist();if(!h.length)return null;
  const q=s=>'"'+String(s==null?'':s).replace(/"/g,'""')+'"';
- const rows=[['作業開始','作業終了','納入先','便','指示箱数','OK数','NG数','状態','読取時刻','結果','残数','内容','黒の割合%']];
- h.forEach(x=>(x.log.length?x.log:[{}]).forEach(l=>rows.push([x.start,x.end,x.dest,x.bin,x.qty,x.ok,x.ng,x.status,l.t,l.r,l.rem,l.d,l.dark])));
- const blob=new Blob(['\ufeff'+rows.map(r=>r.map(q).join(',')).join('\r\n')],{type:'text/csv'});
- const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='kanban_check_'+Date.now()+'.csv';a.click();
+ const rows=[['作業開始','作業終了','端末','納入先','便','指示箱数','OK数','NG数','状態','読取時刻','結果','残数','内容','黒の割合%']];
+ h.forEach(x=>(x.log.length?x.log:[{}]).forEach(l=>rows.push([x.start,x.end,DEVICE,x.dest,x.bin,x.qty,x.ok,x.ng,x.status,l.t,l.r,l.rem,l.d,l.dark])));
+ return {blob:new Blob(['\ufeff'+rows.map(r=>r.map(q).join(',')).join('\r\n')],{type:'text/csv'}),src:'この端末'};
+}
+$('btnCsv').onclick=async()=>{
+ $('eCsv').textContent='';
+ const c=await makeCsv();if(!c){alert('出力する履歴がありません。');return;}
+ const url=URL.createObjectURL(c.blob),a=document.createElement('a');
+ a.href=url;a.download=csvName();a.style.display='none';document.body.appendChild(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),60000);
+ $('eCsv').style.color='#1e8e3e';
+ $('eCsv').textContent='CSV（'+c.src+'分）を出力しました：'+a.download+'　※保存されない場合は、Chrome／Safariで開き直してください。';
 };
-$('btnClrHist').onclick=()=>{if(confirm('履歴をすべて削除しますか？')){localStorage.removeItem(LS.hist);renderHist();}};
+$('btnClrHist').onclick=()=>{if(confirm('履歴をすべて削除しますか？')){localStore.removeItem(LS.hist);renderHist();}};
 
 /* ---------- 復元 ---------- */
-if(cur){if(confirm('前回の作業が残っています（残り '+(cur.qty-cur.ok)+' 箱）。再開しますか？\n「キャンセル」で破棄します。'))showRun();else{localStorage.removeItem(LS.cur);cur=null;}}
+if(cur){if(confirm('前回の作業が残っています（残り '+(cur.qty-cur.ok)+' 箱）。再開しますか？\n「キャンセル」で破棄します。'))showRun();else{cur.end=now();cur.status='破棄';queueJob(cur);localStore.removeItem(LS.cur);cur=null;}}
 renderSet();
+if(CAN_SERVER){setSrv(false,'共有サーバーに接続中…');syncShared();setInterval(syncShared,20000);setInterval(flushOutbox,15000);
+ document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')syncShared();});
+ window.addEventListener('online',syncShared);}
+else setSrv(false,'ファイルとして開いているため共有されません。共有サーバーのURL（https://…）で開いてください。');
+$('jsWarn').style.display='none';
+if(!STORAGE_OK){const w=$('jsWarn');w.style.display='block';w.style.background='#e08a00';w.innerHTML='このブラウザ（プレビュー画面）ではデータを保存できません。動作はしますが、閉じると履歴・設定が消えます。Chrome／Safariで開いてください。';}
+
+
 </script>
 </body>
 </html>
