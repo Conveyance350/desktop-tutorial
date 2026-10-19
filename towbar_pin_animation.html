@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>牽引バーがピンを昇る仕組み（ブレーキ時）</title>
+<style>
+:root{--navy:#1f3864;--blue:#2f6db5;--green:#2e9e4f;--red:#d23b3b;--orange:#f08c00;--bg:#f4f6fa;--card:#fff;--muted:#5b6475}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Meiryo","Hiragino Sans","Noto Sans JP",sans-serif;background:var(--bg);color:#222;line-height:1.6}
+header{background:var(--navy);color:#fff;padding:14px 22px}
+header h1{margin:0;font-size:22px}
+header p{margin:2px 0 0;font-size:13px;opacity:.85}
+main{max-width:1240px;margin:0 auto;padding:16px}
+.card{background:var(--card);border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.08);padding:14px 16px;margin-bottom:14px}
+h2{font-size:17px;margin:0 0 8px;color:var(--navy);border-left:5px solid var(--blue);padding-left:8px}
+.howto{font-size:13px;color:var(--muted);margin:0}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.chip{border:2px solid #c9d3e6;background:#fff;border-radius:20px;padding:4px 14px;font-size:14px;cursor:pointer;color:#444}
+.chip.on{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:bold}
+.caption{display:flex;gap:12px;align-items:flex-start;background:#eef3fb;border-radius:8px;padding:10px 14px;min-height:64px}
+.caption .num{font-size:30px;font-weight:bold;color:var(--blue);line-height:1}
+.caption .ttl{font-weight:bold;font-size:17px}
+.caption .txt{font-size:14px}
+.caption.bad{background:#fdecec}.caption.bad .num{color:var(--red)}
+.caption.good{background:#e9f7ee}.caption.good .num{color:var(--green)}
+.scene{width:100%;height:auto;display:block;background:linear-gradient(#dbe9fb,#f7fbff 70%);border-radius:8px;margin-top:10px}
+.controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px;font-size:14px}
+button{font-family:inherit;font-size:14px;border:none;border-radius:6px;padding:7px 14px;cursor:pointer;background:var(--blue);color:#fff}
+button.sub{background:#e3e8f2;color:#223}
+button:hover{filter:brightness(1.08)}
+label.sw{display:flex;align-items:center;gap:5px;cursor:pointer}
+select{font-family:inherit;font-size:14px;padding:4px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:900px){.grid2{grid-template-columns:1fr}}
+.zoom{width:100%;height:auto;background:#fafcff;border-radius:8px;border:1px solid #e1e6ef}
+table.inp{width:100%;border-collapse:collapse;font-size:13px}
+table.inp td{padding:3px 4px;border-bottom:1px solid #eef0f4}
+table.inp input{width:90px;font-family:inherit;font-size:13px;padding:3px 5px;border:1px solid #b9c3d6;border-radius:4px;color:#0033cc}
+table.inp input.err{border-color:var(--red);background:#fff0f0}
+table.inp tr.assume td:first-child::after{content:" (仮定)";color:var(--orange);font-size:11px}
+.errmsg{color:var(--red);font-size:13px;min-height:18px}
+.res{font-size:14px;margin-top:6px}
+.res div{display:flex;justify-content:space-between;border-bottom:1px dashed #e3e6ec;padding:3px 0}
+.res b{color:var(--navy)}
+.verdict{margin-top:8px;padding:8px 10px;border-radius:6px;font-weight:bold;font-size:15px}
+.verdict.bad{background:#fdecec;color:var(--red)}.verdict.good{background:#e9f7ee;color:var(--green)}
+.gauge{margin-top:10px;font-size:13px}
+.gbar{height:18px;border-radius:4px;margin:2px 0 6px;transition:width .3s}
+.points{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media(max-width:900px){.points{grid-template-columns:1fr}}
+.pt{background:#f7f9fd;border-radius:8px;padding:10px 12px;font-size:14px;border-top:4px solid var(--blue)}
+.pt h3{margin:0 0 4px;font-size:15px}
+.measures{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media(max-width:900px){.measures{grid-template-columns:1fr 1fr}}
+.ms{background:#f7f9fd;border-radius:8px;padding:10px;font-size:13px;text-align:center}
+.ms .ic{font-size:26px}
+.ms b{display:block;font-size:14px;margin:2px 0}
+.note{font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <h1>ブレーキを掛けると、牽引バーがピンを昇る仕組み</h1>
+  <p>横から見た図で、走行 → ブレーキ → 昇り上がり → 結果 の流れを動かして確認できます</p>
+</header>
+<main>
+
+<div class="card">
+  <h2>アニメーション</h2>
+  <p class="howto">使い方：「▶ 最初から再生」で再生します。①〜④のボタンを押すと、その場面から見られます。下の「計算条件」の数値を変えると、結果とアニメーションが変わります。</p>
+  <div class="chips" id="chips">
+    <span class="chip" data-p="0">① 走行</span>
+    <span class="chip" data-p="1">② ブレーキ</span>
+    <span class="chip" data-p="2">③ 昇り上がり</span>
+    <span class="chip" data-p="3">④ 結果</span>
+  </div>
+  <div class="caption" id="caption"><div class="num" id="capNum">①</div><div><div class="ttl" id="capTtl"></div><div class="txt" id="capTxt"></div></div></div>
+  <svg class="scene" id="scene" viewBox="0 0 1200 520"></svg>
+  <div class="controls">
+    <button id="btnPlay">▶ 最初から再生</button>
+    <button class="sub" id="btnPause">⏸ 一時停止</button>
+    <label class="sw"><input type="checkbox" id="stopper"> ピン上端に抜け止めを付ける</label>
+    <span>速さ <select id="speed"><option value="0.5">0.5倍</option><option value="1" selected>1倍</option><option value="2">2倍</option></select></span>
+    <span style="margin-left:auto">例：</span>
+    <button class="sub" data-preset="hard">急ブレーキ</button>
+    <button class="sub" data-preset="soft">ゆるいブレーキ</button>
+    <button class="sub" data-preset="mu">摩擦が大きい(μ0.30)</button>
+    <button class="sub" data-preset="stop">抜け止めあり</button>
+  </div>
+</div>
+
+<div class="grid2">
+  <div class="card">
+    <h2>連結部の拡大図と力のくらべっこ</h2>
+    <svg class="zoom" id="zoom" viewBox="0 0 560 450"></svg>
+    <p class="note">青：台車がバーを押す力　緑：バーを持ち上げる力（押す力の上向き成分）　赤：押さえる力（摩擦＋バー端の重さ）。<br>緑が赤より長ければ昇ります。昇るほど角度が急になり、緑が長くなっていきます。</p>
+  </div>
+  <div class="card">
+    <h2>計算条件と結果</h2>
+    <table class="inp" id="inpTable"></table>
+    <div class="errmsg" id="errmsg"></div>
+    <div class="res" id="res"></div>
+    <div class="verdict" id="verdict"></div>
+    <div class="gauge" id="gauge"></div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>ポイント</h2>
+  <div class="points">
+    <div class="pt"><h3>1. 斜めだから持ち上がる</h3>バーが傾いていると、台車が押す力の一部（約 sinθ 分）がバーの端を上へ押し上げます。15°では押す力の約26%が上向きになります。</div>
+    <div class="pt"><h3>2. 昇るか昇らないかの分かれ目</h3>摩擦係数 μ が tanθ（15°で約0.27）以上なら、どんなに強くブレーキを掛けても昇りません。μ がそれより小さいと、ブレーキが強いほど昇りやすくなります。</div>
+    <div class="pt"><h3>3. 昇り始めると止まらない</h3>昇るほど角度が急になり、上向きの力がさらに増えます。台車のエネルギーにも大きな余裕があるため、昇り始めればピン上端まで昇り切って外れる計算です。</div>
+  </div>
+</div>
+
+<div class="grid2">
+  <div class="card">
+    <h2>確認事項：「板厚100mm」の意味</h2>
+    <svg class="zoom" id="bind" viewBox="0 0 420 250" style="max-width:480px"></svg>
+    <p style="font-size:14px;margin:6px 0 0" id="bindTxt"></p>
+    <p class="note">穴の長さ（ピン方向の厚み）が本当に100mmなら、バーが傾くと穴の角がピンに当たって噛み込みます。その場合、昇らない代わりにピンに大きな曲げ荷重がかかります。板幅100mm、または板厚10mmの誤記であれば、上の計算どおりです。</p>
+  </div>
+  <div class="card">
+    <h2>対策</h2>
+    <div class="measures">
+      <div class="ms"><div class="ic">📌</div><b>抜け止め</b>βピンやリンチピンをピン上端に付ける（最も確実）</div>
+      <div class="ms"><div class="ic">📏</div><b>高さをそろえる</b>連結高さを合わせ、角度を0°に近づける</div>
+      <div class="ms"><div class="ic">🔩</div><b>すき間を小さく</b>穴とピンのガタを減らし、衝撃を抑える</div>
+      <div class="ms"><div class="ic">🛑</div><b>台車ブレーキ</b>慣性ブレーキで台車が押す力を減らす</div>
+    </div>
+    <p class="note" style="margin-top:10px">※ 計算は静的なつり合いによる概算です。穴とピンのすき間（ガタ）による衝撃荷重は考えていないため、実際には計算より昇りやすくなります。摩擦係数・バー端の重さ・減速度は仮定値です。</p>
+  </div>
+</div>
+
+</main>
+<script>
+(function(){
+"use strict";
+const NS="http://www.w3.org/2000/svg";
+const $=id=>document.getElementById(id);
+function el(tag,attrs,parent,text){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(text!==undefined)e.textContent=text;if(parent)parent.appendChild(e);return e;}
+function set(e,attrs){for(const k in attrs)e.setAttribute(k,attrs[k]);}
+const fmt=(x,n)=>isFinite(x)?Number(x).toLocaleString("ja-JP",{minimumFractionDigits:n,maximumFractionDigits:n}):"-";
+
+/* ---------- 入力定義 ---------- */
+const FIELDS=[
+ {id:"mCart",label:"台車重量",unit:"kg",v:90,min:1,max:5000},
+ {id:"mLoad",label:"荷物重量",unit:"kg",v:300,min:0,max:10000},
+ {id:"v",label:"走行速度",unit:"km/h",v:7,min:0.5,max:30},
+ {id:"theta",label:"バー角度 θ",unit:"°",v:15,min:0,max:20},
+ {id:"L",label:"バー長さ L",unit:"mm",v:650,min:300,max:900},
+ {id:"Lp",label:"ピン長さ",unit:"mm",v:200,min:50,max:400},
+ {id:"d",label:"ピン径 d",unit:"mm",v:20,min:5,max:100},
+ {id:"D",label:"穴径 D",unit:"mm",v:40,min:5,max:150},
+ {id:"t",label:"板厚 t",unit:"mm",v:100,min:1,max:300},
+ {id:"mu",label:"摩擦係数 μ",unit:"-",v:0.15,min:0,max:1,step:0.01,assume:true},
+ {id:"wEnd",label:"バー端の重さ",unit:"kg",v:5,min:0.1,max:200,assume:true},
+ {id:"acc",label:"ブレーキ時の減速度",unit:"m/s²",v:3,min:0.1,max:15,step:0.1,assume:true}
+];
+const tbl=$("inpTable");
+FIELDS.forEach(f=>{
+  const tr=document.createElement("tr"); if(f.assume)tr.className="assume";
+  tr.innerHTML=`<td>${f.label}</td><td><input type="number" id="in_${f.id}" value="${f.v}" min="${f.min}" max="${f.max}" step="${f.step||'any'}"></td><td>${f.unit}</td><td style="color:#8a93a3;font-size:11px">${f.min}〜${f.max}</td>`;
+  tbl.appendChild(tr);
+});
+
+let P={}, C={};
+function readParams(){
+  const p={}, errs=[];
+  FIELDS.forEach(f=>{
+    const inp=$("in_"+f.id); const x=parseFloat(inp.value);
+    const bad=!(isFinite(x)&&x>=f.min&&x<=f.max);
+    inp.classList.toggle("err",bad);
+    if(bad)errs.push(`${f.label}は${f.min}〜${f.max}の数値で入力してください`);
+    p[f.id]=x;
+  });
+  if(!errs.length&&p.d>=p.D){errs.push("穴径 D はピン径 d より大きくしてください");$("in_D").classList.add("err");}
+  $("errmsg").textContent=errs.join("／");
+  return errs.length?null:p;
+}
+function calc(p){
+  const g=9.81,M=p.mCart+p.mLoad,th=p.theta*Math.PI/180,tn=Math.tan(th),W=p.wEnd*g;
+  const possible=tn>p.mu;
+  const aTh=possible?W/(M*(tn-p.mu)):Infinity;
+  const climbs=possible&&p.acc>aTh;
+  const s1=(p.L*Math.sin(th)+p.Lp)/p.L;
+  const th1=s1<=1?Math.asin(s1):NaN;
+  const dx=isNaN(th1)?NaN:p.L*(Math.cos(th)-Math.cos(th1));
+  const v=p.v/3.6,KE=0.5*M*v*v,PE=W*p.Lp/1000;
+  const R=Math.hypot(p.t,p.d);
+  const maxTilt=p.D>=R?90:(Math.asin(p.D/R)-Math.atan(p.d/p.t))*180/Math.PI;
+  return {g,M,th,tn,W,possible,aTh,climbs,th1,dx,KE,PE,ratio:KE/PE,up:M*p.acc*tn,down:p.mu*M*p.acc+W,maxTilt};
+}
+function showResults(){
+  const p=P,c=C;
+  $("res").innerHTML=`
+   <div><span>総質量（台車＋荷物）</span><b>${fmt(c.M,0)} kg</b></div>
+   <div><span>摩擦で止まる境目 tanθ</span><b>${fmt(c.tn,3)}</b></div>
+   <div><span>昇り始める減速度</span><b>${c.possible?fmt(c.aTh,2)+" m/s²":"昇らない（μ≧tanθ）"}</b></div>
+   <div><span>ピン上端に届く角度</span><b>${isNaN(c.th1)?"-":fmt(c.th1*180/Math.PI,1)+"°"}</b></div>
+   <div><span>外れるまでに台車が前に出る量</span><b>${fmt(c.dx,0)} mm</b></div>
+   <div><span>台車の運動エネルギー／持ち上げに要るエネルギー</span><b>${fmt(c.KE,0)} J ／ ${fmt(c.PE,1)} J</b></div>`;
+  const vd=$("verdict");
+  if(c.climbs){vd.className="verdict bad";vd.textContent=`判定：減速度 ${fmt(p.acc,1)} m/s² で昇り始め、ピン上端まで昇り切って外れる計算`+($("stopper").checked?"（抜け止めがあれば保持）":"");}
+  else{vd.className="verdict good";vd.textContent=c.possible?`判定：減速度 ${fmt(p.acc,1)} m/s² では昇らない（${fmt(c.aTh,2)} m/s² を超えると昇る）`:"判定：μ が tanθ 以上のため、ブレーキの強さに関係なく昇らない";}
+  const mx=Math.max(c.up,c.down);
+  $("gauge").innerHTML=`ブレーキを掛けた瞬間の力くらべ
+   <div>持ち上げる力 ${fmt(c.up,0)} N</div><div class="gbar" style="width:${c.up/mx*100}%;background:#2e9e4f"></div>
+   <div>押さえる力（摩擦＋重さ） ${fmt(c.down,0)} N</div><div class="gbar" style="width:${c.down/mx*100}%;background:#d23b3b"></div>`;
+  $("bindTxt").innerHTML=p.theta>c.maxTilt
+   ?`<b style="color:#d23b3b">板厚${fmt(p.t,0)}mmのままでは、${fmt(p.theta,0)}°の傾きでピンが通りません</b>（ピンが通るのは約${fmt(c.maxTilt,1)}°まで）。`
+   :`<b style="color:#2e9e4f">${fmt(p.theta,0)}°の傾きでもピンは通ります</b>（約${fmt(c.maxTilt,1)}°まで通る）。`;
+}
+
+/* ---------- メイン図 ---------- */
+const S=0.38,OX=590,OY=470;
+const X=x=>OX+x*S, Y=y=>OY-y*S;
+const sc=$("scene");
+let G={};
+function defsArrows(svg,pre){
+  const d=el("defs",{},svg);
+  [["B","#2f6db5"],["G","#2e9e4f"],["R","#d23b3b"]].forEach(([k,c])=>{
+    const m=el("marker",{id:pre+k,viewBox:"0 0 10 10",refX:"8",refY:"5",markerWidth:"5",markerHeight:"5",orient:"auto-start-reverse"},d);
+    el("path",{d:"M0,0 L10,5 L0,10 z",fill:c},m);
+  });
+}
+function wheel(parent,cx,cy,r,cls){
+  const g=el("g",{},parent);
+  el("circle",{cx,cy,r,fill:"#2b2b2b"},g);
+  el("circle",{cx,cy,r:r*0.55,fill:"#9aa3b0"},g);
+  for(let i=0;i<4;i++){const a=i*Math.PI/4;el("line",{x1:cx-Math.cos(a)*r*0.52,y1:cy-Math.sin(a)*r*0.52,x2:cx+Math.cos(a)*r*0.52,y2:cy+Math.sin(a)*r*0.52,stroke:"#555","stroke-width":2},g);}
+  el("circle",{cx,cy,r:r*0.12,fill:"#444"},g);
+  return {g,cx,cy,r};
+}
+function buildScene(){
+  sc.innerHTML="";
+  const yh=465-P.L*Math.sin(P.theta*Math.PI/180);
+  const xc0=P.L*Math.cos(P.theta*Math.PI/180);
+  const W=Math.max(1200,X(xc0+920)+20);
+  sc.setAttribute("viewBox",`0 0 ${W} 520`);
+  defsArrows(sc,"m");
+  // 地面
+  el("rect",{x:0,y:OY,width:W,height:60,fill:"#c9c3b6"},sc);
+  el("line",{x1:0,y1:OY,x2:W,y2:OY,stroke:"#777","stroke-width":2},sc);
+  G.dash=el("line",{x1:0,y1:OY+18,x2:W,y2:OY+18,stroke:"#fff","stroke-width":5,"stroke-dasharray":"40 40"},sc);
+  // 牽引車
+  const tr=el("g",{},sc);
+  el("rect",{x:X(-1350),y:Y(450),width:1290*S,height:250*S,rx:10,fill:"#f2b134",stroke:"#9a6b0e","stroke-width":2},tr);
+  el("rect",{x:X(-800),y:Y(1100),width:550*S,height:650*S,rx:8,fill:"#f2b134",stroke:"#9a6b0e","stroke-width":2},tr);
+  el("rect",{x:X(-760),y:Y(1050),width:470*S,height:330*S,rx:6,fill:"#bfe0f7",stroke:"#7aa",},tr);
+  el("circle",{cx:X(-560),cy:Y(860),r:60*S,fill:"#f5d0a9"},tr);
+  el("rect",{x:X(-610),y:Y(800),width:110*S,height:80*S,fill:"#3a5a8c"},tr);
+  el("rect",{x:X(-1350),y:Y(430),width:40*S,height:120*S,fill:"#fff7c2",stroke:"#9a6b0e"},tr);
+  el("text",{x:X(-1180),y:Y(320),"font-size":15,fill:"#5a3d00","font-weight":"bold"},tr,"牽引車");
+  G.lamp=el("rect",{x:X(-75),y:Y(420),width:22*S,height:80*S,fill:"#7a1f1f"},tr);
+  G.tw1=wheel(tr,X(-1100),Y(230),230*S);
+  G.tw2=wheel(tr,X(-330),Y(230),230*S);
+  // 進行方向
+  el("line",{x1:X(-1050),y1:Y(560)-5,x2:X(-1340),y2:Y(560)-5,stroke:"#1f3864","stroke-width":5,"marker-end":"url(#mB)"},sc);
+  el("text",{x:X(-1340),y:Y(560)-15,"font-size":14,fill:"#1f3864","font-weight":"bold"},sc,"進行方向");
+  // ヒッチ板・ピン
+  el("rect",{x:X(-80),y:Y(450),width:150*S,height:25*S,fill:"#555"},sc);
+  G.pin=el("rect",{x:X(-10),y:Y(450+P.Lp),width:20*S,height:P.Lp*S,fill:"#888",stroke:"#444","stroke-width":1},sc);
+  // 台車
+  G.cart=el("g",{},sc);
+  const cx=x=>OX+x*S;
+  const r=Math.max(30,Math.min(110,(yh-60)*0.45));
+  el("rect",{x:cx(0),y:Y(yh+15),width:40*S,height:30*S,fill:"#555"},G.cart);
+  el("rect",{x:cx(120),y:Y(yh+480),width:700*S,height:420*S,fill:"#c98b4f",stroke:"#7a4f22","stroke-width":2,rx:3},G.cart);
+  el("line",{x1:cx(120),y1:Y(yh+270),x2:cx(820),y2:Y(yh+270),stroke:"#7a4f22"},G.cart);
+  el("text",{x:cx(470),y:Y(yh+250),"font-size":16,"text-anchor":"middle",fill:"#3d2508","font-weight":"bold"},G.cart,`荷物 ${fmt(P.mLoad,0)}kg`);
+  el("rect",{x:cx(20),y:Y(yh+60),width:900*S,height:120*S,fill:"#6c7a89",stroke:"#3d4651","stroke-width":2},G.cart);
+  el("text",{x:cx(470),y:Y(yh-25),"font-size":12,"text-anchor":"middle",fill:"#fff"},G.cart,`台車 ${fmt(P.mCart,0)}kg`);
+  [180,760].forEach(wx=>el("line",{x1:cx(wx),y1:Y(yh-60),x2:cx(wx),y2:Y(r),stroke:"#3d4651","stroke-width":5},G.cart));
+  G.cw1=wheel(G.cart,cx(180),Y(r),r*S);G.cw2=wheel(G.cart,cx(760),Y(r),r*S);G.cartR=r;
+  // バー・リング・抜け止め
+  G.bar=el("line",{stroke:"#2f5d8a","stroke-width":30*S,"stroke-linecap":"round"},sc);
+  G.ring=el("rect",{x:-35*S,y:-15*S,width:70*S,height:30*S,rx:4,fill:"#1d3f63",stroke:"#0d2238"},sc);
+  G.stop=el("rect",{x:X(-28),y:Y(450+P.Lp-8),width:56*S,height:12*S,rx:3,fill:"#f08c00",stroke:"#9a5a00"},sc);
+  el("text",{x:X(-200),y:Y(450+P.Lp+40),"font-size":12,fill:"#444"},sc,"ピン");
+  // 押す力の矢印
+  G.fArrow=el("line",{stroke:"#2f6db5","stroke-width":5,"marker-end":"url(#mB)"},sc);
+  G.fText=el("text",{"font-size":14,fill:"#2f6db5","font-weight":"bold"},sc,"台車が押す力");
+  G.lunge=el("line",{stroke:"#d23b3b","stroke-width":6,"stroke-dasharray":"12 6","marker-end":"url(#mR)"},sc);
+  G.lungeT=el("text",{"font-size":14,fill:"#d23b3b","font-weight":"bold"},sc,"台車が牽引車に突っ込む恐れ");
+  G.warn=el("text",{x:X(-200),y:Y(1180),"font-size":20,fill:"#d23b3b","font-weight":"bold"},sc,"");
+  // HUD
+  const hx=W-330;
+  el("rect",{x:hx-10,y:12,width:330,height:104,rx:8,fill:"#ffffffcc",stroke:"#c9d3e6"},sc);
+  G.hud=[0,1,2,3].map(i=>el("text",{x:hx,y:36+i*24,"font-size":15,fill:"#1f3864"},sc,""));
+  G.yh=yh;G.xc0=xc0;
+}
+
+/* ---------- 拡大図 ---------- */
+const zm=$("zoom");const Z=1.15,ZX=200,ZY=390;
+const zX=x=>ZX+x*Z, zY=y=>ZY-(y-450)*Z;
+function buildZoom(){
+  zm.innerHTML="";defsArrows(zm,"z");
+  el("rect",{x:zX(-200),y:zY(450),width:120*Z,height:90*Z,fill:"#f2b134",stroke:"#9a6b0e"},zm);
+  el("rect",{x:zX(-80),y:zY(450),width:150*Z,height:25*Z,fill:"#555"},zm);
+  G.zpin=el("rect",{x:zX(-10),y:zY(450+P.Lp),width:20*Z,height:P.Lp*Z,fill:"#999",stroke:"#444"},zm);
+  el("line",{x1:zX(-60),y1:zY(450),x2:zX(-60),y2:zY(450+P.Lp),stroke:"#888","stroke-dasharray":"4 3"},zm);
+  el("text",{x:zX(-68),y:(zY(450)+zY(450+P.Lp))/2,"font-size":12,"text-anchor":"end",fill:"#555"},zm,`ピン ${fmt(P.Lp,0)}mm`);
+  G.zstop=el("rect",{x:zX(-28),y:zY(450+P.Lp-8),width:56*Z,height:12*Z,rx:3,fill:"#f08c00"},zm);
+  G.zbar=el("line",{stroke:"#2f5d8a","stroke-width":30*Z,"stroke-linecap":"butt"},zm);
+  G.zring=el("rect",{x:-35*Z,y:-15*Z,width:70*Z,height:30*Z,rx:4,fill:"#1d3f63"},zm);
+  G.zF=el("line",{stroke:"#2f6db5","stroke-width":5,"marker-end":"url(#zB)"},zm);
+  G.zFt=el("text",{"font-size":13,fill:"#2f6db5","font-weight":"bold"},zm,"押す力 F");
+  G.zh=el("text",{x:10,y:22,"font-size":14,fill:"#1f3864","font-weight":"bold"},zm,"");
+  // 力くらべ
+  const bx=400,by=250;
+  el("text",{x:bx,y:30,"font-size":14,"text-anchor":"middle","font-weight":"bold",fill:"#333"},zm,"力くらべ");
+  G.zDot=el("circle",{cx:bx,cy:by,r:6,fill:"#333"},zm);
+  G.zUp=el("line",{x1:bx,y1:by,x2:bx,y2:by,stroke:"#2e9e4f","stroke-width":10,"marker-end":"url(#zG)"},zm);
+  G.zDn=el("line",{x1:bx,y1:by,x2:bx,y2:by,stroke:"#d23b3b","stroke-width":10,"marker-end":"url(#zR)"},zm);
+  G.zUpT=el("text",{x:bx+22,"font-size":12,fill:"#2e9e4f"},zm,"");
+  G.zDnT=el("text",{x:bx+22,"font-size":12,fill:"#d23b3b"},zm,"");
+  G.zV=el("text",{x:bx,y:56,"font-size":14,"text-anchor":"middle","font-weight":"bold"},zm,"");
+  G.zbx=bx;G.zby=by;
+}
+
+/* ---------- 噛み込み図 ---------- */
+function buildBind(){
+  const b=$("bind");b.innerHTML="";
+  const k=Math.min(1.1,170/Math.max(P.t,P.D+80)),cx=130,cy=125;
+  const g=el("g",{transform:`rotate(${P.theta},${cx},${cy})`},b);
+  const half=P.D/2+50;
+  el("rect",{x:cx-half*k,y:cy-P.t/2*k,width:50*k,height:P.t*k,fill:"#2f5d8a"},g);
+  el("rect",{x:cx+P.D/2*k,y:cy-P.t/2*k,width:50*k,height:P.t*k,fill:"#2f5d8a"},g);
+  const hit=P.theta>C.maxTilt;
+  el("rect",{x:cx-P.d/2*k,y:15,width:P.d*k,height:220,fill:hit?"#d23b3b":"#2e9e4f",opacity:.85},b);
+  el("text",{x:250,y:40,"font-size":12,fill:"#333"},b,`バー断面（${fmt(P.theta,0)}°傾き）`);
+  el("text",{x:250,y:60,"font-size":12,fill:"#333"},b,`板厚 ${fmt(P.t,0)} / 穴 φ${fmt(P.D,0)}`);
+  el("text",{x:250,y:80,"font-size":12,fill:hit?"#d23b3b":"#2e9e4f","font-weight":"bold"},b,`ピン φ${fmt(P.d,0)}：${hit?"当たる":"通る"}`);
+}
+
+/* ---------- タイムライン ---------- */
+const T={drive:2.2,brake:1.2,climb:1.8,end:1.6};
+const STARTS=[0,T.drive,T.drive+T.brake,T.drive+T.brake+T.climb];
+const TOTAL=T.drive+T.brake+T.climb+T.end;
+const VV=700; // 表示上の走行速度 mm/s
+let elapsed=0,playing=false,last=null;
+function phase(e){
+  if(e<T.drive)return["drive",e/T.drive];e-=T.drive;
+  if(e<T.brake)return["brake",e/T.brake];e-=T.brake;
+  if(e<T.climb)return["climb",e/T.climb];e-=T.climb;
+  return["end",Math.min(1,e/T.end)];
+}
+function state(e){
+  const [ph,u]=phase(e);const st=$("stopper").checked;
+  let dist,h=0,detach=0,spd;
+  if(ph==="drive"){dist=VV*e;spd=P.v;}
+  else{const ub=ph==="brake"?u:1;dist=VV*T.drive+VV*T.brake*(ub-ub*ub/2);spd=ph==="brake"?P.v*(1-u):0;}
+  const hT=st?Math.max(0,P.Lp-45):P.Lp;
+  if(C.climbs){
+    if(ph==="climb")h=hT*u*u;
+    if(ph==="end"){h=hT;if(!st)detach=1-Math.pow(1-u,2);}
+  }
+  return{ph,u,dist,h,detach,spd,st};
+}
+function restPos(){
+  const xr=-70,top=450+P.Lp+15;let yr=top+20;
+  for(let i=0;i<30;i++){const dx=Math.sqrt(Math.max(1,P.L*P.L-(yr-G.yh)*(yr-G.yh)));yr=top+(-xr)*(yr-G.yh)/dx;}
+  return{x:xr,y:yr};
+}
+function render(){
+  const s=state(elapsed);
+  // リング位置
+  let xr=0,yr=465+s.h;
+  if(s.detach>0){const w=s.detach;const R=restPos();xr=R.x*w;const y0=465+P.Lp;yr=y0+(R.y-y0)*w+30*Math.sin(Math.PI*w);}
+  const dy=yr-G.yh;const xc=xr+Math.sqrt(Math.max(0,P.L*P.L-dy*dy));
+  const fwd=G.xc0-xc;const ang=Math.atan2(dy,xc-xr);const angDeg=ang*180/Math.PI;
+  // 地面・車輪
+  set(G.dash,{"stroke-dashoffset":(-s.dist*S)%80});
+  const rotT=s.dist/230*180/Math.PI*-1;
+  [G.tw1,G.tw2].forEach(w=>set(w.g,{transform:`rotate(${rotT},${w.cx},${w.cy})`}));
+  const rotC=(s.dist+fwd)/G.cartR*180/Math.PI*-1;
+  [G.cw1,G.cw2].forEach(w=>set(w.g,{transform:`rotate(${rotC},${w.cx},${w.cy})`}));
+  set(G.cart,{transform:`translate(${xc*S},0)`});
+  set(G.lamp,{fill:s.ph==="drive"?"#7a1f1f":"#ff2a2a"});
+  // バー
+  set(G.bar,{x1:X(xr),y1:Y(yr),x2:X(xc),y2:Y(G.yh)});
+  set(G.ring,{transform:`translate(${X(xr)},${Y(yr)}) rotate(${angDeg})`});
+  G.stop.style.display=s.st?"":"none";G.zstop.style.display=s.st?"":"none";
+  // 押す力矢印（メイン）
+  const showF=s.ph!=="drive"&&s.detach===0;
+  const ca=Math.cos(ang),sa=Math.sin(ang);
+  const px=-sa*0,py=0;
+  const ax=xr+(xc-xr)*0.8,ay=yr+(G.yh-yr)*0.8,bx=xr+(xc-xr)*0.45,by=yr+(G.yh-yr)*0.45;
+  const off=28;const nx=-Math.sin(ang)*off,ny=-Math.cos(ang)*off;
+  set(G.fArrow,{x1:X(ax)+nx,y1:Y(ay)+ny,x2:X(bx)+nx,y2:Y(by)+ny});
+  set(G.fText,{x:X(ax)+nx-20,y:Y(ay)+ny-14});
+  G.fArrow.style.display=showF?"":"none";G.fText.style.display=showF?"":"none";
+  G.warn.textContent=s.detach>0.6?"連結が外れた！":(s.ph==="end"&&s.st&&C.climbs&&s.u>0.2?"抜け止めで保持":"");
+  set(G.warn,{fill:s.st?"#2e9e4f":"#d23b3b"});
+  const lg=s.detach>0.6;G.lunge.style.display=lg?"":"none";G.lungeT.style.display=lg?"":"none";
+  const ly=Y(G.yh+540);set(G.lunge,{x1:X(xc+800),y1:ly,x2:X(xc+450),y2:ly});set(G.lungeT,{x:X(xc+415),y:ly+5,"text-anchor":"end"});
+  // HUD
+  G.hud[0].textContent=`速度：${fmt(s.spd,1)} km/h`;
+  G.hud[1].textContent=s.detach>0?`バー：ピン上端（${fmt(P.Lp,0)} mm）を越えて外れた`:`バーの上昇量：${fmt(Math.min(s.h,P.Lp),0)} mm（ピン ${fmt(P.Lp,0)} mm）`;
+  G.hud[2].textContent=`台車が前に出た量：${fmt(Math.max(0,fwd),0)} mm`;
+  G.hud[3].textContent=`バー角度：${fmt(angDeg,1)}°`;
+  // 拡大図
+  set(G.zbar,{x1:zX(xr),y1:zY(yr),x2:zX(xr)+400*Z*ca,y2:zY(yr)+400*Z*sa});
+  set(G.zring,{transform:`translate(${zX(xr)},${zY(yr)}) rotate(${angDeg})`});
+  const tx=zX(xr)+150*ca,ty=zY(yr)+150*sa,hx=zX(xr)+45*ca,hy=zY(yr)+45*sa,o2=26;
+  set(G.zF,{x1:tx+sa*o2,y1:ty-ca*o2,x2:hx+sa*o2,y2:hy-ca*o2});
+  set(G.zFt,{x:tx+sa*o2-10,y:ty-ca*o2-12});
+  G.zF.style.display=showF?"":"none";G.zFt.style.display=showF?"":"none";
+  G.zh.textContent=s.detach>0?"ピン上端を越えて外れた":`上昇量 ${fmt(Math.min(s.h,P.Lp),0)} mm ／ 角度 ${fmt(angDeg,1)}°`;
+  // 力くらべ（現在の角度で）
+  const showB=s.ph!=="drive"&&s.detach===0;
+  const up=C.M*P.acc*Math.tan(ang),dn=C.down;
+  const mx=Math.max(C.M*P.acc*Math.tan(C.th1||ang),dn,1);
+  const lu=showB?150*up/mx:0,ld=showB?150*dn/mx:0;
+  set(G.zUp,{x2:G.zbx,y2:G.zby-lu});set(G.zDn,{x2:G.zbx,y2:G.zby+ld});
+  G.zDot.style.display=showB?"":"none";G.zUp.style.display=lu>4?"":"none";G.zDn.style.display=ld>4?"":"none";
+  set(G.zUpT,{y:G.zby-lu/2});set(G.zDnT,{y:G.zby+ld/2+12});
+  G.zUpT.textContent=showB?`持ち上げる ${fmt(up,0)}N`:"";
+  G.zDnT.textContent=showB?`押さえる ${fmt(dn,0)}N`:"";
+  if(s.detach>0){G.zV.textContent="外れた";set(G.zV,{fill:"#d23b3b"});}
+  else if(!showB){G.zV.textContent="（ブレーキ前は力が掛からない）";set(G.zV,{fill:"#888"});}
+  else if(s.ph==="end"&&s.st&&C.climbs){G.zV.textContent="抜け止めで保持";set(G.zV,{fill:"#2e9e4f"});}
+  else if(up>dn){G.zV.textContent="緑 ＞ 赤 → 昇る";set(G.zV,{fill:"#d23b3b"});}
+  else{G.zV.textContent="緑 ≦ 赤 → 昇らない";set(G.zV,{fill:"#2e9e4f"});}
+  // キャプション・チップ
+  let key=s.ph;
+  if(s.ph==="climb"&&!C.climbs)key="noclimb";
+  if(s.ph==="end")key=C.climbs?(s.st?"hold":"off"):"noclimb";
+  setCaption(key);
+  const idx={drive:0,brake:1,climb:2,end:3}[s.ph];
+  document.querySelectorAll(".chip").forEach((c,i)=>c.classList.toggle("on",i===idx));
+}
+function setCaption(key){
+  const M=fmt(C.M,0),dx=fmt(C.dx,0);
+  const map={
+   drive:["①","走行中",`時速${fmt(P.v,0)}kmで台車を牽引しています。バーは${fmt(P.theta,0)}°傾いて（牽引車側が高い）、ピンの根元にかかっています。`,""],
+   brake:["②","ブレーキ","牽引車は止まろうとしますが、台車（"+M+"kg）は慣性で進み続けるため、バーを牽引車側へ押し込みます。",""],
+   climb:["③","昇り上がり","バーが斜めなので、押す力の一部が「上向き」に働きます。上向きの力が「摩擦＋重さ」に勝つとバーがピンを昇り、昇るほど角度が急になって、さらに昇りやすくなります。","bad"],
+   noclimb:["③","昇らない","この条件では「摩擦＋重さ」が上向きの力に勝つため、バーはピンの根元にとどまります。","good"],
+   off:["④","外れる",`バーがピン上端（${fmt(P.Lp,0)}mm）を越えて連結が外れます。台車は約${dx}mm前に出るだけで、ここまで至ります。`,"bad"],
+   hold:["④","抜け止めで保持","バーは昇りますが、ピン上端の抜け止めで止まり、連結は外れません。","good"]
+  };
+  const m=map[key];$("capNum").textContent=m[0];$("capTtl").textContent=m[1];$("capTxt").textContent=m[2];
+  $("caption").className="caption "+m[3];
+}
+function loop(ts){
+  if(!playing){last=null;return;}
+  if(last!==null){elapsed+=(ts-last)/1000*parseFloat($("speed").value);}
+  last=ts;
+  if(elapsed>=TOTAL){elapsed=TOTAL;playing=false;$("btnPause").textContent="▶ 再開";}
+  render();
+  if(playing)requestAnimationFrame(loop);
+}
+function play(from){elapsed=from;playing=true;last=null;$("btnPause").textContent="⏸ 一時停止";requestAnimationFrame(loop);}
+
+/* ---------- 更新 ---------- */
+function rebuild(restart){
+  const p=readParams();if(!p)return;
+  P=p;C=calc(P);
+  buildScene();buildZoom();buildBind();showResults();render();
+  if(restart)play(0);
+}
+FIELDS.forEach(f=>$("in_"+f.id).addEventListener("input",()=>rebuild(false)));
+$("stopper").addEventListener("change",()=>{showResults();render();});
+$("btnPlay").addEventListener("click",()=>play(0));
+$("btnPause").addEventListener("click",()=>{
+  if(playing){playing=false;$("btnPause").textContent="▶ 再開";}
+  else play(elapsed>=TOTAL?0:elapsed);
+});
+document.querySelectorAll(".chip").forEach(c=>c.addEventListener("click",()=>play(STARTS[+c.dataset.p]+0.001)));
+document.querySelectorAll("[data-preset]").forEach(b=>b.addEventListener("click",()=>{
+  const k=b.dataset.preset;
+  FIELDS.forEach(f=>{$("in_"+f.id).value=f.v;});
+  $("stopper").checked=false;
+  if(k==="soft")$("in_acc").value=0.5;
+  if(k==="mu")$("in_mu").value=0.30;
+  if(k==="stop")$("stopper").checked=true;
+  rebuild(true);
+}));
+rebuild(true);
+})();
+</script>
+</body>
+</html>
