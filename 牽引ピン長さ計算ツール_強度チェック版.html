@@ -601,8 +601,9 @@ table.qt td.empty{text-align:center;color:var(--ink-2)}
     <ol class="steps">
       <li>下の「印刷画面を開く」を押す</li>
       <li>「プリンター（送信先）」を <b>「PDFとして保存」</b> に変える<br><span>Chromeは「PDFに保存」。会社のプリンターのままだと紙に印刷される</span></li>
-      <li>「保存」を押す → <b>名前を付けて保存</b> の画面が出る</li>
+      <li>「保存」を押す → <b>名前を付けて保存</b> の画面が出る<br><span>プレビュー上の右クリックでは保存できない。必ず画面左の「保存」ボタンを押す</span></li>
     </ol>
+    <div class="pnote">一覧に「PDFとして保存」が無い場合：「Microsoft Print to PDF」を選んで「印刷」を押す（同じく保存先を選ぶ画面が出る）。</div>
     <div class="pname">ファイル名の初期値：<b id="pm-name">—</b></div>
     <div class="bar">
       <button type="button" class="sel" id="pm-go">印刷画面を開く</button>
@@ -740,11 +741,12 @@ function drawFig1(bwid, hole){
 function drawFig2(t, dh, H){
   const blank = (H === null);
   t = t || 14; dh = blank ? 30 : dh; H = blank ? 110 : H;
-  const sc = Math.min(1.1, 130 / Math.max(H, 60));
+  // 【修正】板厚・Δh・ピン長さを同じ縮尺で描く（縮尺がバラバラだと板厚がピンより長く見えていた）
+  const sc = Math.min(2.5, 145 / Math.max(H, 1));
   const plateTop = 205;
-  const tpx = Math.max(7, Math.min(46, t * sc * 2.2));
-  const dpx = Math.min(52, dh * sc * 0.8);
-  const hpx = Math.max(30, Math.min(150, H * sc));
+  const hpx = H * sc;
+  const tpx = Math.max(6, t * sc);
+  const dpx = Math.max(0, Math.min(hpx - tpx - 4, dh * sc));
   const barBottom = plateTop - dpx;
   const barTop = barBottom - tpx;
   const pinTop = plateTop - hpx;
