@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>要因解析ナビ</title>
+<style>
+:root{--txt:#333333;--sub:#7F7F7F;--acc:#2F5597;--ng:#C00000;--ok:#548235;--bg:#FFFFFF;--pale:#F2F2F2;color-scheme:light}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--txt);font-family:"Meiryo UI","メイリオ",Meiryo,sans-serif;font-size:20px;line-height:1.6}
+header{border-bottom:2px solid var(--acc);padding:12px 20px}
+.top{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+h1{font-size:26px;margin:0 8px 0 0}
+.modes{display:flex;gap:8px;flex-wrap:wrap}
+.modes button{font:inherit;font-size:18px;padding:6px 16px;border:2px solid var(--sub);background:#fff;color:var(--txt);cursor:pointer}
+.modes button.on{border-color:var(--acc);background:var(--acc);color:#fff;font-weight:bold}
+.modes .admin{margin-left:auto;font-size:15px;border-width:1px;color:var(--sub)}
+.steps{display:flex;flex-wrap:wrap;margin-top:10px}
+.steps button{font:inherit;font-size:17px;padding:6px 14px;border:1px solid var(--sub);background:#fff;color:var(--txt);margin-left:-1px;cursor:pointer}
+.steps button.on{background:var(--acc);color:#fff;border-color:var(--acc);font-weight:bold}
+main{max-width:960px;margin:0 auto;padding:20px 20px 130px}
+h2{font-size:28px;margin:8px 0 4px}
+h3{font-size:24px;margin:24px 0 4px}
+.lead{color:var(--sub);margin:0 0 16px}
+label.f{display:block;font-weight:bold;margin-top:16px}
+textarea,input[type=text],input[type=date]{width:100%;font:inherit;font-size:22px;padding:10px 12px;border:2px solid var(--sub);color:var(--txt);background:#fff}
+textarea{min-height:68px;resize:vertical}
+textarea:focus,input:focus,button:focus-visible{outline:3px solid var(--acc);outline-offset:0}
+::placeholder{color:#A6A6A6}
+.chk{font-size:18px;margin-top:4px;min-height:1.6em}
+.ng{color:var(--ng);font-weight:bold}
+.ok{color:var(--ok);font-weight:bold}
+.sub{color:var(--sub)}
+.hint{border:1px solid var(--sub);padding:12px 16px;background:var(--pale);font-size:18px}
+.hint b{color:var(--acc)}
+.choice{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px}
+.choice button{font:inherit;font-size:22px;padding:14px 28px;border:2px solid var(--sub);background:#fff;color:var(--txt);cursor:pointer;min-width:170px}
+.choice button.on{border-color:var(--acc);background:var(--acc);color:#fff;font-weight:bold}
+.msg{margin-top:12px;font-weight:bold;padding:8px 12px;border-left:6px solid var(--acc)}
+.msg.ng{border-color:var(--ng)}
+.msg.ok{border-color:var(--ok)}
+.why{border-top:1px solid var(--sub);padding-top:12px;margin-top:16px}
+.why .q{font-weight:bold}
+.why .no{color:var(--acc);font-size:24px;margin-right:8px}
+.btn{font:inherit;font-size:22px;padding:14px 24px;border:2px solid var(--sub);background:#fff;color:var(--txt);cursor:pointer;font-weight:bold}
+.btn.pri{background:var(--acc);border-color:var(--acc);color:#fff}
+.btn.small{font-size:17px;padding:6px 14px;font-weight:normal;margin-top:6px}
+.btn:disabled{opacity:.35;cursor:default}
+.row-btn{display:flex;gap:12px;flex-wrap:wrap;margin-top:16px}
+.rev{border:2px solid var(--acc);padding:12px 16px;margin-top:24px}
+.rev ol{margin:8px 0;padding-left:1.6em}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-top:8px}
+.cards button{font:inherit;text-align:left;padding:12px;border:2px solid var(--sub);background:#fff;color:var(--txt);cursor:pointer}
+.cards button b{display:block;font-size:22px}
+.cards button span{font-size:16px;color:var(--sub)}
+.cards button.on{border:4px solid var(--acc);padding:10px}
+.root{font-size:22px;font-weight:bold;border-left:6px solid var(--acc);padding:6px 12px;margin:8px 0}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+table.sheet{width:100%;border-collapse:collapse;margin-top:8px;font-size:18px}
+table.sheet th,table.sheet td{border:1px solid var(--sub);padding:8px 10px;text-align:left;vertical-align:top}
+table.sheet th{width:190px;background:var(--pale)}
+.result{font-size:40px;font-weight:bold}
+.plan{border-left:6px solid var(--acc);padding:4px 12px;margin-top:10px;display:flex;gap:8px 28px;flex-wrap:wrap;align-items:baseline}
+.plan.late{border-color:var(--ng)}
+.plan.fin{border-color:var(--ok)}
+.plan .big{font-size:40px;font-weight:bold;line-height:1.2}
+.plan button{font:inherit;font-size:17px;padding:4px 12px;border:1px solid var(--sub);background:#fff;color:var(--txt);cursor:pointer}
+.case{border-top:2px solid var(--sub);margin-top:20px;padding-top:8px}
+.case .ct{font-size:22px;font-weight:bold}
+.sample{border:2px solid var(--acc);padding:12px 16px;margin-top:20px}
+nav.foot{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:2px solid var(--sub);padding:12px 20px;display:flex;justify-content:space-between;gap:12px}
+nav.foot .btn{min-width:180px;font-size:24px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10}
+.modal[hidden]{display:none}
+.mbox{background:#fff;border:2px solid var(--acc);max-width:900px;width:100%;max-height:92vh;overflow:auto;padding:20px}
+#ptext{min-height:300px;font-size:16px}
+@media (max-width:640px){.two{grid-template-columns:1fr}nav.foot .btn{min-width:0;flex:1;font-size:18px;padding:12px 8px}}
+@media print{
+ header,nav.foot,.noprint,.modal{display:none!important}
+ body{font-size:11pt}
+ main{padding:0;max-width:none}
+ table.sheet{font-size:10.5pt}
+ table.sheet th{background:#fff}
+}
+</style>
+</head>
+<body>
+<header>
+ <div class="top">
+  <h1>要因解析ナビ</h1>
+  <div class="modes" id="modes"></div>
+ </div>
+ <div class="steps" id="steps"></div>
+ <div id="plan"></div>
+</header>
+<main id="main"></main>
+<nav class="foot" id="foot">
+ <button class="btn" id="prev">戻る</button>
+ <button class="btn" id="ai">AIに相談</button>
+ <button class="btn pri" id="next">次へ</button>
+</nav>
+<div class="modal" id="modal" hidden>
+ <div class="mbox">
+  <h2 id="mtitle"></h2>
+  <p class="lead" id="mlead"></p>
+  <textarea id="ptext" readonly></textarea>
+  <div class="row-btn">
+   <button class="btn pri" data-act="pcopy">コピーする</button>
+   <button class="btn" data-act="pclose">閉じる</button>
+  </div>
+  <div class="chk" id="pflash"></div>
+ </div>
+</div>
+
+<script>
+/*CASES*/const EMBED={"updated":"","list":[]};/*END*/
+const ORIGINAL='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
+const KEY='youin-navi-v1',CKEY='youin-navi-cases';
+const STEPS=['事実','あるべき姿','なぜ起きた','なぜ見逃した','対策','まとめ'];
+const PERSON=['注意不足','不注意','うっかり','確認不足','確認漏れ','意識','気の緩み','慣れ','油断','忘れ','勘違い','思い込み','ミス','怠','やる気','手抜き'];
+const GUESS=['たぶん','多分','と思う','と思われ','かもしれ','らしい','おそらく','気がする','はず'];
+const WEAK=['教育','指導','周知','注意喚起','徹底','気をつけ','気を付け','意識付け','意識づけ','声掛け','声かけ','ダブルチェック','再確認','注意する'];
+const LEVELS=[
+ ['A','なくす','作業・工程そのものをなくす'],
+ ['B','できなくする','間違えられない仕組み（ポカヨケ）'],
+ ['C','気付ける','間違えたらすぐ分かる（検知・表示）'],
+ ['D','人に頼る','教育・注意・ルール追加だけ']];
+const FACT=[
+ ['title','件名','例：部品の誤出荷',0],
+ ['author','作成者','例：山田',0],
+ ['date','発生日','',2],
+ ['when','時刻・直','例：2直　14時ごろ',0],
+ ['where','どこで','例：出荷場　3番レーン',0],
+ ['what','何が','例：品番A123（正しくはA124）',0],
+ ['how','どうなった（現象）','例：客先に違う品番が1箱届いた',1],
+ ['qty','どれだけ','例：1箱（20個）',0]];
+const NAME={gen:'発生（なぜ起きた）',out:'流出（なぜ見逃した）'};
+const LIMIT=7;/* 発生から対策完了までの稼働日数（土日を除く） */
+const CRITERIA=['【合格基準】',
+ '1. 事実：推測がなく、何が・どこで・どうなったが具体的',
+ '2. あるべき姿：標準の有無と、守れていたかが確認されている',
+ '3. なぜなぜ：各段がつながっている。人の問題（言い換えを含む）で止まっていない。モノ・設備・方法の原因まで掘れている（発生が前工程の要因の場合、発生のなぜなぜと対策は対象外）',
+ '4. 流出：見逃した理由が仕組みの問題として掘れている（流出なしの場合は対象外）',
+ '5. 対策：根本原因をつぶしている。教育・注意だけになっていない。担当と期限がある'].join('\n');
+const FOCUS=['事実の書き方（推測が混ざっていないか、足りない情報はないか）','あるべき姿（標準）との比べ方','発生原因のなぜなぜ（掘り下げが足りているか、人の問題で止まっていないか）','流出原因のなぜなぜ（なぜ後工程まで見逃したか）','対策（根本原因をつぶせているか、人に頼る対策になっていないか）','解析全体の見直し'];
+/* Excelの列（見出しの言葉で自動判定。判定の優先順） */
+const COLS=[['comment',/コメント|指摘|所見/],['eval',/評価|良悪|判定/],['mea',/対策/],['cause',/なぜ|原因|要因/],['kind',/種類|分類|区分/],['title',/件名|タイトル|題名/],['phen',/現象|内容|事象/]];
+const ORDER=['title','kind','phen','cause','mea','eval','comment'];
+
+function blank(){return{step:0,
+ fact:{title:'',author:'',date:'',when:'',where:'',what:'',how:'',qty:''},
+ std:{has:'',kept:'',content:''},
+ gen:[''],out:{skip:false,chain:['']},rev:{gen:'',out:''},
+ mea:{gen:{text:'',lv:'',who:'',due:''},out:{text:'',lv:'',who:'',due:''}},
+ ai:{text:'',base:''},boss:'',done:'',src:'自工程',srcDept:''};}
+function load(){try{const v=localStorage.getItem(KEY);if(v){const o=JSON.parse(v),b=blank();o.fact=Object.assign(b.fact,o.fact);return Object.assign(b,o);}}catch(e){}return blank();}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+function loadCases(){let l=null;try{const v=localStorage.getItem(CKEY);if(v)l=JSON.parse(v);}catch(e){}return l&&l.updated>EMBED.updated?l:EMBED;}
+let S=load(),CASES=loadCases();
+const UI={mode:'work',sample:false,q:'',kind:'',di:0,ans:false,my:'',pre:null};
+
+const $=id=>document.getElementById(id);
+const h=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const br=s=>h(s).replace(/\n/g,'<br>');
+const find=(s,list)=>list.find(w=>s.includes(w));
+const blankMark=s=>s&&s.trim()?h(s):'【　】';
+function setVal(k,v){const p=k.split('.');let o=S;for(let i=0;i<p.length-1;i++)o=o[p[i]];o[p[p.length-1]]=v;}
+function chain(t){return t==='gen'?S.gen:S.out.chain;}
+function filled(t){return chain(t).filter(s=>s.trim());}
+function how(){return S.fact.how.trim()||'現象';}
+const ymd=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const today=()=>ymd(new Date());
+const isWork=d=>d.getDay()!==0&&d.getDay()!==6;
+/* 稼働日でn日後（土日は数えない） */
+function addW(s,n){const d=new Date(s+'T00:00:00');let c=0;while(c<n){d.setDate(d.getDate()+1);if(isWork(d))c++;}return ymd(d);}
+function md(s){if(!s)return'【　】';const d=new Date(s+'T00:00:00');return`${d.getMonth()+1}/${d.getDate()}（${'日月火水木金土'[d.getDay()]}）`;}
+/* aからbまでの稼働日数（bが前ならマイナス） */
+function diffW(a,b){if(a===b)return 0;const sg=a<b?1:-1,[x,y]=sg>0?[a,b]:[b,a],d=new Date(x+'T00:00:00');let c=0;
+ while(ymd(d)<y){d.setDate(d.getDate()+1);if(isWork(d))c++;}return c*sg;}
+const limit=()=>S.fact.date?addW(S.fact.date,LIMIT):'';
+const isPre=()=>S.src==='前工程';/* 発生の要因が前工程（組立など） */
+const actives=()=>[...(isPre()?[]:['gen']),...(S.out.skip?[]:['out'])];
+const dueLate=d=>!!(d&&limit()&&d>limit());
+function factOK(){return S.fact.what.trim()&&S.fact.how.trim()&&!FACT.some(([k])=>find(S.fact[k],GUESS));}
+function stdOK(){return S.std.has==='ない'||(S.std.has==='ある'&&S.std.kept&&S.std.kept!=='わからない');}
+function chainOK(t){if(t==='out'&&S.out.skip)return true;if(t==='gen'&&isPre())return!!S.srcDept.trim();const a=filled(t);return a.length>=3&&!find(a[a.length-1],PERSON)&&!a.some(x=>find(x,GUESS))&&S.rev[t]==='ok';}
+function meaOK(t){const m=S.mea[t];return!!(m.text.trim()&&!find(m.text,WEAK)&&m.lv&&m.lv!=='D'&&m.who.trim()&&m.due&&!dueLate(m.due));}
+function aiPass(){return/【判定】\s*合格/.test(S.ai.text)&&S.ai.base===buildText();}
+/* [発生から何日目までに, やること, 画面, 完了条件] */
+const PLAN=[
+ [1,'事実を書く（現場で確認）',0,factOK],
+ [1,'あるべき姿と比べる',1,stdOK],
+ [3,()=>isPre()?'発生の依頼先を決める':'なぜ起きたを掘る',2,()=>chainOK('gen')],
+ [3,'なぜ見逃したを掘る',3,()=>chainOK('out')],
+ [4,'対策を決めてAI審査に合格',5,()=>actives().every(meaOK)&&aiPass()],
+ [5,'課長の確認',5,()=>!!S.boss],
+ [LIMIT,'対策を実施して完了',5,()=>!!S.done]];
+const lbl=x=>typeof x==='function'?x():x;
+function planHTML(){
+ const d=S.fact.date;
+ if(!d)return'<div class="plan late"><span class="ng">発生日が未入力</span><span>発生日を入れると、期限と今やることが出ます</span><button data-act="go" data-v="0">発生日を入れる</button></div>';
+ const next=PLAN.find(p=>!p[3]());
+ if(!next)return`<div class="plan fin"><span class="big ok">OK　完了</span><span>完了日 ${md(S.done)}</span></div>`;
+ const over=today()>limit(),left=diffW(today(),limit()),due=addW(d,next[0]),late=today()>due;
+ return`<div class="plan ${late||over?'late':''}">
+  <span>期限 ${md(limit())}　<span class="big ${over?'ng':''}">${over?'NG　期限切れ'+(left<0?'（'+(-left)+'日遅れ）':''):'あと'+left+'日'}</span></span>
+  <span>今やること：<b>${lbl(next[1])}</b>（${md(due)}まで）${late?'　<span class="ng">NG　遅れ</span>':''}</span>
+  <button data-act="go" data-v="${next[2]}">その画面へ</button></div>`;
+}
+function planTable(){
+ if(!S.fact.date)return'<p class="ng">発生日が未入力です。1の画面で入れる。</p>';
+ return`<table class="sheet">${PLAN.map(p=>{const due=addW(S.fact.date,p[0]),ok=p[3](),late=!ok&&today()>due;
+  return`<tr><th>${md(due)}</th><td>${lbl(p[1])}　${ok?'<span class="ok">OK　完了</span>':late?'<span class="ng">NG　遅れ</span>':'<span class="sub">未</span>'}</td></tr>`;}).join('')}</table>`;
+}
+const good=()=>CASES.list.filter(c=>c.eval==='良');
+const bad=()=>CASES.list.filter(c=>c.eval==='悪');
+
+/* ---------- チェック ---------- */
+function chkFact(v,k){
+ if(k==='date')return v?`<span class="sub">対策完了の期限は ${md(limit())}（土日を除き発生から${LIMIT}日）</span>`:'<span class="ng">NG　発生日を入れる</span>';
+ if(!v.trim())return'';
+ const g=find(v,GUESS);
+ return g?`<span class="ng">NG　推測の言葉（「${h(g)}」）があります。見た・数えた・測ったことだけ書く</span>`:'<span class="ok">OK</span>';
+}
+function chkWhy(t,i){
+ const arr=chain(t),v=arr[i]||'';
+ if(!v.trim())return'<span class="sub">ここに理由を書く</span>';
+ const g=find(v,GUESS);
+ if(g)return`<span class="ng">NG　推測（「${h(g)}」）です。現場で確かめてから書く</span>`;
+ if(v.trim().length<6)return'<span class="ng">NG　短すぎます。何が・どうなっていたかを書く</span>';
+ const p=find(v,PERSON);
+ if(p&&i===arr.length-1)return`<span class="ng">NG　人の問題（「${h(p)}」）で止まっています。次のなぜで「なぜそうなる状態だったか」を書く</span>`;
+ if(p)return`<span class="sub">人の問題（「${h(p)}」）→ 次のなぜで掘り下げ中</span>`;
+ return'<span class="ok">OK</span>';
+}
+function chkMea(t){
+ const m=S.mea[t],w=find(m.text,WEAK);
+ if(w||m.lv==='D')return`<span class="ng">NG　人に頼る対策${w?'（「'+h(w)+'」）':''}です。「なくす・できなくする・気付ける」で考える</span>`;
+ if(!m.text.trim())return'';
+ return m.lv?'<span class="ok">OK</span>':'<span class="sub">下で対策のレベルを選ぶ</span>';
+}
+
+function chkDue(t){const d=S.mea[t].due;if(!d)return limit()?`<span class="sub">${md(limit())}までに完了</span>`:'';
+ return dueLate(d)?`<span class="ng">NG　期限 ${md(limit())} を過ぎています</span>`:'<span class="ok">OK</span>';}
+
+/* ---------- 似た良い事例 ---------- */
+function grams(s){const g=new Set();s=(s||'').replace(/\s/g,'');for(let i=0;i<s.length-1;i++)g.add(s.slice(i,i+2));return g;}
+function similar(){
+ const base=grams(S.fact.title+S.fact.what+S.fact.how);if(!base.size)return null;
+ let best=null,bs=0;
+ good().forEach(c=>{let n=0;grams(c.title+c.kind+c.phen).forEach(x=>{if(base.has(x))n++;});if(n>bs){bs=n;best=c;}});
+ return bs>=2?best:null;
+}
+function caseCard(c,comment){
+ return`<div class="case"><div class="ct">${h(c.title||'（件名なし）')}${c.kind?`<span class="sub">　${h(c.kind)}</span>`:''}</div>
+ <table class="sheet"><tr><th>現象</th><td>${br(c.phen)}</td></tr><tr><th>なぜなぜ</th><td>${br(c.cause)}</td></tr><tr><th>対策</th><td>${br(c.mea)}</td></tr>
+ ${comment&&c.comment?`<tr><th>課長コメント</th><td>${br(c.comment)}</td></tr>`:''}</table></div>`;
+}
+function samplePanel(){
+ if(!good().length)return'';
+ const c=similar()||good()[0];
+ return`<div class="sample noprint"><b>${similar()?'似た事例の見本':'見本'}</b>　過去の良い解析
+ <div><button class="btn small" data-act="sample">${UI.sample?'見本を閉じる':'見本を見る'}</button></div>
+ ${UI.sample?caseCard(c,true):''}</div>`;
+}
+
+/* ---------- 解析画面 ---------- */
+function viewFact(){
+ return`<h2>1　何が起きたか（事実）</h2>
+ <p class="lead">現場・現物で確かめたことだけを書く。推測は書かない。</p>
+ <div class="hint"><b>書き方のコツ</b>　「たぶん」「〜と思う」は推測。見た・数えた・測ったことを書く。</div>
+ ${FACT.map(([k,l,ph,big])=>`<label class="f">${l}</label>
+ ${big===1?`<textarea data-k="fact.${k}" placeholder="${ph}">${h(S.fact[k])}</textarea>`:`<input type="${big===2?'date':'text'}" data-k="fact.${k}" placeholder="${ph}" value="${h(S.fact[k])}">`}
+ <div class="chk" id="c-fact-${k}">${chkFact(S.fact[k],k)}</div>`).join('')}`;
+}
+function stdMsg(){
+ const s=S.std;
+ if(s.has==='ない')return'<div class="msg">標準がない。→ 対策に「標準を作る」を必ず入れる</div>';
+ if(s.has!=='ある')return'';
+ if(s.kept==='守れていた')return'<div class="msg">標準どおりでも起きた。→ 標準の中身に弱い所がある。なぜなぜで探す</div>';
+ if(s.kept==='守れていなかった')return'<div class="msg">標準が守れていない。→ なぜなぜは「なぜ守れなかったか」まで掘る。「守らなかった」で止めない</div>';
+ if(s.kept==='わからない')return'<div class="msg ng"><span class="ng">NG　現場で確認してから次へ進む</span></div>';
+ return'';
+}
+function viewStd(){
+ const s=S.std,b=(k,v)=>`<button data-act="set" data-k="${k}" data-v="${v}" class="${S.std[k.split('.')[1]]===v?'on':''}">${v}</button>`;
+ return`<h2>2　あるべき姿（標準）と比べる</h2>
+ <p class="lead">本来どうするはずだったかを確かめる。</p>
+ <label class="f">標準（手順書・ルール）は？</label>
+ <div class="choice">${b('std.has','ある')}${b('std.has','ない')}</div>
+ ${s.has==='ある'?`<label class="f">標準は守れていた？</label>
+ <div class="choice">${b('std.kept','守れていた')}${b('std.kept','守れていなかった')}${b('std.kept','わからない')}</div>`:''}
+ ${s.has?`<label class="f">${s.has==='ある'?'標準の内容（あるべき姿）':'本来どうあるべきか'}</label>
+ <textarea data-k="std.content" placeholder="例：出荷前にかんばんと現品ラベルを照合する">${h(s.content)}</textarea>`:''}
+ ${stdMsg()}`;
+}
+function startQ(t){return t==='gen'?`なぜ「${h(how())}」が起きた？`:`なぜ「${h(how())}」を見逃した（後工程まで流れた）？`;}
+function qText(t,i){return i===0?startQ(t):`「${h(chain(t)[i-1]||'前のなぜ')}」のはなぜ？`;}
+function cntMsg(t){
+ const n=filled(t).length;
+ if(n===0)return'';
+ return n<3?`<span class="ng">NG　なぜが${n}回です。3回以上を目安に掘る</span>`:`<span class="ok">なぜ ${n}回</span>`;
+}
+function revHTML(t){
+ const arr=filled(t);
+ if(arr.length<2)return'<b>逆読みチェック</b><br><span class="sub">なぜを2つ以上書くと、逆から読んで確認できます。</span>';
+ const items=arr.slice().reverse().map(s=>`<li>「${h(s)}」だから</li>`).join('')+`<li>「${h(how())}」${t==='gen'?'が起きた':'が流出した'}</li>`;
+ const r=S.rev[t];
+ return`<b>逆読みチェック</b>　上から「だから」でつないで読む
+ <ol>${items}</ol>
+ <div class="choice"><button data-act="rev" data-t="${t}" data-v="ok" class="${r==='ok'?'on':''}">つながっている</button>
+ <button data-act="rev" data-t="${t}" data-v="ng" class="${r==='ng'?'on':''}">つながらない</button></div>
+ ${r==='ng'?'<div class="msg ng"><span class="ng">NG　つながらない所の間に、もう一段なぜを入れる</span></div>':''}
+ ${r==='ok'?'<div class="msg ok"><span class="ok">OK　つながりを確認済み</span></div>':''}`;
+}
+function viewChain(t){
+ if(t==='gen'){
+  const sb=(v,l)=>`<button data-act="set" data-k="src" data-v="${v}" class="${S.src===v?'on':''}">${l}</button>`;
+  const head=`<h2>3　なぜ起きたか（発生）</h2>
+  <label class="f">発生の要因はどこ？</label>
+  <div class="choice">${sb('自工程','物流（自工程）')}${sb('前工程','前工程（組立など）')}</div>
+  <p class="sub">前工程か判断がつかない場合は「物流（自工程）」で掘る。</p>`;
+  if(isPre())return head+`<label class="f">依頼先（前工程の部署）</label>
+  <input type="text" data-k="srcDept" value="${h(S.srcDept)}" placeholder="例：組立2課">
+  <div class="chk" id="c-dept">${chkDept()}</div>
+  <div class="msg">発生の解析と対策は前工程に依頼する。物流は「4　なぜ見逃したか」と流出の対策を行う。</div>`;
+  return head+chainBody(t);
+ }
+ if(S.out.skip)return`<h2>4　なぜ見逃したか（流出）</h2>
+ <div class="msg">流出なし（社内で止まった）として進めます。</div>
+ <div class="row-btn"><button class="btn" data-act="skip">流出の分析をする</button></div>`;
+ return`<h2>4　なぜ見逃したか（流出）</h2>${isPre()?'<p class="sub">発生は前工程の要因のため、流出の解析は必須です。</p>':''}`+chainBody(t);
+}
+function chkDept(){return S.srcDept.trim()?'<span class="ok">OK</span>':'<span class="ng">NG　依頼先を入れる</span>';}
+function chainBody(t){
+ const arr=chain(t),key=t==='gen'?'gen':'out.chain';
+ const hint=t==='gen'
+  ?'<b>考えるヒント</b>　人：やり方を知っていたか／やりにくくないか　設備：道具・設備に不具合はないか　方法：手順は守れる内容か　モノ：部品・荷姿・表示が紛らわしくないか'
+  :'<b>考えるヒント</b>　確認する工程はあったか／その確認方法で見つけられる問題か／確認を飛ばせる仕組みになっていないか';
+ return`
+ <p class="lead">止める目安：対策が打てる「モノ・設備・方法」の原因まで来たら止める（3〜5回）。人の問題で止めない。</p>
+ <div class="hint">${hint}</div>
+ ${t==='out'&&!isPre()?'<div class="row-btn"><button class="btn small" data-act="skip">流出していない（社内で止まった）</button></div>':''}
+ ${arr.map((v,i)=>`<div class="why">
+  <div class="q"><span class="no">なぜ${i+1}</span><span id="q-${t}-${i}">${qText(t,i)}</span></div>
+  <textarea data-k="${key}.${i}" placeholder="理由を1つ書く">${h(v)}</textarea>
+  <div class="chk" id="c-${t}-${i}">${chkWhy(t,i)}</div>
+  ${i===arr.length-1&&arr.length>1?`<button class="btn small" data-act="del" data-t="${t}">このなぜを消す</button>`:''}
+ </div>`).join('')}
+ <div class="row-btn"><button class="btn" data-act="add" data-t="${t}" ${arr.length>=7?'disabled':''}>さらに なぜ？ を追加</button></div>
+ <div class="chk" id="cnt-${t}">${cntMsg(t)}</div>
+ <div class="rev" id="rev-${t}">${revHTML(t)}</div>
+ ${samplePanel()}`;
+}
+function meaBlock(t){
+ const m=S.mea[t],arr=filled(t),root=arr[arr.length-1]||'（なぜなぜが未記入）';
+ return`<h3>${NAME[t]}の対策</h3>
+ <div class="sub">根本原因</div>
+ <div class="root">${h(root)}</div>
+ <label class="f">対策</label>
+ <textarea data-k="mea.${t}.text" placeholder="例：品番違いの箱はレーンに置けない棚に変える">${h(m.text)}</textarea>
+ <div class="chk" id="c-mea-${t}">${chkMea(t)}</div>
+ <label class="f">対策のレベル（Aほど強い）</label>
+ <div class="cards">${LEVELS.map(([id,n,d])=>`<button data-act="set" data-k="mea.${t}.lv" data-v="${id}" class="${m.lv===id?'on':''}"><b>${id}　${n}</b><span>${d}</span></button>`).join('')}</div>
+ <div class="two">
+  <div><label class="f">担当</label><input type="text" data-k="mea.${t}.who" value="${h(m.who)}" placeholder="例：山田"></div>
+  <div><label class="f">完了予定日</label><input type="date" data-k="mea.${t}.due" value="${h(m.due)}"><div class="chk" id="c-due-${t}">${chkDue(t)}</div></div>
+ </div>`;
+}
+function viewMea(){
+ return`<h2>5　対策</h2>
+ <p class="lead">根本原因をつぶす対策を書く。「注意する」「教育する」だけでは再発する。</p>
+ ${S.std.has==='ない'?'<div class="msg">標準がないため、「標準を作る」も対策に入れる</div>':''}
+ ${isPre()?`<div class="msg">発生の対策：前工程（${h(S.srcDept)||'【　】'}）に依頼</div>`:''}
+ ${actives().map(meaBlock).join('')}
+ ${samplePanel()}`;
+}
+
+/* ---------- まとめ ---------- */
+function issues(){
+ const L=[],f=S.fact;
+ [['what','何が'],['how','どうなった']].forEach(([k,l])=>{if(!f[k].trim())L.push(`事実：「${l}」が空欄`);});
+ FACT.forEach(([k,l])=>{if(find(f[k],GUESS))L.push(`事実：「${l}」に推測の言葉`);});
+ if(!S.std.has)L.push('あるべき姿：標準の有無が未選択');
+ else if(S.std.has==='ある'&&!S.std.kept)L.push('あるべき姿：守れていたかが未選択');
+ else if(S.std.kept==='わからない')L.push('あるべき姿：守れていたかが未確認');
+ if(!S.fact.date)L.push('事実：発生日が空欄');
+ if(isPre()&&!S.srcDept.trim())L.push('発生：前工程の依頼先が空欄');
+ actives().forEach(t=>{
+  const arr=filled(t),n=NAME[t],m=S.mea[t];
+  if(arr.length<3)L.push(`${n}：なぜが${arr.length}回（3回以上が目安）`);
+  if(arr.length&&find(arr[arr.length-1],PERSON))L.push(`${n}：人の問題で止まっている`);
+  if(arr.some(s=>find(s,GUESS)))L.push(`${n}：推測の言葉がある`);
+  if(S.rev[t]!=='ok')L.push(`${n}：逆読みチェックが${S.rev[t]==='ng'?'つながらない':'未確認'}`);
+  if(!m.text.trim())L.push(`${n}の対策：未記入`);
+  else if(find(m.text,WEAK)||m.lv==='D')L.push(`${n}の対策：人に頼る対策`);
+  if(m.text.trim()&&!m.lv)L.push(`${n}の対策：レベル未選択`);
+  if(!m.who.trim()||!m.due)L.push(`${n}の対策：担当・完了予定日が空欄`);
+  if(dueLate(m.due))L.push(`${n}の対策：完了予定日が期限を過ぎている`);
+ });
+ return L;
+}
+function lvName(id){const l=LEVELS.find(x=>x[0]===id);return l?`${l[0]}　${l[1]}`:'【　】';}
+function chainRows(t){const arr=filled(t);return arr.length?arr.map((s,i)=>`なぜ${i+1}：${h(s)}`).join('<br>'):'【　】';}
+function viewSum(){
+ const L=issues(),f=S.fact,st=S.std;
+ const stdTxt=st.has?(st.has==='ない'?'標準なし':`標準あり／${st.kept||'【　】'}`)+(st.content?`<br>${h(st.content)}`:''):'【　】';
+ const meaRow=t=>{const m=S.mea[t];return`<tr><th>対策（${t==='gen'?'発生':'流出'}）</th><td>${blankMark(m.text)}<br>レベル：${lvName(m.lv)}　担当：${blankMark(m.who)}　完了予定：${md(m.due)}</td></tr>`;};
+ const judge=(S.ai.text.split('\n').find(x=>x.includes('【判定】'))||'').trim();
+ return`<h2>6　まとめ</h2>
+ <div class="noprint">
+  <div class="sub">残りの指摘</div>
+  <div class="result ${L.length?'ng':'ok'}">${L.length?`NG　${L.length}件`:'OK　指摘なし'}</div>
+  ${L.length?`<ul>${L.map(x=>`<li>${h(x)}</li>`).join('')}</ul>`:'<p>指摘がなくなったら、AIの審査を受ける。</p>'}
+  <h3>予定と進み具合</h3>
+  <div id="ptab">${planTable()}</div>
+  <h3>AIの審査</h3>
+  <p class="lead">審査を受けて、AIの答えをそのまま下に貼る。合格したら課長に出す。</p>
+  <div class="row-btn"><button class="btn pri" data-act="judge">AIの審査を受ける</button></div>
+  <label class="f">AIの審査結果を貼る</label>
+  <textarea data-k="ai.text" style="min-height:120px;font-size:18px" placeholder="【判定】合格 または 【判定】不合格 から始まる答え">${h(S.ai.text)}</textarea>
+  <div class="chk" id="c-ai">${chkAI()}</div>
+  <h3>完了</h3>
+  <div class="row-btn">
+   <button class="btn ${S.boss?'pri':''}" id="bossbtn" data-act="boss" ${aiPass()||S.boss?'':'disabled'}>${S.boss?'課長確認済み　'+md(S.boss):'課長の確認が終わった'}</button>
+   <button class="btn ${S.done?'pri':''}" id="donebtn" data-act="done" ${S.boss?'':'disabled'}>${S.done?'対策完了　'+md(S.done):'対策を実施した'}</button>
+  </div>
+  <h3>出力</h3>
+  <div class="row-btn">
+   <button class="btn pri" data-act="print">印刷する</button>
+   <button class="btn" data-act="copy">文章をコピー</button>
+   <button class="btn" data-act="reset">新しく始める</button>
+  </div>
+  <div class="chk" id="flash"></div>
+ </div>
+ <table class="sheet">
+  <tr><th>件名</th><td>${blankMark(f.title)}</td></tr>
+  <tr><th>作成者</th><td>${blankMark(f.author)}</td></tr>
+  <tr><th>発生日・期限</th><td>発生 ${md(f.date)}　対策完了の期限 ${md(limit())}</td></tr>
+  <tr><th>事実</th><td>時刻・直：${blankMark(f.when)}<br>どこで：${blankMark(f.where)}<br>何が：${blankMark(f.what)}<br>どうなった：${blankMark(f.how)}<br>どれだけ：${blankMark(f.qty)}</td></tr>
+  <tr><th>あるべき姿</th><td>${stdTxt}</td></tr>
+  <tr><th>なぜ起きた</th><td>${isPre()?`前工程の要因（依頼先：${blankMark(S.srcDept)}）。発生の対策は前工程で行う`:chainRows('gen')}</td></tr>
+  <tr><th>なぜ見逃した</th><td>${S.out.skip?'流出なし（社内で止まった）':chainRows('out')}</td></tr>
+  ${actives().map(meaRow).join('')}
+  <tr><th>AIの審査</th><td>${judge?h(judge)+(aiPass()?'':'（解析を直した後、再審査が必要）'):'【　】'}</td></tr>
+  <tr><th>確認・完了</th><td>課長確認：${md(S.boss)}　対策完了：${md(S.done)}<br>指摘：</td></tr>
+ </table>`;
+}
+function chkAI(){
+ const t=S.ai.text;
+ if(!t.trim())return'<span class="sub">ここに貼る</span>';
+ if(/【判定】\s*合格/.test(t))return S.ai.base===buildText()?'<span class="ok">OK　合格。課長に出す</span>':'<span class="ng">NG　審査の後に解析を直したので、もう一度審査を受ける</span>';
+ if(/【判定】\s*不合格/.test(t))return'<span class="ng">NG　不合格。指摘を直して、もう一度審査を受ける</span>';
+ return'<span class="ng">NG　【判定】が見つかりません。AIの答えをそのまま貼る</span>';
+}
+function buildText(){
+ const f=S.fact,st=S.std,b=s=>s&&s.trim()?s:'【　】';
+ const ch=t=>filled(t).map((s,i)=>`　なぜ${i+1}：${s}`).join('\n')||'　【　】';
+ const me=t=>{const m=S.mea[t];return`　${b(m.text)}\n　レベル：${lvName(m.lv)}　担当：${b(m.who)}　完了予定：${md(m.due)}`;};
+ let s=`■件名：${b(f.title)}\n■作成者：${b(f.author)}\n■発生日：${md(f.date)}\n■事実\n　時刻・直：${b(f.when)}\n　どこで：${b(f.where)}\n　何が：${b(f.what)}\n　どうなった：${b(f.how)}\n　どれだけ：${b(f.qty)}\n`;
+ s+=`■あるべき姿\n　${st.has?(st.has==='ない'?'標準なし':'標準あり／'+(st.kept||'【　】')):'【　】'}${st.content?'\n　'+st.content:''}\n`;
+ s+=`■なぜ起きた\n${isPre()?'　前工程の要因（依頼先：'+b(S.srcDept)+'）。発生の対策は前工程で行う':ch('gen')}\n■なぜ見逃した\n${S.out.skip?'　流出なし（社内で止まった）':ch('out')}\n`;
+ if(!isPre())s+=`■対策（発生）\n${me('gen')}\n`;
+ if(!S.out.skip)s+=`■対策（流出）\n${me('out')}\n`;
+ return s;
+}
+
+/* ---------- AIに相談 ---------- */
+function buildPrompt(){
+ const c=similar();
+ return['あなたは構内物流の品質改善を指導する先輩です。私は要因解析（なぜなぜ分析）を自分で考えられるようになるために練習しています。',
+ '',
+ '【守ってほしいこと】',
+ '・正解の原因や対策を先に言わない。質問で私に考えさせる。',
+ '・質問は1回に1つだけ。短く聞く。',
+ '・推測と事実が混ざっていたら指摘し、現場で何を確かめればよいかを聞く。',
+ '・「注意不足」「うっかり」など人の問題で止まっていたら、なぜそうなる状態だったかを聞く。',
+ '・対策が「教育」「注意」「徹底」だけなら、仕組みで防ぐ方法を考えさせる。',
+ '・私が同じ所で3回つまずいたときだけ、ヒントを1つ出す。',
+ '・終わったら、良かった点と直す点を3行以内でまとめる。',
+ '',
+ `【今相談したいこと】${FOCUS[S.step]}`,
+ '',
+ c?`【社内の良い解析の見本（似た事例）】\n件名：${c.title}\n現象：${c.phen}\nなぜなぜ：${c.cause}\n対策：${c.mea}${c.comment?'\n課長コメント：'+c.comment:''}\n`:'',
+ '【今の私の解析】',
+ buildText(),
+ 'まず最初の質問をしてください。'].join('\n');
+}
+function judgePrompt(){
+ return['あなたは構内物流の品質改善の審査役です。下の要因解析を、合格基準で審査してください。','',CRITERIA,'',
+ '【答え方】',
+ '・1行目に「【判定】合格」か「【判定】不合格」のどちらかだけを書く。',
+ '・2行目から、不合格の理由を最大3つ、基準の番号付きで短く書く。',
+ '・正解の原因や対策は書かない。直す方向だけを1行で書く。',
+ '・言い換えた人の問題（「確認が足りなかった」「気付けなかった」など）も、人の問題として扱う。','',
+ '【要因解析】',buildText()].join('\n');
+}
+function sortPrompt(text){
+ return['以下はExcelから貼り付けた、過去の不具合の要因解析の一覧（タブ区切り）です。各行を合格基準で評価してください。','',CRITERIA,'',
+ '【答え方】',
+ '・列を「件名｜種類｜現象｜なぜなぜ（原因）｜対策｜評価｜課長コメント」にした表で出す。元の内容は変えない。',
+ '・評価は、基準をすべて満たせば「良」、1つでも満たさなければ「悪」。',
+ '・課長コメントは、良なら良い点を1行、悪ならNGの箇所と直す方向を2行以内。',
+ '・個人名は「担当者」に置き換える。','',
+ '【一覧】',text].join('\n');
+}
+function openModal(title,lead,text){$('mtitle').textContent=title;$('mlead').textContent=lead;$('ptext').value=text;$('pflash').innerHTML='';$('modal').hidden=false;copyStr(text,'pflash');}
+function openAI(){openModal('AIに相談する文','会社の生成AIを開いて、この文を貼り付ける。AIの質問に自分で答えていく。',buildPrompt());}
+
+/* ---------- 事例を見る・添削練習 ---------- */
+function viewCases(){
+ const all=good();
+ if(!all.length)return'<h2>事例を見る</h2><p>まだ事例が登録されていません。課長が「事例の登録」から登録します。</p>';
+ const kinds=[...new Set(all.map(c=>c.kind).filter(Boolean))];
+ const q=UI.q.trim();
+ const list=all.filter(c=>(!UI.kind||c.kind===UI.kind)&&(!q||[c.title,c.kind,c.phen,c.cause,c.mea].join(' ').includes(q)));
+ return`<h2>事例を見る（良い解析の見本）</h2>
+ <p class="lead">課長が「良い」と判定した過去の解析です。書き方の見本にする。</p>
+ <label class="f">言葉で探す</label>
+ <input type="text" id="cq" value="${h(UI.q)}" placeholder="例：誤出荷、かんばん、スキット">
+ ${kinds.length?`<div class="choice"><button data-act="kind" data-v="" class="${UI.kind?'':'on'}">すべて</button>${kinds.map(k=>`<button data-act="kind" data-v="${h(k)}" class="${UI.kind===k?'on':''}">${h(k)}</button>`).join('')}</div>`:''}
+ <div class="chk"><span class="sub">${list.length}件</span></div>
+ <div id="clist">${list.map(c=>caseCard(c,true)).join('')}</div>`;
+}
+function viewDrill(){
+ const list=bad();
+ if(!list.length)return'<h2>添削練習</h2><p>まだ練習用の事例が登録されていません。課長が「事例の登録」から登録します。</p>';
+ const i=UI.di%list.length,c=list[i];
+ return`<h2>添削練習</h2>
+ <p class="lead">直す点がある解析です。どこがNGか、どう直すかを書いてから答えを見る。</p>
+ <div class="sub">${list.length}件中 ${i+1}件目</div>
+ ${caseCard(c,false)}
+ <label class="f">どこがNG？どう直す？</label>
+ <textarea id="my" placeholder="例：なぜ2が「確認不足」で止まっている。なぜ確認できなかったかを掘る">${h(UI.my)}</textarea>
+ <div class="row-btn">
+  <button class="btn pri" data-act="ans">${UI.ans?'答えを閉じる':'答え（課長コメント）を見る'}</button>
+  <button class="btn" data-act="dnext">次の事例</button>
+ </div>
+ ${UI.ans?`<div class="msg">${c.comment?br(c.comment):'課長コメントが未記入です'}</div>`:''}`;
+}
+
+/* ---------- 事例の登録（課長用） ---------- */
+function parseTSV(t){
+ const rows=[];let row=[],cell='',q=false;
+ for(let i=0;i<t.length;i++){const c=t[i];
+  if(q){if(c==='"'){if(t[i+1]==='"'){cell+='"';i++;}else q=false;}else cell+=c;}
+  else if(c==='"'&&cell==='')q=true;
+  else if(c==='\t'){row.push(cell);cell='';}
+  else if(c==='\n'){row.push(cell);rows.push(row);row=[];cell='';}
+  else if(c!=='\r')cell+=c;}
+ if(cell||row.length){row.push(cell);rows.push(row);}
+ return rows.filter(r=>r.some(x=>x.trim()));
+}
+/* AIの表（｜区切り）にも対応 */
+function parseAny(t){
+ const L=t.split(/\r?\n/).filter(l=>/^\s*\|/.test(l));
+ if(L.length>=2)return L.filter(l=>!/^\s*\|[\s\-:|]+\|?\s*$/.test(l)).map(l=>l.trim().replace(/^\||\|$/g,'').split('|').map(c=>c.trim().replace(/<br\s*\/?>/gi,'\n')));
+ return parseTSV(t);
+}
+function toCases(text){
+ const rows=parseAny(text);if(!rows.length)return[];
+ const map={};
+ rows[0].forEach((hd,i)=>{const m=COLS.find(([k,re])=>re.test(hd)&&!(k in map));if(m)map[m[0]]=i;});
+ let body=rows;
+ if(Object.keys(map).length>=2)body=rows.slice(1);else ORDER.forEach((k,i)=>map[k]=i);
+ return body.map(r=>{const c={};ORDER.forEach(k=>c[k]=map[k]!=null?(r[map[k]]||'').trim():'');
+  const e=c.eval;c.eval=/良|OK|ＯＫ|○/.test(e)?'良':/悪|NG|ＮＧ|×/.test(e)?'悪':'';return c;});
+}
+function viewAdmin(){
+ const P=UI.pre,cur=CASES.list;
+ const cnt=l=>`良い例 ${l.filter(c=>c.eval==='良').length}件／直す例 ${l.filter(c=>c.eval==='悪').length}件／未仕分け ${l.filter(c=>!c.eval).length}件`;
+ const names=P?P.filter(c=>/さん|君|氏/.test(Object.values(c).join(''))).length:0;
+ return`<h2>事例の登録（課長用）</h2>
+ <p class="lead">Excelの事例を貼り付けて登録する。未仕分けの行は部下に表示しない。</p>
+ <div class="hint"><b>Excelの準備</b>　列を「件名／種類／現象／なぜなぜ（原因）／対策／評価／課長コメント」にする。見出し行ごと選んでコピーする。<br>
+ <b>評価・コメントをAIに付けさせる場合</b>　貼り付けて「AIに仕分けを頼む」→ AIが出した表をコピーして、ここに貼り直して「読み込む」。1回20行までにする。</div>
+ <label class="f">ここに貼り付け</label>
+ <textarea id="paste" style="min-height:160px;font-size:16px" placeholder="Excel、またはAIの表をコピーして貼り付け"></textarea>
+ <div class="row-btn"><button class="btn" data-act="parse">読み込む</button><button class="btn" data-act="sort">AIに仕分けを頼む</button></div>
+ ${P?`<h3>読み込み結果</h3><p>${cnt(P)}</p>
+ ${names?`<div class="msg ng"><span class="ng">NG　個人名らしき言葉（さん・君・氏）が${names}件あります。消してから貼り直す</span></div>`:''}
+ <table class="sheet"><tr><th>件名</th><td><b>評価</b>　現象</td></tr>
+ ${P.slice(0,10).map(c=>`<tr><th>${h(c.title)}</th><td><b class="${c.eval==='悪'?'ng':c.eval==='良'?'ok':'sub'}">${c.eval||'未仕分け'}</b>　${h(c.phen)}</td></tr>`).join('')}</table>
+ ${P.length>10?`<div class="sub">ほか${P.length-10}件</div>`:''}
+ <div class="row-btn"><button class="btn pri" data-act="reg">この内容で登録</button></div>`:''}
+ <h3>登録済み</h3><p>${cnt(cur)}${CASES.updated?`<span class="sub">　更新：${h(CASES.updated.slice(0,10))}</span>`:''}</p>
+ <div class="row-btn">
+  <button class="btn pri" data-act="export" ${cur.length?'':'disabled'}>部下に配るファイルを保存</button>
+  <button class="btn" data-act="clear" ${cur.length?'':'disabled'}>登録した事例を消す</button>
+ </div>
+ <div class="chk" id="aflash"></div>
+ <p class="sub">保存したファイルには事例だけが入ります（解析中の内容は入りません）。</p>`;
+}
+function exportHTML(){
+ const mk='/*'+'CASES*/',end='/*'+'END*/';
+ const data=JSON.stringify(CASES).replace(/</g,'\\u003c');
+ const out=ORIGINAL.replace(/\/\*CASES\*\/[\s\S]*?\/\*END\*\//,()=>mk+'const EMBED='+data+';'+end);
+ const a=document.createElement('a');
+ a.href=URL.createObjectURL(new Blob([out],{type:'text/html'}));
+ a.download='要因解析ナビ_事例入り.html';document.body.appendChild(a);a.click();a.remove();
+ flash('aflash','保存しました。このファイルを部下に配る');
+}
+
+/* ---------- 描画 ---------- */
+function render(){
+ $('modes').innerHTML=[['work','解析する'],['cases','事例を見る'],['drill','添削練習']].map(([m,l])=>`<button data-act="mode" data-v="${m}" class="${UI.mode===m?'on':''}">${l}</button>`).join('')
+  +`<button data-act="mode" data-v="admin" class="admin ${UI.mode==='admin'?'on':''}">事例の登録（課長用）</button>`;
+ const w=UI.mode==='work';
+ $('steps').style.display=w?'flex':'none';
+ $('foot').style.display=w?'flex':'none';
+ updPlan();
+ if(w){
+  $('steps').innerHTML=STEPS.map((s,i)=>`<button data-act="go" data-v="${i}" class="${i===S.step?'on':''}">${i+1} ${s}</button>`).join('');
+  $('prev').disabled=S.step===0;
+  $('next').style.visibility=S.step===STEPS.length-1?'hidden':'visible';
+  $('main').innerHTML=[viewFact,viewStd,()=>viewChain('gen'),()=>viewChain('out'),viewMea,viewSum][S.step]();
+ }else $('main').innerHTML={cases:viewCases,drill:viewDrill,admin:viewAdmin}[UI.mode]();
+}
+function go(n){S.step=Math.max(0,Math.min(STEPS.length-1,n));UI.sample=false;save();render();window.scrollTo(0,0);}
+
+/* 入力中は再描画せず、表示だけ更新（カーソルが飛ばないように） */
+function live(k){
+ const p=k.split('.');
+ updPlan();
+ if(p[0]==='fact'){const e=$('c-fact-'+p[1]);if(e)e.innerHTML=chkFact(S.fact[p[1]],p[1]);return;}
+ if(p[0]==='srcDept'){$('c-dept').innerHTML=chkDept();return;}
+ if(p[0]==='ai'){$('c-ai').innerHTML=chkAI();$('ptab').innerHTML=planTable();$('bossbtn').disabled=!(aiPass()||S.boss);return;}
+ if(p[0]==='gen'||p[0]==='out'&&p[1]==='chain'){
+  const t=p[0];S.rev[t]='';save();
+  chain(t).forEach((_,i)=>{const q=$(`q-${t}-${i}`),c=$(`c-${t}-${i}`);if(q)q.innerHTML=qText(t,i);if(c)c.innerHTML=chkWhy(t,i);});
+  $('cnt-'+t).innerHTML=cntMsg(t);$('rev-'+t).innerHTML=revHTML(t);return;
+ }
+ if(p[0]==='mea'&&p[2]==='text')$('c-mea-'+p[1]).innerHTML=chkMea(p[1]);
+ if(p[0]==='mea'&&p[2]==='due')$('c-due-'+p[1]).innerHTML=chkDue(p[1]);
+}
+function updPlan(){$('plan').innerHTML=UI.mode==='work'?planHTML():'';}
+
+$('main').addEventListener('input',e=>{
+ const el=e.target;
+ if(el.id==='cq'){UI.q=el.value;const pos=el.selectionStart;render();const n=$('cq');n.focus();n.setSelectionRange(pos,pos);return;}
+ if(el.id==='my'){UI.my=el.value;return;}
+ const k=el.dataset.k;if(!k)return;setVal(k,el.value);if(k==='ai.text')S.ai.base=buildText();save();live(k);
+});
+document.addEventListener('click',e=>{
+ const b=e.target.closest('button');if(!b)return;
+ if(b.id==='prev')return go(S.step-1);
+ if(b.id==='next')return go(S.step+1);
+ if(b.id==='ai')return openAI();
+ const a=b.dataset.act,t=b.dataset.t,v=b.dataset.v;
+ if(a==='mode'){UI.mode=v;UI.ans=false;render();window.scrollTo(0,0);return;}
+ if(a==='go')return go(+v);
+ if(a==='pcopy')return copyStr($('ptext').value,'pflash');
+ if(a==='pclose'){$('modal').hidden=true;return;}
+ if(a==='print'){window.print();return;}
+ if(a==='copy')return copyStr(buildText(),'flash');
+ if(a==='export')return exportHTML();
+ if(a==='judge')return openModal('AIの審査を受ける文','会社の生成AIに貼り付ける。AIの答えを全部コピーして、まとめ画面に貼る。',judgePrompt());
+ if(a==='sort'){const t=$('paste').value.trim();if(!t)return flash('aflash','先にExcelの範囲を貼り付ける');return openModal('AIに仕分けを頼む文','会社の生成AIに貼り付ける。出てきた表をコピーして、登録画面に貼り直す。',sortPrompt(t));}
+ if(a==='reset'){if(!confirm('入力した内容を消して、新しく始めますか？'))return;S=blank();save();render();window.scrollTo(0,0);return;}
+ if(a==='set'){setVal(b.dataset.k,v);if(b.dataset.k==='std.has'&&v==='ない')S.std.kept='';if(b.dataset.k==='src'&&v==='前工程')S.out.skip=false;}
+ else if(a==='add'){const arr=chain(t);if(arr.length<7)arr.push('');S.rev[t]='';}
+ else if(a==='del'){chain(t).pop();S.rev[t]='';}
+ else if(a==='rev')S.rev[t]=v;
+ else if(a==='skip')S.out.skip=!S.out.skip;
+ else if(a==='sample')UI.sample=!UI.sample;
+ else if(a==='kind')UI.kind=v;
+ else if(a==='boss')S.boss=S.boss?'':today();
+ else if(a==='done'){if(S.done)S.done='';else if(confirm('対策を実施しましたか？'))S.done=today();else return;}
+ else if(a==='ans')UI.ans=!UI.ans;
+ else if(a==='dnext'){UI.di++;UI.ans=false;UI.my='';}
+ else if(a==='parse'){UI.pre=toCases($('paste').value);if(!UI.pre.length){flash('aflash','読み込めませんでした。Excelの範囲をコピーして貼り付ける');UI.pre=null;return;}}
+ else if(a==='reg'){CASES={updated:new Date().toISOString(),list:UI.pre};UI.pre=null;try{localStorage.setItem(CKEY,JSON.stringify(CASES));}catch(err){}}
+ else if(a==='clear'){if(!confirm('登録した事例を消しますか？'))return;CASES={updated:new Date().toISOString(),list:[]};try{localStorage.setItem(CKEY,JSON.stringify(CASES));}catch(err){}}
+ else return;
+ save();render();
+ if(a==='add'){const ta=document.querySelectorAll('.why textarea');if(ta.length)ta[ta.length-1].focus();}
+ if(a==='reg')flash('aflash','登録しました');
+});
+
+function flash(id,m){const e=$(id);if(e)e.innerHTML=`<span class="ok">${m}</span>`;}
+function copyStr(t,id){
+ const ng=()=>{const a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();
+  try{document.execCommand('copy');flash(id,'コピーしました');}catch(err){flash(id,'コピーできませんでした');}a.remove();};
+ if(navigator.clipboard&&window.isSecureContext)navigator.clipboard.writeText(t).then(()=>flash(id,'コピーしました'),ng);else ng();
+}
+
+render();
+</script>
+</body>
+</html>
