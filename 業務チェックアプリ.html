@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>業務チェックリスト</title>
+<style>
+  body { font-family: sans-serif; max-width: 500px; margin: 40px auto; }
+  h1 { font-size: 20px; }
+  .item { display: flex; align-items: center; margin: 8px 0; }
+  .item input[type="text"] { flex: 1; margin-left: 8px; }
+  .done { text-decoration: line-through; color: gray; }
+  button { margin-left: 8px; }
+  #new-task { width: 70%; padding: 6px; }
+  #add-btn { padding: 6px 12px; }
+</style>
+</head>
+<body>
+
+<h1>業務チェックリスト</h1>
+
+<input type="text" id="new-task" placeholder="タスクを入力">
+<button id="add-btn">追加</button>
+
+<div id="list"></div>
+
+<script>
+  const list = document.getElementById('list');
+  const input = document.getElementById('new-task');
+  const addBtn = document.getElementById('add-btn');
+
+  function loadTasks() {
+    const saved = JSON.parse(localStorage.getItem('tasks') || '[]');
+    saved.forEach(task => addTask(task.text, task.done, false));
+  }
+
+  function saveTasks() {
+    const tasks = [];
+    document.querySelectorAll('.item').forEach(item => {
+      tasks.push({
+        text: item.querySelector('span').textContent,
+        done: item.querySelector('input[type="checkbox"]').checked
+      });
+    });
+    localStorage.setItem('tasks', JSON.stringify(tasks));
+  }
+
+  function addTask(text, done = false, fromInput = true) {
+    if (fromInput) {
+      text = input.value.trim();
+      if (!text) return;
+    }
+
+    const item = document.createElement('div');
+    item.className = 'item';
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = done;
+
+    const label = document.createElement('span');
+    label.textContent = text;
+    if (done) label.classList.add('done');
+
+    const delBtn = document.createElement('button');
+    delBtn.textContent = '削除';
+
+    checkbox.addEventListener('change', () => {
+      label.classList.toggle('done', checkbox.checked);
+      saveTasks();
+    });
+
+    delBtn.addEventListener('click', () => {
+      item.remove();
+      saveTasks();
+    });
+
+    item.appendChild(checkbox);
+    item.appendChild(label);
+    item.appendChild(delBtn);
+    list.appendChild(item);
+
+    if (fromInput) {
+      input.value = '';
+      saveTasks();
+    }
+  }
+
+  addBtn.addEventListener('click', () => addTask());
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') addTask();
+  });
+
+  loadTasks();
+</script>
+
+</body>
+</html>
