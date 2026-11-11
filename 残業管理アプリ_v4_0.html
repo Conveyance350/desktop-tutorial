@@ -1,0 +1,1428 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>残業管理</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:"Meiryo UI","メイリオ",Meiryo,sans-serif;color:#333;background:#fff;font-size:20px}
+button{font-family:inherit;color:#333;background:#fff;border:2px solid #7F7F7F;border-radius:0;cursor:pointer}
+button:disabled{color:#BFBFBF;border-color:#BFBFBF;cursor:default}
+select,input,textarea{font-family:inherit;font-size:20px;color:#333;border:2px solid #7F7F7F;border-radius:0;padding:6px}
+header{display:flex;border-bottom:2px solid #7F7F7F}
+header button{flex:1;font-size:22px;font-weight:bold;padding:16px 0;border:none;border-right:2px solid #7F7F7F}
+header button:last-child{border-right:none}
+header button.on{background:#2F5597;color:#fff}
+main{padding:14px 20px}
+.bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.kbtn{font-size:26px;font-weight:bold;padding:10px 26px}
+.kbtn.on{background:#2F5597;color:#fff;border-color:#2F5597}
+.date{font-size:36px;font-weight:bold;min-width:330px;text-align:center}
+.nav{font-size:26px;padding:10px 20px}
+.prog{font-size:24px;margin-left:auto}
+.prog b{font-size:44px;color:#2F5597}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.pbtn{min-height:104px;padding:8px;text-align:left;display:flex;flex-direction:column;justify-content:space-between}
+.pbtn .nm{font-size:24px;font-weight:bold}
+.pbtn .vl{font-size:34px;font-weight:bold;text-align:right}
+.pbtn .sm{font-size:16px;color:#7F7F7F}
+.ng{color:#C00000;font-weight:bold}
+.ok{color:#548235;font-weight:bold}
+.sub{color:#7F7F7F;font-size:18px}
+.big{font-size:22px;padding:12px 20px;font-weight:bold}
+.pri{background:#2F5597;color:#fff;border-color:#2F5597}
+.hide{display:none!important}
+#panel{position:fixed;inset:0;background:#fff;overflow:auto;padding:16px 24px}
+.ptop{display:flex;align-items:baseline;gap:24px;border-bottom:2px solid #7F7F7F;padding-bottom:8px}
+.ptop .nm{font-size:40px;font-weight:bold}
+.ptop .dt{font-size:28px}
+.disp{font-size:96px;font-weight:bold;text-align:center;margin:6px 0;line-height:1.2}
+.lbl{font-size:20px;font-weight:bold;margin:10px 0 6px}
+.keys{display:grid;gap:8px}
+.keys button{font-size:32px;font-weight:bold;padding:12px 0}
+.keys button.on{background:#2F5597;color:#fff;border-color:#2F5597}
+.h{grid-template-columns:repeat(10,1fr)}
+.m{grid-template-columns:repeat(12,1fr)}
+.c{grid-template-columns:repeat(4,1fr)}
+.c button{font-size:24px}
+.acts{display:flex;gap:12px;margin-top:16px}
+.acts button{flex:1;font-size:28px;font-weight:bold;padding:18px 0}
+#warn{font-size:24px;text-align:center;min-height:32px}
+.tbl{border-collapse:collapse;font-size:16px}
+.tbl th,.tbl td{border:1px solid #7F7F7F;padding:4px 6px;text-align:center;white-space:nowrap}
+.tbl th{position:sticky;top:0;background:#fff}
+.tbl td.nm{text-align:left;font-weight:bold}
+.tbl td.cl{cursor:pointer;min-width:44px}
+.tbl td.cl:hover{outline:2px solid #2F5597}
+.tbl td.tot{font-weight:bold;font-size:18px}
+.tbl td.off{color:#BFBFBF}
+.tbl .del{font-size:20px;font-weight:bold;padding:6px 18px}
+.tbl .del.r{color:#C00000;border-color:#C00000}
+.tbl input{width:80px;font-size:20px;text-align:right;padding:4px}
+.tbl td.ap{cursor:pointer;min-width:60px;font-weight:bold;font-size:20px}
+.tbl td.ap:hover{outline:2px solid #2F5597}
+.tbl tr.sum td{font-weight:bold;border-top:3px double #7F7F7F}
+.wrap{overflow:auto;max-height:72vh}
+.step{font-size:22px;margin:8px 0}
+.step b{color:#2F5597;font-size:30px}
+.box{border:2px solid #7F7F7F;padding:14px 18px;margin:12px 0}
+.drop{border-style:dashed!important;padding:22px 18px}
+.drop.drag{border-color:#2F5597!important;border-width:4px!important}
+label.pri{border:2px solid #2F5597;cursor:pointer}
+label.big{border:2px solid #7F7F7F;cursor:pointer}
+label.pri{border-color:#2F5597}
+summary{cursor:pointer}
+.rsn button{font-size:22px;padding:8px 20px}
+.rsn button.on{background:#2F5597;color:#fff;border-color:#2F5597}
+textarea{width:100%;height:160px;font-size:16px}
+.kpi{display:flex;gap:40px;margin:6px 0 14px}
+.kpi div{font-size:20px}
+.kpi b{font-size:48px;display:block}
+#syncLine{font-size:18px;margin-bottom:8px}
+#syncLine button{font-size:20px;padding:6px 16px;font-weight:bold}
+</style>
+</head>
+<body>
+<header>
+ <button data-tab="in" class="on">入力</button>
+ <button data-tab="list">月の一覧</button>
+ <button data-tab="h360">残業360H</button>
+ <button data-tab="nk">年休</button>
+ <button data-tab="fy">新年度</button>
+ <button data-tab="xl">Excel出力</button>
+ <button data-tab="set">設定</button>
+ <button data-tab="help">使い方</button>
+ <button data-tab="admin" class="hide">管理者</button>
+</header>
+<main>
+<section id="t-in">
+ <div id="syncLine"></div>
+ <div class="bar kb"></div>
+ <div class="bar">
+  <button class="nav" onclick="moveDay(-1)">◀ 前日</button>
+  <div class="date" id="dateLbl"></div>
+  <button class="nav" onclick="moveDay(1)">翌日 ▶</button>
+  <button class="nav" onclick="goToday()">今日</button>
+  <div class="prog">入力済 <b id="progN"></b> / <span id="progT"></span>人</div>
+ </div>
+ <div id="reqLine" class="hide" style="border:2px solid #C00000;padding:10px 14px;margin-bottom:12px;font-size:22px"></div>
+ <div class="grid" id="pgrid"></div>
+ <div class="bar" style="margin-top:16px" id="bulkBar">
+  <span class="sub">未入力の人をまとめて：</span>
+  <button class="big" onclick="bulk(0)">残り全員 0:00</button>
+  <button class="big" onclick="bulk('')">残り全員 空欄（出勤なし）</button>
+ </div>
+</section>
+
+<section id="t-list" class="hide">
+ <div class="bar kb"></div>
+ <div class="bar"><button class="nav" onclick="moveMon(-1)">◀</button><div class="date" id="monLbl"></div><button class="nav" onclick="moveMon(1)">▶</button>
+  <span class="sub">セルを押すと修正できます</span></div>
+ <div class="wrap"><table class="tbl" id="mtbl"></table></div>
+</section>
+
+<section id="t-h360" class="hide">
+ <div class="bar kb"></div>
+ <div class="bar"><button class="nav" onclick="moveFy(-1)">◀ 前年度</button><span id="h3Lbl" style="font-size:28px;font-weight:bold"></span><button class="nav" onclick="moveFy(1)">翌年度 ▶</button>
+  <span class="sub" id="h3Sub"></span></div>
+
+ <div class="bar fbBar"><button class="big pri" onclick="goApp()">今の記録表を取り込む（最初の1回）</button><span class="fbMsg"></span></div>
+ <div class="kpi" id="h3Kpi"></div>
+ <div class="wrap"><table class="tbl" id="h3tbl"></table></div>
+</section>
+
+<section id="t-nk" class="hide">
+ <div class="bar kb"></div>
+ <div class="bar"><button class="nav" onclick="moveFy(-1)">◀ 前年度</button><span id="nkLbl" style="font-size:28px;font-weight:bold"></span><button class="nav" onclick="moveFy(1)">翌年度 ▶</button>
+  <span class="sub"><span id="nkRule"></span>。付与・率は数字を入れると保存されます</span></div>
+
+ <div class="bar fbBar"><button class="big pri" onclick="goApp()">今の記録表を取り込む（最初の1回）</button><span class="fbMsg"></span></div>
+ <div class="kpi" id="nkKpi"></div>
+ <div class="wrap"><table class="tbl" id="nktbl"></table></div>
+</section>
+
+<input type="file" id="fbFile" accept=".xlsb,.xlsx,.xlsm" class="hide" onchange="goWith(this.files[0]);this.value=''">
+<section id="t-fy" class="hide">
+ <div class="bar"><span style="font-size:24px;font-weight:bold">対象年度</span><span id="fyBtns" class="bar" style="margin:0"></span><span class="sub" id="fyNote"></span></div>
+ <div class="box">
+  <div class="lbl" style="font-size:26px">1　名簿の予約</div>
+  <table class="tbl" id="fyR" style="font-size:20px"></table>
+  <div class="sub" style="margin-top:6px">予約した名簿は4月1日から入力画面に出ます。新年度の記録表（.xlsb）を読み込むと、その名簿で上書きされます</div>
+ </div>
+ <div class="box">
+  <div class="lbl" style="font-size:26px">2　年度の設定（総残業・年休の帳票）</div>
+  <div id="fySet"></div>
+ </div>
+ <div class="box">
+  <div class="lbl" style="font-size:26px">3　年休の付与・率</div>
+  <div class="bar"><button class="big" onclick="fyFill()">付与・率：前年度と同じで入れる（未入力の人だけ）</button></div>
+  <div class="wrap" style="max-height:50vh"><table class="tbl" id="fyN" style="font-size:20px"></table></div>
+ </div>
+ <div class="box">
+  <div class="lbl" style="font-size:26px">4　帳票の出力</div>
+  <div class="bar"><button class="big pri" onclick="exportXlsx(fyT)">この年度の帳票をExcelで出力（.xlsx）</button><span id="fyMsg"></span></div>
+  <div class="sub">総残業・年休日数・月ごとのシート（名簿入り）・名簿・年度設定を1つのファイルにします</div>
+ </div>
+</section>
+
+<section id="t-xl" class="hide">
+ <div class="box">
+  <div class="lbl" style="font-size:26px">アプリのデータをExcelに出力</div>
+  <div class="bar"><span>対象年度：</span><select id="xFy" onchange="xFy=+this.value"></select>
+   <button class="big pri" onclick="exportXlsx(xFy)">Excelに出力（.xlsx）</button><span id="xMsg"></span></div>
+  <div class="sub">総残業（360H）・年休日数・月ごとの残業と休み・名簿・年度設定を1つのファイルにします。<br>元のデータはアプリです。提出・保存用にはこのファイルを使ってください</div>
+ </div>
+ <div class="box">
+  <div class="lbl" style="font-size:26px">同期の状態</div>
+  <table class="tbl" id="xlStat" style="font-size:20px"></table>
+  <div class="bar" style="margin-top:12px"><button class="big" onclick="syncNow(true)">今すぐ同期</button></div>
+ </div>
+</section>
+
+<section id="t-set" class="hide">
+ <div class="bar kb"></div>
+ <div class="box">
+  <div class="lbl" style="font-size:26px">この端末</div>
+  <div class="bar">端末名：<input id="devName" style="width:320px" placeholder="例：現場タブレット1" onchange="LC.name=this.value.trim();saveL();schedSync()"><span class="sub" id="devId"></span></div>
+  <div class="bar"><label style="font-size:22px"><input type="checkbox" id="kioskChk" onchange="setKiosk(this.checked)" style="width:26px;height:26px;vertical-align:middle"> 入力専用にする（現場タブレット用。入力と月の一覧だけ表示）</label></div>
+ </div>
+ <div class="box">
+  <div class="lbl" style="font-size:26px">サーバー（タブレットとPCでデータを共有）</div>
+  <div id="srvStat" style="font-size:22px"></div>
+  <div class="bar" style="margin-top:10px"><button class="big pri" onclick="syncNow()">今すぐ同期</button></div>
+  <div class="sub">共用PCで server_zangyo.py を動かし、共用PCは http://localhost:8010/、他の端末は http://192.168.○.○:8010/（共用PCのIP）で開きます。<br>データは共用PCのフォルダの「zangyo_data.json」に保存されます。</div>
+ </div>
+ <div class="box" id="goBox"></div>
+ <div class="box drop" id="dropBox">
+  <div class="lbl" style="font-size:26px">名簿の読込：記録表（.xlsb／.xlsx／.xlsm）をここにドラッグ＆ドロップ</div>
+  <div class="sub">月のシートの名簿（行・社員No・名前）と、新しく入った人の班・年休付与日数を読み込みます。<br>残業・休の値は読み込みません（アプリで管理）。今月より前の月の名簿は変えません</div>
+  <div class="bar" style="margin-top:10px"><label class="big pri">ファイルを選ぶ<input type="file" accept=".xlsb,.xlsx,.xlsm" class="hide" onchange="onRoster(this.files[0]);this.value=''"></label><span id="dMsg"></span></div>
+  <div id="dPrev"></div>
+ </div>
+ <div class="box">
+  <div class="lbl">名簿　<span id="sMon"></span>　<span class="sub">退社・係移動した人は「削除」を押す</span></div>
+  <div id="delBox"></div>
+  <div class="wrap" style="max-height:50vh"><table class="tbl" id="sTbl" style="font-size:20px"></table></div>
+  <div class="lbl" style="margin-top:16px">削除した人（<span id="lK"></span>）</div>
+  <table class="tbl" id="lTbl" style="font-size:20px"></table>
+ </div>
+ <details class="box">
+  <summary class="lbl">名簿を手で直す（通常は不要）　対象：<span id="rMon"></span></summary>
+  <div class="sub">1行に「Excelの行番号,社員No,名前」</div>
+  <textarea id="rosterTx"></textarea>
+  <div class="bar" style="margin-top:8px"><button class="big pri" onclick="saveRoster()">名簿を保存</button><span id="rMsg"></span></div>
+ </details>
+ <div class="box">
+  <div class="lbl">ファイルで受け渡し・バックアップ（サーバーにつながらない端末用）</div>
+  <div class="bar"><button class="big" onclick="backup()">データをファイルに書き出す</button>
+  <label class="big">ファイルから取込（統合）<input type="file" accept=".json" class="hide" onchange="mergeFile(this.files[0]);this.value=''"></label>
+  <span id="bMsg"></span></div>
+  <div class="sub">書き出したファイルを別の端末で取込むと、新しい方の入力が残る形で統合されます。</div>
+ </div>
+ <details class="box" id="cfgBox" ontoggle="if(this.open)renderCfg()">
+  <summary class="lbl" style="font-size:26px">部署の設定（他の部署で使う時に最初に1回）</summary>
+  <div class="sub">係の名前・休みの種類・記録表の列を部署に合わせます。保存するとサーバーにつながる全端末に反映されます</div>
+  <div id="cfgForm"></div>
+ </details>
+ <div class="box">
+  <div class="lbl">この端末のデータを全部消す</div>
+  <div class="bar"><button class="big" style="color:#C00000;border-color:#C00000" onclick="wipe()">全部消す</button><span class="sub">サーバーのデータは消えません（次の同期で読み直します）</span></div>
+ </div>
+</section>
+
+<section id="t-help" class="hide">
+ <div class="box">
+  <div class="lbl" style="font-size:26px">最初に1回だけ（共用PC）</div>
+  <div class="step"><b>1</b>　server_zangyo.py・起動.bat・このファイルを同じフォルダに置き、起動.bat をダブルクリック（黒い画面は閉じない）</div>
+  <div class="step"><b>2</b>　共用PCは http://localhost:8010/、他の端末は黒い画面に出た http://192.168.○.○:8010/ をブラウザで開く</div>
+  <div class="step"><b>3</b>　「今の記録表を取り込む（最初の1回）」→ 以後、記録表は「名簿の読込」にだけ使う</div>
+ </div>
+ <div class="box">
+  <div class="lbl" style="font-size:26px">前の版（v3.2）から移る時</div>
+  <div class="step"><b>1</b>　前の版の「設定」→「データをファイルに書き出す」</div>
+  <div class="step"><b>2</b>　この版の「設定」→「ファイルから取込（統合）」でそのファイルを入れる（サーバーに送られ全端末に配られる）</div>
+  <div class="step">・前の版の「zangyo_～.json」をサーバーと同じフォルダに置くと、サーバーの初回起動時に自動で取り込みます</div>
+ </div>
+ <div class="box">
+  <div class="lbl" style="font-size:26px">現場タブレット</div>
+  <div class="step"><b>1</b>　ブラウザで http://192.168.○.○:8010/（共用PCのIP）を開き、お気に入りに登録。「設定」で端末名を入れる</div>
+  <div class="step"><b>2</b>　「入力専用にする」にチェック（暗証番号4桁を決める）</div>
+  <div class="step"><b>3</b>　毎日：名前 → 時間 → 分 →「登録して次の人へ」</div>
+ </div>
+ <div class="box">
+  <div class="lbl" style="font-size:26px">毎月の締め</div>
+  <div class="step"><b>1</b>　月の初めに記録表の新しい月のシートに名簿を入れ、「設定」→「名簿の読込」</div>
+  <div class="step"><b>2</b>　前月分を「月の一覧」で確認し、「Excel出力」→「Excelに出力」</div>
+ </div>
+ <div class="box">
+  <div class="lbl" style="font-size:26px">年度の変わり目（3月中）</div>
+  <div class="step"><b>1</b>　「新年度」→ 係ごとに「今の名簿をコピーして予約」→ 必要なら「名簿を直す」</div>
+  <div class="step"><b>2</b>　年度の設定、年休の付与・率を入れる</div>
+  <div class="step"><b>3</b>　「この年度の帳票をExcelで出力」。4月1日から入力画面は自動で新年度になります</div>
+ </div>
+ <div class="box">
+  <div class="lbl" style="font-size:26px">他の部署で使う時</div>
+  <div class="step"><b>1</b>　部署ごとに別のフォルダにサーバー一式を置き、server_zangyo.py の PORT を変えて起動（例：8011）</div>
+  <div class="step"><b>2</b>　「設定」→「部署の設定」で係の名前・休みの種類・記録表の列を入れて保存</div>
+  <div class="step"><b>3</b>　記録表を「名簿の読込」に入れ、名簿が正しく出るか確認してから運用を始める</div>
+ </div>
+ <div class="box">
+  <div class="lbl" style="font-size:26px">注意</div>
+  <div class="step">・残業・休の修正はアプリで行う（切替後はExcelで直しても読み込まれません）</div>
+  <div class="step">・Microsoft Edge または Google Chrome で開く。ファイルを直接開かず、必ず http://～:8010/ のアドレスで開く</div>
+  <div class="step">・サーバーが止まっていても入力できる（端末に一時保存し、つながった時に送る。画面上の「未送信」が0になれば送信済）</div>
+  <div class="step">・初回起動でWindowsの「アクセスを許可しますか」が出たら許可する（出せない場合は情報システム担当に相談）</div>
+  <div class="step">・年間残業が申請ライン（初期値330H）に達すると、入力画面に「NG 要申請」が出る。申請後に「残業360H」の申請欄を「済」にすると消える</div>
+ </div>
+ <div class="sub">版：<span id="verLbl"></span></div>
+</section>
+</main>
+
+<div id="panel" class="hide">
+ <div class="ptop"><span class="nm" id="pName"></span><span class="dt" id="pDate"></span><span class="sub" id="pTot"></span></div>
+ <div class="disp" id="pDisp"></div>
+ <div id="warn"></div>
+ <div class="lbl">時間</div><div class="keys h" id="hKeys"></div>
+ <div class="lbl">分</div><div class="keys m" id="mKeys"></div>
+ <div class="lbl">休み・その他</div><div class="keys c" id="cKeys"></div>
+ <div class="acts">
+  <button onclick="closePanel()">戻る（保存しない）</button>
+  <button onclick="clearVal()">未入力に戻す</button>
+  <button onclick="save(false)">登録して閉じる</button>
+  <button class="pri" onclick="save(true)">登録して次の人へ</button>
+ </div>
+</div>
+
+<script>
+
+const VERSION='4.0（2026.11.11）';
+/* 部署の設定（初期値＝構内物流課）。「設定」→「部署の設定」で変更し、サーバーで全端末に配る */
+const BLANK='空欄（出勤なし）';
+const DEF_CFG={org:'物流',kakari:'1係,2係,3係',codes:'休,1\n常昼前休,0.5\n常昼後休,0.5\n連2前休,0.5\n連2後休,0.5\n振休,0\n研修,0',checkH:4,
+ book:'残業記録表',row:5,idCol:'C',nameCol:'E',dayCol:'F',yCell:'E1',mCell:'G1',endWords:'作業者在籍人員,工数持ち',grant:'B:M,N:Y'};
+const MAX_ROW=1000;                  // 記録表を読む最大行
+let KAKARI=['1係','2係','3係'],CODES=[],NENKYU={},CHECK_MIN=240,ORG='物流';
+let START_ROW=5,FIRST_COL=6,ID_C=2,NAME_C=4,Y_CELL={r:1,c:4},M_CELL={r:1,c:6},END_W=[],GRANT=[[1,12],[13,24]],BOOK_KW='残業記録表';
+const WARN1=30*60,WARN2=45*60;       // 月の注意ライン
+const DEF_LIM=360,DEF_OVER=6,REQ_GAP=30;   // 申請ラインの初期値＝上限−30H（360H→330H）
+         // 年度設定が無い時の初期値（帳票の備考を読み込むと置き換え）
+const LEGACY_FY=2026;                // v2.0の年休付与（年度なし）はこの年度として扱う
+const NK_MUST=5,NK_MUST_FROM=10;     // 年5日取得義務（付与10日以上）
+const WD='日月火水木金土';
+/* 保存場所を置き場所（フォルダ）ごとに分ける：同じPCで別部署のファイルを開いてもデータが混ざらない */
+const NS=getNs(),KEY='zangyo_app_v2'+NS,LKEY='zangyo_local_v2'+NS,OLDKEY=NS?'':'zangyo_app_v1';
+function getNs(){
+ let R={},here='';try{R=JSON.parse(localStorage.getItem('zangyo_ns'))||{};}catch(e){}
+ try{here=location.host+decodeURIComponent(location.pathname).replace(/[^\/\\]*$/,'');}catch(e){here=location.host+location.pathname.replace(/[^\/]*$/,'');}
+ if(R[here]!==undefined)return R[here];
+ const claimed=Object.keys(R).some(k=>R[k]===''),old=['zangyo_app_v2','zangyo_local_v2','zangyo_app_v1'].some(k=>localStorage.getItem(k));
+ if(!claimed&&(!old||confirm('この端末に、前の版のデータがあります。このファイルで引き継ぎますか？\n\nOK＝引き継ぐ（今まで使っていた部署）\nキャンセル＝引き継がない（別の部署で新しく使う）')))R[here]='';
+ else R[here]='_'+Date.now().toString(36);
+ localStorage.setItem('zangyo_ns',JSON.stringify(R));return R[here];
+}
+
+let S=loadS(),LC=loadL(),DK=loadDK();   // DK＝サーバーに未送信のキー
+let cur={k:'1係',date:today()},tab='in',sel=null,unlocked=false,delP=null,pend=null;
+let fyT=fyOf(today())+1,xFy=fyOf(today());
+let IDX={r:{},mon:{},base:{},nk:{},cm:{}};
+const SRV=/^https?:$/.test(location.protocol);   // サーバー（http://～）で開いている
+let srvOK=false,syncBusy=false,syncTimer=null,lastSync=null,syncErr='',devs=[];
+
+/* ===== 基本 ===== */
+function loadS(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.e)return s;}catch(e){}return {e:{}};}
+function loadL(){let l={};try{l=JSON.parse(localStorage.getItem(LKEY))||{};}catch(e){}
+ if(!l.dev)l.dev='D'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+ if(l.name===undefined)l.name='';if(l.kiosk===undefined)l.kiosk=false;
+ localStorage.setItem(LKEY,JSON.stringify(l));return l;}
+function loadDK(){try{return JSON.parse(localStorage.getItem(KEY+'_dk'))||{};}catch(e){return {};}}
+function saveL(){localStorage.setItem(LKEY,JSON.stringify(LC));}
+function saveS(){localStorage.setItem(KEY,JSON.stringify(S));localStorage.setItem(KEY+'_dk',JSON.stringify(DK));}
+function persist(){saveS();rebuild();schedSync();}
+function gv(key){const x=S.e[key];return x&&x[0]!==null?x[0]:undefined;}
+function pv(key,v){S.e[key]=[v===undefined?null:v,Date.now(),LC.dev];DK[key]=1;}
+function newer(a,b){return !b||a[1]>b[1]||(a[1]===b[1]&&String(a[2])>String(b[2]));}
+function mergeE(src){let n=0;for(const k in src){const a=src[k];if(Array.isArray(a)&&a.length===3&&newer(a,S.e[k])){S.e[k]=a;DK[k]=1;n++;}}return n;}
+function today(){const d=new Date();d.setHours(0,0,0,0);return d;}
+function pad(n){return String(n).padStart(2,'0');}
+function ym(d){return d.getFullYear()+'-'+pad(d.getMonth()+1);}
+function ymd(d){return ym(d)+'-'+pad(d.getDate());}
+function dim(d){return new Date(d.getFullYear(),d.getMonth()+1,0).getDate();}
+function dimYm(y){const a=y.split('-');return new Date(+a[0],+a[1],0).getDate();}
+function hm(m){const s=m<0?'-':'';m=Math.abs(Math.round(m));return s+Math.floor(m/60)+':'+pad(m%60);}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function norm(s){return String(s||'').replace(/[\s\u3000]/g,'');}
+function fyOf(d){return d.getMonth()<3?d.getFullYear()-1:d.getFullYear();}
+function fyMonths(fy){const a=[];for(let i=0;i<12;i++)a.push(ym(new Date(fy,3+i,1)));return a;}
+function monLbl(y){return (+y.split('-')[1])+'月';}
+function ymText(y){const a=y.split('-');return a[0]+'年'+(+a[1])+'月';}
+function monText(){return ymText(ym(cur.date));}
+function baseOf(pid){return String(pid).split('#')[0];}
+function ckey(k,pid,date){return 'c|'+k+'|'+pid+'|'+date;}
+function show(v){return v===undefined?'未入力':v===''?'－':typeof v==='number'?hm(v):v;}
+function nkFmt(n){return n?String(Math.round(n*10)/10):'';}
+function totLabel(t){return t>WARN2?' <span class="ng">45H超</span>':t>WARN1?' <span class="ng">30H超</span>':'';}
+function f1(n){return String(Math.round(n*10)/10);}
+function dl(name,text,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:type||'text/plain'}));a.download=name;document.body.appendChild(a);a.click();a.remove();}
+function tstr(d){return d?(d.getMonth()+1)+'/'+d.getDate()+' '+pad(d.getHours())+':'+pad(d.getMinutes()):'－';}
+
+/* 集計の索引（変更のたびに作り直す） */
+function rebuild(){
+ applyCfg();
+ const r={},mon={},base={},nk={},cm={};
+ for(const key in S.e){
+  const x=S.e[key];if(x[0]===null)continue;
+  if(key[0]==='r'){const a=key.split('|');(r[a[2]]=r[a[2]]||[]).push(a[1]);}
+  else if(key[0]==='c'){
+   const a=key.split('|'),v=x[0],y=a[3].slice(0,7);cm[y]=1;
+   if(!activeAt(a[1],a[2],a[3]))continue;
+   const b=baseOf(a[2]);
+   if(typeof v==='number'){const k1=a[1]+'|'+a[2]+'|'+y;mon[k1]=(mon[k1]||0)+v;base[b+'|'+y]=(base[b+'|'+y]||0)+v;}
+   else if(NENKYU[v])nk[b+'|'+y]=(nk[b+'|'+y]||0)+NENKYU[v];
+  }
+ }
+ for(const k in r)r[k].sort();
+ IDX={r,mon,base,nk,cm};
+}
+
+/* 名簿 */
+function withPid(list){const seen={};return list.map(p=>{const id=String(p.id===undefined?'':p.id).trim(),b=id||'nm:'+norm(p.name);seen[b]=(seen[b]||0)+1;return {row:+p.row,id:id,name:p.name,pid:seen[b]>1?b+'#'+seen[b]:b};});}
+function rosterAt(y,k){
+ const L=IDX.r[k]||[];if(!L.length)return [];
+ let best=L[0];for(const x of L){if(x<=y)best=x;}
+ return gv('r|'+best+'|'+k)||[];
+}
+function leftOf(p,k){return gv('l|'+(k||cur.k)+'|'+p.pid);}
+function activeAt(k,pid,date){const L=gv('l|'+k+'|'+pid);return !L||date<=L.last;}
+function active(p,day){return activeAt(cur.k,p.pid,ym(cur.date)+'-'+pad(day));}
+function mem(){const y=ym(cur.date);return rosterAt(y,cur.k).filter(p=>activeAt(cur.k,p.pid,y+'-01'));}
+function memDay(day){return mem().filter(p=>active(p,day));}
+function lastDay(p){const L=leftOf(p);return L&&L.last.slice(0,7)===ym(cur.date)?+L.last.slice(8,10):null;}
+function offDate(L){const a=L.last.split('-');return new Date(+a[0],+a[1]-1,+a[2]+1);}
+function offText(L){const d=offDate(L);return (d.getMonth()+1)+'/'+d.getDate()+'から削除';}
+function getV(p,day,k){return gv(ckey(k||cur.k,p.pid,ym(cur.date)+'-'+pad(day)));}
+function setV(p,day,v){pv(ckey(cur.k,p.pid,ym(cur.date)+'-'+pad(day)),v);}
+function sheetTotal(p){return IDX.mon[cur.k+'|'+p.pid+'|'+ym(cur.date)]||0;}
+function personMon(p,y){return IDX.base[baseOf(p.pid)+'|'+(y||ym(cur.date))]||0;}
+function noRoster(){return !KAKARI.some(k=>(IDX.r[k]||[]).length);}
+
+/* 旧版（v1）のデータを引き継ぐ */
+function migrate(){
+ if(!OLDKEY||Object.keys(S.e).length)return;
+ let o=null;try{o=JSON.parse(localStorage.getItem(OLDKEY));}catch(e){}
+ if(!o||!o.data)return;
+ const mr=o.mroster||{};
+ const rost=(y,k)=>{if(mr[y]&&mr[y][k])return mr[y][k];const ks=Object.keys(mr).filter(x=>x<y&&mr[x][k]).sort();return ks.length?mr[ks[ks.length-1]][k]:((o.members||{})[k]||[]);};
+ const yms=new Set([...Object.keys(mr),...Object.keys(o.data||{})]);
+ yms.forEach(y=>KAKARI.forEach(k=>{
+  const list=withPid(rost(y,k));if(!list.length)return;
+  pv('r|'+y+'|'+k,list);
+  const dk=(o.data[y]||{})[k]||{},map={};list.forEach(p=>map[p.row]=p);
+  for(const row in dk){const p=map[row];if(!p)continue;for(const d in dk[row]){const v=dk[row][d];if(v!==undefined&&v!==null)pv(ckey(k,p.pid,y+'-'+pad(+d)),v);}}
+ }));
+ for(const k in (o.left||{}))(o.left[k]||[]).forEach(x=>pv('l|'+k+'|'+(x.id?String(x.id):'nm:'+norm(x.name)),x));
+ saveS();
+}
+
+/* ===== タブ・係 ===== */
+document.querySelectorAll('header button').forEach(b=>b.onclick=()=>{if(b.dataset.tab==='admin'){adminUnlock();return;}showTab(b.dataset.tab);});
+function showTab(t){
+ tab=t;
+ document.querySelectorAll('header button').forEach(x=>x.classList.toggle('on',x.dataset.tab===t));
+ ['in','list','h360','nk','fy','xl','set','help'].forEach(x=>document.getElementById('t-'+x).classList.toggle('hide',x!==t));
+ render();
+}
+function locked(){return LC.kiosk&&!unlocked;}
+function applyKiosk(){
+ const lk=locked();
+ document.querySelectorAll('header button').forEach(b=>{const t=b.dataset.tab;b.classList.toggle('hide',t==='admin'?!lk:lk&&t!=='in'&&t!=='list');});
+ if(lk&&tab!=='in'&&tab!=='list')showTab('in');
+}
+function adminUnlock(){const s=prompt('管理者の暗証番号（4桁）');if(s===null)return;if(s===LC.pin){unlocked=true;applyKiosk();showTab('set');}else alert('暗証番号が違います。');}
+function setKiosk(on){
+ if(on){const s=prompt('管理者の暗証番号を決めてください（4桁の数字）');
+  if(s===null||!/^\d{4}$/.test(s)){alert('4桁の数字で入れてください。');document.getElementById('kioskChk').checked=false;return;}
+  LC.pin=s;LC.kiosk=true;unlocked=false;saveL();applyKiosk();showTab('in');
+ }else{LC.kiosk=false;saveL();applyKiosk();}
+}
+function renderK(){
+ document.querySelectorAll('.kb').forEach(el=>{
+  el.innerHTML='';
+  KAKARI.forEach(k=>{const b=document.createElement('button');b.className='kbtn'+(k===cur.k?' on':'');b.textContent=k;b.onclick=()=>{cur.k=k;delP=null;render();};el.appendChild(b);});
+ });
+}
+function render(){
+ renderK();
+ if(tab==='in')renderIn();else if(tab==='list')renderList();else if(tab==='h360')render360();
+ else if(tab==='nk')renderNk();else if(tab==='fy')renderFy();else if(tab==='xl')renderXl();else if(tab==='set')renderSet();
+ renderSync();
+}
+
+/* ===== 入力 ===== */
+function moveDay(n){const d=new Date(cur.date);d.setDate(d.getDate()+n);cur.date=d;render();}
+function goToday(){cur.date=today();render();}
+function renderIn(){
+ const d=cur.date,day=d.getDate(),ms=memDay(day);
+ document.getElementById('dateLbl').textContent=(d.getMonth()+1)+'月'+day+'日（'+WD[d.getDay()]+'）';
+ const g=document.getElementById('pgrid');g.innerHTML='';let n=0;
+ ms.forEach(p=>{
+  const v=getV(p,day);if(v!==undefined)n++;
+  const b=document.createElement('button');b.className='pbtn';const t=personMon(p);
+  const fy=fyOf(d),nr=needReq(fy,baseOf(p.pid));
+  b.innerHTML='<span class="nm">'+esc(p.name)+'</span><span class="vl '+(v===undefined?'ng':'')+'">'+show(v)+'</span><span class="sm">月計 '+hm(t)+totLabel(t)+(nr?'<br><span class="ng">NG 要申請（年'+hm(yearTot(fy,baseOf(p.pid)))+'）</span>':'')+'</span>';
+  if(nr)b.style.borderColor='#C00000';
+  b.onclick=()=>openPanel(p.pid);g.appendChild(b);
+ });
+ const rl=reqList(fyOf(d)),re=document.getElementById('reqLine');re.classList.toggle('hide',!rl.length);
+ if(rl.length)re.innerHTML='<span class="ng">NG　申請が必要：'+rl.length+'人</span>（年'+fyS(fyOf(d)).req+'H以上・申請が未済）　'+rl.slice(0,5).map(x=>'<b>'+esc(x.p.name)+'</b> '+hm(x.t)).join('、')+(rl.length>5?' ほか':'')+
+  '<br><span class="sub">申請を出したら「残業360H」の申請欄を押して「済」にすると消えます</span>';
+ document.getElementById('progN').textContent=n;
+ document.getElementById('progT').textContent=ms.length;
+ if(!ms.length)g.innerHTML='<div class="box" style="grid-column:1/-1;text-align:center;font-size:28px;font-weight:bold;padding:30px">'+
+  (noRoster()?(locked()?'名簿がありません。サーバーにつながっているか確認してください':'最初に「設定」で記録表（.xlsb）を読み込んでください'):cur.k+'の名簿がありません')+'</div>';
+}
+function bulk(v){
+ const day=cur.date.getDate(),rest=memDay(day).filter(p=>getV(p,day)===undefined);
+ if(!rest.length){alert('未入力の人はいません。');return;}
+ if(!confirm('未入力の'+rest.length+'人を「'+(v===''?'空欄（出勤なし）':'0:00')+'」にします。よろしいですか？'))return;
+ rest.forEach(p=>setV(p,day,v));persist();render();
+}
+function buildCodeKeys(){
+ const c=document.getElementById('cKeys');c.innerHTML='';CODES.forEach(x=>{const b=document.createElement('button');b.textContent=x;b.dataset.v=x;b.onclick=()=>{sel.code=x;sel.h=null;sel.m=null;upd();};c.appendChild(b);});
+}
+function buildKeys(){
+ const h=document.getElementById('hKeys');for(let i=0;i<=9;i++){const b=document.createElement('button');b.textContent=i+'時間';b.style.fontSize='26px';b.dataset.v=i;b.onclick=()=>{sel.h=i;if(sel.m===null)sel.m=0;sel.code=null;upd();};h.appendChild(b);}
+ const m=document.getElementById('mKeys');for(let i=0;i<60;i+=5){const b=document.createElement('button');b.textContent=pad(i);b.dataset.v=i;b.onclick=()=>{sel.m=i;if(sel.h===null)sel.h=0;sel.code=null;upd();};m.appendChild(b);}
+}
+function openPanel(pid,day){
+ if(day)cur.date=new Date(cur.date.getFullYear(),cur.date.getMonth(),day);
+ const p=mem().find(x=>x.pid===pid);if(!p)return;
+ const v=getV(p,cur.date.getDate());
+ sel={p:p,h:null,m:null,code:null};
+ if(typeof v==='number'){sel.h=Math.floor(v/60);sel.m=v%60;}else if(v==='')sel.code=BLANK;else if(v!==undefined)sel.code=v;
+ const d=cur.date,t=personMon(p);
+ document.getElementById('pName').textContent=p.name;
+ document.getElementById('pDate').textContent=(d.getMonth()+1)+'月'+d.getDate()+'日（'+WD[d.getDay()]+'）';
+ document.getElementById('pTot').innerHTML='月計 '+hm(t)+totLabel(t);
+ buildCodeKeys();document.getElementById('panel').classList.remove('hide');upd();
+}
+function selMin(){return sel.h===null?null:sel.h*60+sel.m;}
+function upd(){
+ const mn=selMin();
+ document.getElementById('pDisp').textContent=sel.code?sel.code:mn===null?'--:--':hm(mn);
+ document.getElementById('warn').innerHTML=mn!==null&&mn>CHECK_MIN?'<span class="ng">要確認：'+hm(CHECK_MIN)+'を超えています</span>':'';
+ document.querySelectorAll('#hKeys button').forEach(b=>b.classList.toggle('on',+b.dataset.v===sel.h));
+ document.querySelectorAll('#mKeys button').forEach(b=>b.classList.toggle('on',+b.dataset.v===sel.m&&sel.h!==null));
+ document.querySelectorAll('#cKeys button').forEach(b=>b.classList.toggle('on',b.dataset.v===sel.code));
+}
+function closePanel(){document.getElementById('panel').classList.add('hide');sel=null;render();}
+function clearVal(){setV(sel.p,cur.date.getDate(),undefined);persist();closePanel();}
+function save(next){
+ const mn=selMin();let v;
+ if(sel.code)v=sel.code===BLANK?'':sel.code;
+ else if(mn!==null)v=mn;
+ else{alert('時間か休みを選んでください。');return;}
+ if(typeof v==='number'&&v>CHECK_MIN&&!confirm(hm(v)+' で間違いないですか？'))return;
+ const day=cur.date.getDate(),fy=fyOf(cur.date),b=baseOf(sel.p.pid),was=needReq(fy,b);setV(sel.p,day,v);persist();
+ if(!was&&needReq(fy,b))alert(sel.p.name+' さんの年間残業が '+hm(yearTot(fy,b))+' になり、申請ライン（'+fyS(fy).req+'H）に達しました。\n申請を出してください。');
+ if(next){
+  const ms=memDay(day),i=ms.findIndex(p=>p.pid===sel.p.pid);
+  for(let j=1;j<=ms.length;j++){const p=ms[(i+j)%ms.length];if(getV(p,day)===undefined){openPanel(p.pid);return;}}
+  alert('全員の入力が終わりました。');
+ }
+ closePanel();
+}
+
+/* ===== 月の一覧 ===== */
+function moveMon(n){cur.date=new Date(cur.date.getFullYear(),cur.date.getMonth()+n,1);render();}
+function renderList(){
+ const y=cur.date.getFullYear(),mo=cur.date.getMonth(),n=dim(cur.date);
+ document.getElementById('monLbl').textContent=monText()+'　'+cur.k;
+ let h='<tr><th>名前</th>';
+ for(let d=1;d<=n;d++)h+='<th>'+d+'<br>'+WD[new Date(y,mo,d).getDay()]+'</th>';
+ h+='<th>残業計</th><th>年休</th></tr>';
+ mem().forEach(p=>{
+  const l=lastDay(p),t=sheetTotal(p);
+  h+='<tr><td class="nm">'+esc(p.name)+(l?'<br><span class="sub">'+offText(leftOf(p))+'</span>':'')+'</td>';
+  for(let d=1;d<=n;d++){
+   if(!active(p,d)){h+='<td class="off">／</td>';continue;}
+   const v=getV(p,d);h+='<td class="cl" data-p="'+esc(p.pid)+'" data-d="'+d+'">'+(v===undefined?'':v===''?'－':typeof v==='number'?hm(v):esc(v))+'</td>';
+  }
+  h+='<td class="tot">'+hm(t)+totLabel(personMon(p))+'</td><td class="tot">'+nkFmt(IDX.nk[baseOf(p.pid)+'|'+ym(cur.date)])+'</td></tr>';
+ });
+ const tb=document.getElementById('mtbl');tb.innerHTML=h;
+ tb.onclick=e=>{const td=e.target.closest('td.cl');if(td)openPanel(td.dataset.p,+td.dataset.d);};
+}
+
+/* ===== 年度の共通 ===== */
+function moveFy(n){cur.date=new Date(cur.date.getFullYear()+n,cur.date.getMonth(),1);render();}
+function fyS(fy){
+ const d={lim:DEF_LIM,over:DEF_OVER,goal:null,plan:[]};let s=gv('y|'+fy);
+ if(!s){for(let f=fy-1;f>=fy-3;f--){const p=gv('y|'+f);if(p){s=p;break;}}}
+ const r=Object.assign(d,s||{});if(typeof r.req!=='number')r.req=r.lim-REQ_GAP;return r;
+}
+/* 年間の申請（申請ラインに達したら申請を出す） */
+function yearTot(fy,b){return fyMonths(fy).reduce((a,y)=>a+(IDX.base[b+'|'+y]||0),0);}
+function needReq(fy,b,t){return (t===undefined?yearTot(fy,b):t)>=fyS(fy).req*60&&gv('q|'+fy+'|'+b)!=='済';}
+function reqList(fy){return fyAll(fy).map(o=>({p:o.p,b:baseOf(o.p.pid),t:yearTot(fy,baseOf(o.p.pid))})).filter(x=>needReq(fy,x.b,x.t)).sort((a,b)=>b.t-a.t);}
+function getN(fy,b){return gv('n|'+fy+'|'+b)||(fy===LEGACY_FY?gv('n|'+b):undefined)||{};}
+function setN(fy,b,f,v){const g=Object.assign({},getN(fy,b));g[f]=v;pv('n|'+fy+'|'+b,g);}
+function grpOf(fy,b){let v=gv('g|'+fy+'|'+b);if(v===undefined)v=gv('g|'+(fy-1)+'|'+b);return v||'';}
+function hasRosterAt(y,k){return (IDX.r[k]||[]).some(x=>x<=y);}
+function fyMembers(fy,k){
+ const out=[],seen={};
+ fyMonths(fy).forEach(y=>{if(!hasRosterAt(y,k))return;rosterAt(y,k).forEach(p=>{
+  if(!activeAt(k,p.pid,y+'-01'))return;const b=baseOf(p.pid);if(seen[b]!==undefined){out[seen[b]]=p;return;}seen[b]=out.length;out.push(p);});});   // 名前は新しい月の名簿を使う
+ return out;
+}
+function fyAll(fy){const out=[],seen={};KAKARI.forEach(k=>fyMembers(fy,k).forEach(p=>{const b=baseOf(p.pid);if(seen[b])return;seen[b]=1;out.push({k:k,p:p});}));return out;}
+function h3Row(fy,b){const v=fyMonths(fy).map(y=>IDX.base[b+'|'+y]||0);return {v:v,t:v.reduce((a,x)=>a+x,0),ov:v.filter(x=>x>WARN2).length};}
+function judge(fy,t,ov,b){const s=fyS(fy),L=s.lim*60;
+ if(t>L)return ['NG',s.lim+'H超'];if(ov>s.over)return ['NG','45H超'+s.over+'回超'];
+ if(b!==undefined&&needReq(fy,b,t))return ['NG','申請を出す'];if(t>=L-3600)return ['注意',''];return ['OK',''];}
+function nkSum(fy,b){return fyMonths(fy).reduce((s,y)=>s+(IDX.nk[b+'|'+y]||0),0);}
+function must(g,t){if(typeof g.g!=='number'||g.g<NK_MUST_FROM)return '－';return t>=NK_MUST?'OK':'NG';}
+
+/* ===== 残業360H（総残業の帳票） ===== */
+function render360(){
+ fbShow(fyOf(cur.date));
+ const fy=fyOf(cur.date),s=fyS(fy),ms=fyMonths(fy),ty=ym(today()),inFy=ms.indexOf(ty)>=0,L=s.lim*60;
+ document.getElementById('h3Lbl').textContent=fy+'年度　'+cur.k+'　総残業時間';
+ document.getElementById('h3Sub').textContent='年'+s.lim+'H／月45H超は年'+s.over+'回まで。年'+s.req+'Hに達したら申請。本人の全係の合計で数えます。申請欄は押すと「済→なし→空欄」に切替';
+ let cNG=0,cW=0,cO=0,cM=0,cR=0;const sum=ms.map(()=>0);let st=0;
+ let h='<tr><th>班</th><th>社員No.</th><th>名前</th>'+ms.map(y=>'<th>'+monLbl(y)+'</th>').join('')+'<th>計</th><th>'+s.lim+'Hまで</th><th>45H超</th><th>申請</th><th>判定</th>'+(inFy?'<th>'+monLbl(ty)+'見込</th>':'')+'</tr>';
+ fyMembers(fy,cur.k).forEach(p=>{
+  const b=baseOf(p.pid),R=h3Row(fy,b),j=judge(fy,R.t,R.ov,b),ap=gv('q|'+fy+'|'+b)||'',nr=needReq(fy,b,R.t);if(nr)cR++;
+  h+='<tr><td>'+esc(grpOf(fy,b))+'</td><td>'+esc(p.id)+'</td><td class="nm">'+esc(p.name)+'</td>';
+  R.v.forEach((v,i)=>{sum[i]+=v;h+='<td'+(v>WARN2?' class="ng"':'')+'>'+(v?hm(v):'')+(v>WARN2?'<br>45H超':'')+'</td>';});
+  st+=R.t;if(R.t>L)cNG++;else if(R.t>=L-3600)cW++;if(R.ov>s.over)cO++;
+  h+='<td class="tot'+(R.t>=L-3600?' ng':'')+'">'+hm(R.t)+'</td><td class="tot'+(R.t>L?' ng':'')+'">'+hm(L-R.t)+'</td>';
+  h+='<td class="tot'+(R.ov>s.over?' ng':'')+'">'+R.ov+'回</td>';
+  h+='<td class="ap'+(nr?' ng':'')+'" data-b="'+esc(b)+'">'+(nr?(ap?esc(ap)+'<br>':'')+'NG 要申請':ap?esc(ap):'<span class="sub">－</span>')+'</td>';
+  h+='<td class="tot '+(j[0]==='OK'?'ok':'ng')+'">'+j[0]+(j[1]?'<br>'+j[1]:'')+'</td>';
+  if(inFy){const v=IDX.base[b+'|'+ty]||0,f=v/today().getDate()*dimYm(ty);if(f>WARN2)cM++;
+   h+='<td'+(f>WARN2?' class="ng"':'')+'>'+hm(f)+(f>WARN2?'<br>45H超見込':'')+'</td>';}
+  h+='</tr>';
+ });
+ h+='<tr class="sum"><td colspan="3">合計</td>'+sum.map(v=>'<td>'+(v?hm(v):'')+'</td>').join('')+'<td>'+hm(st)+'</td><td colspan="'+(inFy?5:4)+'"></td></tr>';
+ const tb=document.getElementById('h3tbl');tb.innerHTML=h;
+ tb.onclick=e=>{const td=e.target.closest('td.ap');if(!td||locked())return;const k='q|'+fy+'|'+td.dataset.b,v=gv(k)||'';
+  pv(k,v==='済'?'なし':v==='なし'?'':'済');persist();render360();};
+ const k=(lbl,n)=>'<div>'+lbl+'<b class="'+(n?'ng':'')+'">'+n+'人</b></div>';
+ document.getElementById('h3Kpi').innerHTML=k('申請が必要（'+s.req+'H以上・未申請）',cR)+k(s.lim+'H超',cNG)+k('注意（'+(s.lim-60)+'H以上）',cW)+k('45H超 '+s.over+'回超',cO)+(inFy?k('今月45H超の見込',cM):'');
+}
+
+/* ===== 年休（年休日数の帳票） ===== */
+function renderNk(){
+ fbShow(fyOf(cur.date));
+ const fy=fyOf(cur.date),s=fyS(fy),ms=fyMonths(fy),plan=s.plan||[];
+ document.getElementById('nkRule').textContent=nkText();
+ document.getElementById('nkLbl').textContent=fy+'年度　'+cur.k+'　年休計画・実績';
+ let cNG=0,cU=0;
+ let h='<tr><th>班</th><th>社員No.</th><th>名前</th><th>付与</th>'+ms.map(y=>'<th>'+monLbl(y)+'</th>').join('')+
+  '<th>実績</th><th>年間目標<br>まで</th><th>率</th><th>個人別<br>目標</th><th>残日数</th><th>年5日</th></tr>';
+ if(plan.some(x=>x))h+='<tr><td colspan="4" class="sub">計画</td>'+ms.map((y,i)=>'<td class="sub">'+nkFmt(plan[i])+'</td>').join('')+
+  '<td class="sub">'+f1(plan.reduce((a,x)=>a+(+x||0),0))+'</td><td class="sub">'+(s.goal!==null?'目標'+f1(s.goal):'')+'</td><td colspan="4"></td></tr>';
+ fyMembers(fy,cur.k).forEach(p=>{
+  const b=baseOf(p.pid),g=getN(fy,b);let t=0;
+  const inp=f=>'<input type="number" step="'+(f==='r'?'0.05':'0.5')+'" min="0" data-b="'+esc(b)+'" data-f="'+f+'" value="'+(g[f]===undefined||g[f]===null?'':g[f])+'">';
+  h+='<tr><td>'+esc(grpOf(fy,b))+'</td><td>'+esc(p.id)+'</td><td class="nm">'+esc(p.name)+'</td><td>'+inp('g')+'</td>';
+  ms.forEach(y=>{const v=IDX.nk[b+'|'+y]||0;t+=v;h+='<td>'+nkFmt(v)+'</td>';});
+  const has=typeof g.g==='number',rest=has?g.g-t:null,gr=s.goal!==null?s.goal-t:null,pg=has&&typeof g.r==='number'?g.g*g.r:null,mu=must(g,t);
+  if(!has)cU++;if(mu==='NG')cNG++;
+  h+='<td class="tot">'+f1(t)+'</td><td class="tot">'+(gr===null?'':f1(gr))+'</td><td>'+inp('r')+'</td><td class="tot">'+(pg===null?'':f1(pg))+'</td>'+
+   '<td class="tot'+(has&&rest<0?' ng':'')+'">'+(has?f1(rest):'<span class="sub">付与未設定</span>')+'</td><td>'+
+   (mu==='OK'?'<span class="ok">OK</span>':mu==='NG'?'<span class="ng">NG あと'+f1(NK_MUST-t)+'日</span>':'－')+'</td></tr>';
+ });
+ const tb=document.getElementById('nktbl');tb.innerHTML=h;
+ tb.onchange=e=>{const i=e.target;if(!i.dataset.b)return;setN(fy,i.dataset.b,i.dataset.f,i.value===''?null:+i.value);persist();renderNk();};
+ document.getElementById('nkKpi').innerHTML='<div>年5日 未達<b class="'+(cNG?'ng':'')+'">'+cNG+'人</b></div><div>付与日数 未設定<b>'+cU+'人</b></div>';
+}
+
+/* ===== 新年度（帳票の予約） ===== */
+function srcRoster(fy,k){const y0=fy+'-04',L=(IDX.r[k]||[]).filter(x=>x<y0);if(!L.length)return null;
+ const a=(gv('r|'+L[L.length-1]+'|'+k)||[]).filter(p=>activeAt(k,p.pid,y0+'-01'));return a.length?a:null;}
+function renderFy(){
+ const f0=fyOf(today()),y0=fyT+'-04',s=fyS(fyT),own=!!gv('y|'+fyT),fut=fyT>f0;
+ document.getElementById('fyBtns').innerHTML=[f0,f0+1].map(f=>'<button class="kbtn'+(f===fyT?' on':'')+'" onclick="fyT='+f+';renderFy()">'+f+'年度</button>').join('');
+ document.getElementById('fyNote').textContent=fut?fyT+'年4月1日から、入力画面は自動でこの名簿に切り替わります':'現在の年度です（名簿は記録表の読込で登録）';
+ let h='<tr><th>係</th><th>状態</th><th>人数</th><th>操作</th></tr>';
+ KAKARI.forEach(k=>{const r=gv('r|'+y0+'|'+k),src=fut?srcRoster(fyT,k):null;
+  h+='<tr><td class="nm">'+k+'</td><td>'+(r?'<span class="ok">OK</span> '+(fut?'予約済':'登録済'):'<span class="ng">NG</span> '+(fut?'未予約':'未登録'))+'</td><td>'+(r?r.length+'人':'－')+'</td><td style="text-align:left">'+
+   (fut?(src?'<button class="del" onclick="reserve(\''+k+'\')">'+(r?'今の名簿でやり直す':'今の名簿（'+src.length+'人）をコピーして予約')+'</button> ':'<span class="sub">元になる名簿がありません</span> ')+
+   (r?'<button class="del" onclick="editRes(\''+k+'\')">名簿を直す</button> <button class="del r" onclick="unreserve(\''+k+'\')">予約を取消</button>':''):'－')+'</td></tr>';});
+ document.getElementById('fyR').innerHTML=h;
+ const n=(id,v,w)=>'<input id="'+id+'" type="number" min="0" step="'+(w||1)+'" style="width:100px;text-align:right" value="'+(v===null||v===undefined?'':v)+'" onchange="saveFyS()">';
+ let g='<div class="bar">年間の上限 '+n('fsLim',s.lim)+' H　　申請ライン '+n('fsReq',s.req)+' H　　月45H超は年 '+n('fsOver',s.over)+' 回まで　　年休の年間目標 '+n('fsGoal',s.goal,0.5)+' 日'+
+  (own?'　<span class="ok">OK 保存済</span>':'　<span class="ng">未保存（前年度の値を表示中）</span>')+'</div>';
+ g+='<table class="tbl" style="font-size:18px"><tr><th>年休計画</th>'+fyMonths(fyT).map(y=>'<th>'+monLbl(y)+'</th>').join('')+'</tr><tr><td>日数</td>'+
+  fyMonths(fyT).map((y,i)=>'<td><input class="fsP" type="number" min="0" step="0.5" style="width:64px" value="'+(s.plan&&s.plan[i]!==undefined&&s.plan[i]!==null?s.plan[i]:'')+'" onchange="saveFyS()"></td>').join('')+'</tr></table>';
+ g+='<div class="bar" style="margin-top:8px"><button class="big" onclick="saveFyS()">この内容で保存</button></div>';
+ document.getElementById('fySet').innerHTML=g;
+ let t='<tr><th>係</th><th>班</th><th>社員No.</th><th>名前</th><th>前年度<br>付与</th><th>前年度<br>率</th><th>付与</th><th>率</th></tr>';
+ const all=fyAll(fyT);
+ all.forEach(o=>{const p=o.p,b=baseOf(p.pid),N=getN(fyT,b),P=getN(fyT-1,b);
+  const inp=f=>'<input type="number" min="0" step="'+(f==='r'?'0.05':'0.5')+'" data-b="'+esc(b)+'" data-f="'+f+'" value="'+(N[f]===undefined||N[f]===null?'':N[f])+'">';
+  t+='<tr><td>'+o.k+'</td><td>'+esc(grpOf(fyT,b))+'</td><td>'+esc(p.id)+'</td><td class="nm">'+esc(p.name)+'</td><td>'+(typeof P.g==='number'?f1(P.g):'－')+'</td><td>'+(typeof P.r==='number'?P.r:'－')+'</td><td>'+
+   inp('g')+'</td><td>'+inp('r')+'</td></tr>';});
+ const tb=document.getElementById('fyN');tb.innerHTML=all.length?t:'<tr><td class="sub" style="border:none">名簿がありません（先に1の名簿を予約してください）</td></tr>';
+ tb.onchange=e=>{const i=e.target;if(!i.dataset.b)return;setN(fyT,i.dataset.b,i.dataset.f,i.value===''?null:+i.value);persist();renderFy();};
+}
+function saveFyS(){
+ const v=id=>{const x=document.getElementById(id).value;return x===''?null:+x;};
+ const plan=[...document.querySelectorAll('.fsP')].map(i=>i.value===''?0:+i.value),lim=v('fsLim'),ov=v('fsOver'),rq=v('fsReq'),L0=lim===null?DEF_LIM:lim;
+ if(rq!==null&&rq>L0){alert('申請ラインは年間の上限（'+L0+'H）以下にしてください。');renderFy();return;}
+ pv('y|'+fyT,{lim:L0,req:rq===null?L0-REQ_GAP:rq,over:ov===null?DEF_OVER:ov,goal:v('fsGoal'),plan:plan});persist();renderFy();
+}
+function reserve(k){
+ const y0=fyT+'-04',src=srcRoster(fyT,k);if(!src)return;
+ if(gv('r|'+y0+'|'+k)&&!confirm(k+'の'+fyT+'年度の名簿を、今の名簿で作り直します。よろしいですか？'))return;
+ pv('r|'+y0+'|'+k,src.map(p=>({row:p.row,id:p.id,name:p.name,pid:p.pid})));persist();renderFy();
+}
+function unreserve(k){if(!confirm(k+'の'+fyT+'年度の名簿予約を取り消します。よろしいですか？'))return;pv('r|'+fyT+'-04|'+k,undefined);persist();renderFy();}
+function editRes(k){cur.k=k;cur.date=new Date(fyT,3,1);showTab('set');const d=document.querySelector('#t-set details');if(d){d.open=true;d.scrollIntoView({block:'start'});}}
+function fyFill(){
+ let n=0;
+ fyAll(fyT).forEach(o=>{const b=baseOf(o.p.pid),N=getN(fyT,b),P=getN(fyT-1,b);
+  if(typeof N.g!=='number'&&typeof P.g==='number'){setN(fyT,b,'g',P.g);n++;}
+  if(typeof N.r!=='number'&&typeof P.r==='number')setN(fyT,b,'r',P.r);});
+ persist();renderFy();alert(n+'人に入れました。');
+}
+
+/* ===== サーバーとの同期（server_zangyo.py） ===== */
+async function api(path,body){
+ const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),20000);
+ try{
+  const r=await fetch(path,body===undefined?{cache:'no-store',signal:ctl.signal}:
+   {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),cache:'no-store',signal:ctl.signal});
+  if(!r.ok)throw new Error('サーバーエラー '+r.status);
+  return r;
+ }catch(e){throw new Error(e.name==='AbortError'?'応答がありません':e.name==='TypeError'?'サーバーにつながりません':e.message);}
+ finally{clearTimeout(tm);}
+}
+function pendN(){return Object.keys(DK).length;}
+function srvText(){
+ const n=pendN(),p=n?'　<span class="ng">未送信 '+n+'件</span>':'';
+ if(!SRV)return '<span class="ng">NG　共有されていません</span>（ファイルを直接開いています。http://192.168.○.○:8010/ で開いてください）';
+ if(srvOK)return '<span class="ok">OK　サーバーに接続中</span>（'+tstr(lastSync)+' 同期）'+p;
+ if(!lastSync&&!syncErr)return 'サーバーに接続しています…';
+ return '<span class="ng">NG　サーバーにつながりません</span>'+(syncErr?'（'+esc(syncErr)+'）':'')+p;
+}
+function schedSync(){clearTimeout(syncTimer);syncTimer=setTimeout(()=>syncNow(),1000);}
+async function syncNow(){
+ if(!SRV||syncBusy)return;syncBusy=true;
+ try{
+  for(let i=0;i<2;i++){
+   const sent={};for(const k in DK)if(S.e[k])sent[k]=S.e[k];
+   const j=await (await api('/api/sync',{dev:LC.dev,name:LC.name,now:Date.now(),since:LC.rev||0,e:sent})).json();
+   if(LC.srv!==j.id){          // 初めてのサーバー・サーバーのデータが作り直された時：全部送って全部受け取る
+    LC.srv=j.id;LC.rev=0;Object.keys(S.e).forEach(k=>DK[k]=1);saveL();saveS();continue;
+   }
+   for(const k in sent)if(S.e[k]===sent[k])delete DK[k];
+   let got=0;
+   for(const k in j.e){
+    if(DK[k])continue;         // 送信中に端末で直した所は次の同期で送る
+    const a=S.e[k],b=j.e[k];if(!a||JSON.stringify(a[0])!==JSON.stringify(b[0]))got++;S.e[k]=b;
+   }
+   LC.rev=j.rev;devs=j.devs||[];saveL();saveS();
+   if(got)rebuild();
+   srvOK=true;lastSync=new Date();syncErr='';
+   if(got&&document.getElementById('panel').classList.contains('hide'))render();
+   break;
+  }
+ }catch(e){srvOK=false;syncErr=e.message||String(e);}
+ syncBusy=false;renderSync();
+}
+function renderSync(){
+ const el=document.getElementById('syncLine');if(!el)return;
+ el.innerHTML=srvText()+(SRV&&!srvOK&&(lastSync||syncErr)?'　<button class="pri" onclick="syncNow()">再接続</button>':'');
+ const st=document.getElementById('srvStat');if(st)st.innerHTML=srvText();
+ if(tab==='xl')renderXl();
+}
+function renderXl(){
+ const sx=document.getElementById('xFy'),f0=fyOf(today());
+ if(sx&&document.activeElement!==sx)sx.innerHTML=[f0-1,f0,f0+1].map(f=>'<option value="'+f+'"'+(f===xFy?' selected':'')+'>'+f+'年度</option>').join('');
+ const pi=devs.filter(x=>x.dev!==LC.dev);
+ let h='<tr><th>項目</th><th>状態</th></tr>';
+ h+='<tr><td>サーバー</td><td style="text-align:left">'+srvText()+'</td></tr>';
+ h+='<tr><td>他の端末</td><td style="text-align:left">'+(pi.length?pi.map(x=>esc(x.name||'名前なし')+'（'+tstr(new Date(x.t))+' 同期）').join('<br>'):'なし')+'</td></tr>';
+ document.getElementById('xlStat').innerHTML=h;
+}
+setInterval(()=>syncNow(),10000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncNow();});
+
+/* ===== 部署の設定 ===== */
+function cfg(){return Object.assign({},DEF_CFG,gv('m|cfg')||{});}
+function hanL(s){return String(s===undefined||s===null?'':s).replace(/[！-～]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0)).replace(/\u3000/g,' ').trim();}
+function splitL(s){return hanL(s).split(/[,、]/).map(x=>x.trim()).filter(x=>x);}
+function colOf(s){s=hanL(s).toUpperCase();if(!/^[A-Z]{1,3}$/.test(s))return -1;let n=0;for(const ch of s)n=n*26+ch.charCodeAt(0)-64;return n-1;}
+function cellOf(s){const m=hanL(s).toUpperCase().match(/^([A-Z]{1,3})(\d{1,4})$/);return m?{r:+m[2],c:colOf(m[1])}:null;}
+function parseCodes(s){const L=[],N={};String(s||'').split('\n').forEach(l=>{const a=hanL(l).split(','),n=(a[0]||'').trim();if(!n||n===BLANK||L.indexOf(n)>=0)return;L.push(n);const d=parseFloat(a[1]);if(d>0)N[n]=d;});return {L:L,N:N};}
+function parseGrant(s){return splitL(s).map(x=>x.split(':').map(colOf)).filter(a=>a.length===2&&a[0]>=0&&a[1]>=0);}
+function applyCfg(){
+ const c=cfg(),K=splitL(c.kakari),P=parseCodes(c.codes);
+ KAKARI=K.length?K:['1係'];CODES=P.L.concat([BLANK]);NENKYU=P.N;ORG=hanL(c.org);
+ CHECK_MIN=Math.round((+c.checkH>0?+c.checkH:4)*60);
+ START_ROW=+c.row>0?+c.row:5;FIRST_COL=Math.max(0,colOf(c.dayCol))+1;ID_C=Math.max(0,colOf(c.idCol));NAME_C=Math.max(0,colOf(c.nameCol));
+ Y_CELL=cellOf(c.yCell)||{r:1,c:4};M_CELL=cellOf(c.mCell)||{r:1,c:6};END_W=splitL(c.endWords).map(norm);GRANT=parseGrant(c.grant);BOOK_KW=hanL(c.book);
+ if(typeof cur!=='undefined'&&KAKARI.indexOf(cur.k)<0)cur.k=KAKARI[0];
+ document.title=(ORG?ORG+' ':'')+'残業管理';
+}
+function kOf(s){const n=norm(hanL(s));return KAKARI.find(k=>norm(hanL(k))===n);}
+function nkText(){const g={};Object.keys(NENKYU).forEach(c=>(g[NENKYU[c]]=g[NENKYU[c]]||[]).push(c));
+ return Object.keys(g).sort((a,b)=>b-a).map(d=>g[d].join('・')+'＝'+d+'日').join('、');}
+const CFG_F=[['org','部署名（帳票のタイトルに入る）','例：物流'],['kakari','係の名前（「,」で区切る）','例：1係,2係,3係　※シート名「11月(1係)」の（）内と同じにする'],
+ ['codes','休みの種類（1行に「名前,年休の日数」）','年休でないものは0。例：休,1／前休,0.5／振休,0'],['checkH','要確認にする残業（この時間を超えたら確認）','時間。例：4'],
+ ['book','記録表のファイル名に含む文字','共用PCのフォルダから自動でさがす時に使う。空欄＝すべて'],['row','名簿が始まる行','例：5'],['idCol','社員No.の列','例：C'],['nameCol','名前の列','例：E'],
+ ['dayCol','1日の列','例：F（2日以降は右へ続く）'],['yCell','年が入っているセル','例：E1（無ければシート名と今日から判断）'],['mCell','月が入っているセル','例：G1'],
+ ['endWords','名簿の終わりの印（「,」で区切る）','この文字がある行で読むのをやめる'],['grant','「年休付与日数」シートの列（社員No:付与日数）','例：B:M,N:Y'+'　シートが無ければ使わない']];
+function renderCfg(){
+ const c=cfg();let h='<table class="tbl" style="font-size:20px;margin-top:10px">';
+ CFG_F.forEach(([k,l,ex])=>{const v=c[k]===undefined||c[k]===null?'':String(c[k]);
+  h+='<tr><td style="text-align:left;font-weight:bold">'+l+'</td><td style="text-align:left">'+(k==='codes'?'<textarea id="cf_'+k+'" style="width:420px;height:200px;font-size:20px">'+esc(v)+'</textarea>':
+   '<input id="cf_'+k+'" style="width:'+(['org','kakari','book','endWords','grant'].indexOf(k)>=0?'420px':'120px')+';text-align:left" value="'+esc(v)+'">')+'</td><td class="sub" style="text-align:left;white-space:normal;max-width:420px">'+esc(ex)+'</td></tr>';});
+ h+='</table><div class="bar" style="margin-top:10px"><button class="big pri" onclick="saveCfg()">この設定で保存</button><button class="big" onclick="resetCfg()">構内物流課の初期値に戻す</button><span id="cfMsg"></span></div>';
+ document.getElementById('cfgForm').innerHTML=h;
+}
+function cfgCheck(c){
+ const e=[],K=splitL(c.kakari),P=parseCodes(c.codes);
+ if(!K.length)e.push('係の名前');else if(new Set(K.map(norm)).size!==K.length)e.push('係の名前が重複');
+ if(K.concat(P.L).some(x=>/[|"]/.test(x)))e.push('係・休みの名前に | と " は使えません');
+ if(!P.L.length)e.push('休みの種類');
+ if(!(+c.checkH>0))e.push('要確認の時間');
+ if(!(/^\d+$/.test(hanL(c.row))&&+hanL(c.row)>=1))e.push('名簿が始まる行');
+ [['idCol','社員No.の列'],['nameCol','名前の列'],['dayCol','1日の列']].forEach(([k,l])=>{if(colOf(c[k])<0)e.push(l);});
+ [['yCell','年のセル'],['mCell','月のセル']].forEach(([k,l])=>{if(hanL(c[k])&&!cellOf(c[k]))e.push(l);});
+ if(hanL(c.grant)&&parseGrant(c.grant).length!==splitL(c.grant).length)e.push('年休付与日数シートの列');
+ const id=colOf(c.idCol),nm=colOf(c.nameCol),d1=colOf(c.dayCol);
+ if(id>=0&&nm>=0&&d1>=0&&(id===nm||(id>=d1&&id<=d1+30)||(nm>=d1&&nm<=d1+30)))e.push('社員No.・名前の列が1日～31日の列と重なっています');
+ return e;
+}
+function saveCfg(){
+ const c={};CFG_F.forEach(([k])=>{const el=document.getElementById('cf_'+k);c[k]=k==='codes'?el.value:hanL(el.value);});
+ c.row=+hanL(c.row);c.checkH=+c.checkH;
+ const m=document.getElementById('cfMsg'),e=cfgCheck(c);
+ if(e.length){m.innerHTML='<span class="ng">NG　'+esc(e.join('、'))+' を確認してください</span>';return;}
+ const K=splitL(c.kakari),gone=KAKARI.filter(k=>K.indexOf(k)<0&&(IDX.r[k]||[]).length);
+ if(gone.length&&!confirm('「'+gone.join('・')+'」の名簿・入力が画面に出なくなります（データは消えません。名前を戻せば出ます）。よろしいですか？'))return;
+ pv('m|cfg',c);persist();render();renderCfg();
+ document.getElementById('cfMsg').innerHTML='<span class="ok">OK　保存しました</span>';
+}
+function resetCfg(){if(!confirm('構内物流課の初期値に戻します。よろしいですか？'))return;
+ CFG_F.forEach(([k])=>{document.getElementById('cf_'+k).value=DEF_CFG[k];});saveCfg();}
+
+/* ===== 設定 ===== */
+function renderSet(){
+ document.getElementById('devName').value=LC.name;
+ document.getElementById('devId').textContent='端末ID：'+LC.dev;
+ document.getElementById('kioskChk').checked=LC.kiosk;
+ document.getElementById('srvStat').innerHTML=srvText();
+ renderGo();
+ document.getElementById('rosterTx').value=mem().map(p=>p.row+','+p.id+','+p.name).join('\n');
+ document.getElementById('rMon').textContent=monText()+'　'+cur.k;
+ renderRoster();
+}
+function saveRoster(){
+ const out=[],rows={},err=[];
+ document.getElementById('rosterTx').value.split('\n').forEach((l,i)=>{
+  l=l.trim();if(!l)return;const a=l.split(',');const r=parseInt(a[0],10);
+  if(a.length<3||!(r>=START_ROW)){err.push((i+1)+'行目');return;}
+  if(rows[r]){err.push((i+1)+'行目（行番号が重複）');return;}
+  rows[r]=1;out.push({row:r,id:a[1].trim(),name:a.slice(2).join(',').trim()});
+ });
+ const m=document.getElementById('rMsg');
+ if(err.length){m.innerHTML='<span class="ng">NG　'+esc(err.join('、'))+' を確認してください</span>';return;}
+ out.sort((x,y)=>x.row-y.row);pv('r|'+ym(cur.date)+'|'+cur.k,withPid(out));persist();render();
+ m.innerHTML='<span class="ok">OK　保存しました（'+out.length+'人）</span>';
+}
+function renderRoster(){
+ document.getElementById('sMon').textContent=monText()+'　'+cur.k+'　'+mem().length+'人';
+ document.getElementById('lK').textContent=cur.k;
+ let h='<tr><th>行</th><th>社員No</th><th>名前</th><th></th></tr>';
+ mem().forEach((p,i)=>{
+  const l=lastDay(p);
+  h+='<tr><td>'+p.row+'</td><td>'+esc(p.id)+'</td><td class="nm">'+esc(p.name)+'</td><td>'+
+   (l?'<span class="sub">'+offText(leftOf(p))+'</span>':'<button class="del r" onclick="askDel('+i+')">削除</button>')+'</td></tr>';
+ });
+ document.getElementById('sTbl').innerHTML=h;
+ const L=[];for(const key in S.e){if(key.startsWith('l|'+cur.k+'|')&&S.e[key][0])L.push({key:key,x:S.e[key][0]});}
+ let g='<tr><th>名前</th><th>社員No</th><th>理由</th><th>削除日</th><th></th></tr>';
+ L.forEach((o,i)=>{g+='<tr><td class="nm">'+esc(o.x.name)+'</td><td>'+esc(o.x.id||'')+'</td><td>'+esc(o.x.why)+'</td><td>'+offText(o.x).replace('から削除','')+'</td><td><button class="del" data-k="'+esc(o.key)+'" onclick="undoDel(this.dataset.k)">元に戻す</button></td></tr>';});
+ document.getElementById('lTbl').innerHTML=L.length?g:'<tr><td class="sub" style="border:none">なし</td></tr>';
+ renderDel();
+}
+function askDel(i){
+ const p=mem()[i];if(!p)return;const t=today();
+ const inF=fyMonths(fyOf(cur.date)).indexOf(ym(t))>=0;delP={p:p,why:'退社',m:inF?ym(t):ym(cur.date),day:inF?t.getDate():1};renderDel();
+ document.getElementById('delBox').scrollIntoView({block:'center'});
+}
+function renderDel(){
+ const b=document.getElementById('delBox');
+ if(!delP){b.innerHTML='';return;}
+ const fy=fyOf(cur.date);let om='';
+ fyMonths(fy).forEach(v=>{om+='<option value="'+v+'"'+(v===delP.m?' selected':'')+'>'+ymText(v)+'</option>';});
+ const n=dimYm(delP.m);if(delP.day>n)delP.day=n;
+ let od='';for(let d=1;d<=n;d++)od+='<option value="'+d+'"'+(d===delP.day?' selected':'')+'>'+d+'日</option>';
+ b.innerHTML='<div style="border:2px solid #C00000;padding:12px 16px;margin-bottom:12px">'+
+  '<div style="font-size:28px;font-weight:bold">'+esc(delP.p.name)+'（'+esc(delP.p.id)+'）を'+cur.k+'の名簿から削除</div>'+
+  '<div class="bar rsn" style="margin-top:10px">理由：'+['退社','係移動'].map(w=>'<button class="'+(delP.why===w?'on':'')+'" onclick="delP.why=\''+w+'\';renderDel()">'+w+'</button>').join('')+'</div>'+
+  '<div class="bar">削除する日：<select onchange="delP.m=this.value;renderDel()">'+om+'</select><select onchange="delP.day=+this.value">'+od+'</select>'+
+  '<span class="sub">この日から入力欄に出ません（前日まで入力できます）</span></div>'+
+  '<div class="bar"><button class="big" style="color:#C00000;border-color:#C00000" onclick="doDel()">削除する</button><button class="big" onclick="delP=null;renderDel()">やめる</button></div></div>';
+}
+function doDel(){
+ const p=delP.p,a=delP.m.split('-'),ld=new Date(+a[0],+a[1]-1,delP.day-1),last=ymd(ld),pre='c|'+cur.k+'|'+p.pid+'|';
+ const after=[];
+ Object.keys(S.e).filter(k=>k.startsWith(pre)&&S.e[k][0]!==null&&k.slice(pre.length)>last).sort().forEach(k=>{const s=k.slice(pre.length);after.push((+s.slice(5,7))+'/'+(+s.slice(8,10)));});
+ if(after.length&&!confirm('削除する日より後に入力済みの日があります（'+after.join('・')+'）。\nこの分は集計されず、Excel出力では「／」になります。よろしいですか？'))return;
+ pv('l|'+cur.k+'|'+p.pid,{id:p.id,name:p.name,why:delP.why,last:last});
+ delP=null;persist();render();
+}
+function undoDel(key){
+ const x=gv(key);if(!x||!confirm(x.name+' を名簿に戻します。よろしいですか？'))return;
+ pv(key,null);persist();render();
+}
+
+/* ===== 記録表の読込（名簿・入力済み・年休付与） ===== */
+function cellV(v){
+ if(typeof v==='number'){if(v<0||v>=1)return null;return Math.round(v*1440);}
+ const s=String(v).trim().replace(/[０-９：]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0));
+ const t=s.match(/^(\d{1,2}):(\d{2})(:\d{2})?$/);
+ if(t)return (+t[1])*60+(+t[2]);
+ if(s==='0')return 0;
+ return CODES.indexOf(s)>=0&&s!==BLANK?s:null;
+}
+/* 記録表を読んで、名簿・入力済みの値・帳票の情報を返す（アプリのデータは変えない） */
+async function analyzeBook(f){
+ if(!/\.(xlsb|xlsx|xlsm)$/i.test(f.name))throw new Error('記録表（.xlsb／.xlsx／.xlsm）を入れてください');
+ let bk;
+ try{bk=await readBook(f);}
+ catch(e){throw new Error('読込めませんでした。Excelを閉じてからもう一度入れてください（'+(e.message||e)+'）');}
+ const res=bk.months.filter(x=>x.list.length);
+ if(!res.length)throw new Error('「11月('+KAKARI[0]+')」のような月のシートが見つかりません（「部署の設定」の係の名前とシート名を確認）');
+ const ty=ym(today()),tday=today().getDate();
+ res.sort((a,b)=>a.ym<b.ym?-1:a.ym>b.ym?1:a.k<b.k?-1:1);
+ res.forEach(x=>{
+  const old=gv('r|'+x.ym+'|'+x.k);
+  x.add=[];x.del=[];
+  if(old){const on=new Set(old.map(p=>p.pid)),nn=new Set(x.list.map(p=>p.pid));
+   x.add=x.list.filter(p=>!on.has(p.pid)).map(p=>p.name);x.del=old.filter(p=>!nn.has(p.pid)).map(p=>p.name);}
+  x.isNew=!old;x.items=[];x.bad=[];
+  if(x.ym>ty)return;
+  const nd=dimYm(x.ym),cnt={};
+  x.list.forEach(p=>{const r=x.rows[p.row]||{};for(let d=1;d<=nd;d++){const raw=r[FIRST_COL+d-2];if(raw!==undefined&&raw!=='')cnt[d]=(cnt[d]||0)+1;}});
+  let to=nd;
+  if(x.ym===ty){to=0;for(let d=1;d<=nd;d++)if((cnt[d]||0)*2>=x.list.length)to=d;if(!to)to=tday;}   // 今月は半数以上が入っている最後の日まで
+  x.to=to;
+  x.list.forEach(p=>{
+   const r=x.rows[p.row]||{};
+   for(let d=1;d<=to;d++){
+    const raw=r[FIRST_COL+d-2];if(raw===undefined||raw==='')continue;
+    const date=x.ym+'-'+pad(d);if(!activeAt(x.k,p.pid,date))continue;
+    const v=cellV(raw);
+    if(v===null){x.bad.push(p.name+' '+(+x.ym.slice(5))+'/'+d+'「'+raw+'」');continue;}
+    const now=gv(ckey(x.k,p.pid,date));if(now===v)continue;
+    x.items.push({key:ckey(x.k,p.pid,date),v:v,has:now!==undefined});
+   }
+  });
+ });
+ return {res:res,grants:bk.grants,info:bk.info,file:f.name};
+}
+/* 名簿の読込（毎月・人の入れ替え時）：名簿と新しい人の班・付与だけ */
+async function onRoster(f){
+ const m=document.getElementById('dMsg'),pv_=document.getElementById('dPrev');pv_.innerHTML='';pend=null;
+ if(!f)return;
+ m.textContent='読込中…';
+ try{pend=await analyzeBook(f);}catch(e){m.innerHTML='<span class="ng">NG　'+esc(e.message||e)+'</span>';return;}
+ const ty=ym(today()),L=pend.res.filter(x=>x.ym>=ty||x.isNew),bc=bookCount(pend.info,pend.grants);
+ pend.rl=L;
+ m.innerHTML='<span class="ok">OK</span>　'+esc(f.name);
+ let h='<table class="tbl" style="font-size:18px;margin-top:12px"><tr><th>月</th><th>係</th><th>人数</th><th>名簿の変化</th></tr>';
+ L.forEach(x=>{
+  const old=gv('r|'+x.ym+'|'+x.k),same=old&&JSON.stringify(old)===JSON.stringify(x.list);
+  const ch=x.isNew?'新規':same?'変更なし':!(x.add.length||x.del.length)?'名前・行の書き方だけ変更':esc((x.add.length?'追加：'+x.add.join('、'):'')+(x.del.length?'　外れる：'+x.del.join('、'):''));
+  h+='<tr><td>'+ymText(x.ym)+'</td><td>'+x.k+'</td><td>'+x.list.length+'</td><td style="text-align:left;white-space:normal;max-width:560px">'+ch+'</td></tr>';
+ });
+ if(!L.length)h+='<tr><td colspan="4">取込む名簿はありません（今月より前の月は変えません）</td></tr>';
+ h+='</table><div class="bar" style="margin-top:8px">あわせて 班 '+bc.grp+'人・年休付与 '+bc.g+'人 を入れます（アプリで未設定の人だけ）</div>';
+ h+='<div class="bar" style="margin-top:8px"><button class="big pri" onclick="applyRoster()">名簿を取込む</button>'+
+  '<button class="big" onclick="pend=null;document.getElementById(\'dPrev\').innerHTML=\'\';document.getElementById(\'dMsg\').textContent=\'\'">やめる</button></div>';
+ pv_.innerHTML=h;
+}
+function applyRoster(){
+ if(!pend||!pend.rl)return;
+ let n=0;
+ pend.rl.forEach(x=>{const rk='r|'+x.ym+'|'+x.k,old=gv(rk);if(!old||JSON.stringify(old)!==JSON.stringify(x.list)){pv(rk,x.list);n++;}});
+ const g=applyInfo(pend.info,pend.grants,false);pend=null;persist();render();
+ document.getElementById('dPrev').innerHTML='';
+ document.getElementById('dMsg').innerHTML='<span class="ok">OK　名簿を取込みました（'+n+'シート変更、年休付与 '+g+'人）</span>';
+}
+function grantMap(I,grants){const m={};grants.forEach(g=>m[g.id]=g.days);return Object.assign(m,I.g);}
+function bookCount(I,grants){
+ const fy=I.fy,gm=grantMap(I,grants),c={grp:0,ap:0,g:0,r:0,set:false};
+ for(const id in I.grp)if(I.grp[id]&&gv('g|'+fy+'|'+id)===undefined)c.grp++;
+ for(const id in I.ap)if(gv('q|'+fy+'|'+id)===undefined)c.ap++;
+ for(const id in gm)if(typeof getN(fy,id).g!=='number')c.g++;
+ for(const id in I.r)if(typeof getN(fy,id).r!=='number')c.r++;
+ const cs=gv('y|'+fy)||{};c.set=['lim','over','goal','plan'].some(f=>(cs[f]===undefined||cs[f]===null)&&I.set[f]!==undefined);
+ return c;
+}
+function applyInfo(I,grants,all){        // all=false：名簿の読込（班・付与だけ）
+ const fy=I.fy,gm=grantMap(I,grants);let n=0;
+ for(const id in I.grp)if(I.grp[id]&&gv('g|'+fy+'|'+id)===undefined)pv('g|'+fy+'|'+id,I.grp[id]);
+ if(all)for(const id in I.ap)if(gv('q|'+fy+'|'+id)===undefined)pv('q|'+fy+'|'+id,I.ap[id]);
+ const ids=new Set([...Object.keys(gm),...Object.keys(I.r)]);
+ ids.forEach(id=>{const N=Object.assign({},getN(fy,id));let ch=false;
+  if(typeof N.g!=='number'&&gm[id]!==undefined){N.g=gm[id];ch=true;n++;}
+  if(all&&typeof N.r!=='number'&&I.r[id]!==undefined){N.r=I.r[id];ch=true;}
+  if(ch)pv('n|'+fy+'|'+id,N);});
+ if(!all)return n;
+ const cs=gv('y|'+fy)||{},ns=Object.assign({},fyS(fy),cs);let ch=!gv('y|'+fy);
+ ['lim','over','goal','plan'].forEach(f=>{if((cs[f]===undefined||cs[f]===null)&&I.set[f]!==undefined){ns[f]=I.set[f];ch=true;}});
+ if(ch)pv('y|'+fy,ns);
+ return n;
+}
+/* 最初の1回：今の記録表を全部取り込む（アプリで入力済みの所は変えない） */
+function applyAll(){
+ let c=0;
+ pend.res.forEach(x=>{
+  const rk='r|'+x.ym+'|'+x.k,old=gv(rk);
+  if(!old)pv(rk,x.list);
+  else{const on=new Set(old.map(p=>p.pid)),rw=new Set(old.map(p=>p.row)),add=x.list.filter(p=>!on.has(p.pid)&&!rw.has(p.row));
+   if(add.length)pv(rk,withPid(old.concat(add).sort((a,b)=>a.row-b.row)));}
+  x.items.forEach(it=>{if(it.has)return;pv(it.key,it.v);c++;});
+ });
+ const g=applyInfo(pend.info,pend.grants,true);pend=null;persist();
+ return {c:c,g:g};
+}
+
+/* ===== アプリ運用への切替（最初の1回） ===== */
+function isGo(){return gv('m|go');}
+function fbMsg(t){document.querySelectorAll('.fbMsg').forEach(e=>e.innerHTML=t);}
+function blankMonths(fy){
+ const ty=ym(today()),bs=fyMembers(fy,cur.k).map(p=>baseOf(p.pid));if(!bs.length)return [];
+ return fyMonths(fy).filter(y=>y<ty&&!bs.some(b=>IDX.base[b+'|'+y]||IDX.nk[b+'|'+y]));
+}
+function fbShow(fy){
+ const go=!!isGo();document.querySelectorAll('.fbBar').forEach(e=>e.classList.toggle('hide',go));
+ if(go)return;
+ const L=blankMonths(fy);
+ fbMsg(L.length?'<span class="ng">NG</span>　'+(L.length>1?monLbl(L[0])+'～'+monLbl(L[L.length-1]):monLbl(L[0]))+'が空欄です':'');
+}
+function renderGo(){
+ const g=isGo(),b=document.getElementById('goBox');if(!b)return;
+ b.innerHTML=g?'<div class="lbl" style="font-size:26px">アプリ運用　<span class="ok">OK</span> 切替済</div>'+
+   '<div class="step">'+tstr(new Date(g.t))+'　'+esc(g.file)+' から取込み。残業・休はアプリで管理しています</div>'+
+   '<details><summary class="sub">もう一度取り込む（空欄の所だけ埋める。通常は不要）</summary><div class="bar" style="margin-top:8px"><button class="big" onclick="goApp()">記録表から空欄を埋める</button><span class="fbMsg"></span></div></details>'
+  :'<div class="lbl" style="font-size:26px">最初に1回：今の記録表を取り込んでアプリ運用に切り替える</div>'+
+   '<div class="sub">4月からの残業・休、班、360H申請、年休の付与・率、年度設定を取り込みます。アプリで入力済みの所は変えません。<br>切替後、記録表は「名簿の読込」にだけ使います</div>'+
+   '<div class="bar" style="margin-top:10px"><button class="big pri" onclick="goApp()">今の記録表を取り込む</button><span class="fbMsg"></span></div>';
+}
+async function findBook(){
+ const fy=String(fyOf(cur.date)),L=await (await api('/api/books')).json();let best=null,sc=-1;
+ L.forEach(x=>{const n=x.name;if(/^~\$/.test(n)||(BOOK_KW&&n.indexOf(BOOK_KW)<0))return;
+  const s=(n.indexOf(fy+'年度')>=0?1e13:0)+x.t;if(s>sc){sc=s;best=x;}});
+ if(!best)return null;
+ const b=await (await api('/api/book?name='+encodeURIComponent(best.name))).blob();
+ return new File([b],best.name,{lastModified:best.t});
+}
+async function goApp(){
+ if(!(SRV&&srvOK)){document.getElementById('fbFile').click();return;}
+ fbMsg('記録表をさがしています…');
+ let f=null;try{f=await findBook();}catch(e){}
+ if(!f){fbMsg('<span class="ng">NG</span>　共用PCのフォルダに記録表がありません　<label class="big">ファイルを選ぶ<input type="file" accept=".xlsb,.xlsx,.xlsm" class="hide" onchange="goWith(this.files[0]);this.value=\'\'"></label>');return;}
+ await goWith(f);
+}
+async function goWith(f){
+ if(!f)return;
+ fbMsg('読込中…');
+ try{pend=await analyzeBook(f);}catch(e){pend=null;fbMsg('<span class="ng">NG　'+esc(e.message||e)+'</span>');return;}
+ const n=pend.res.reduce((s,x)=>s+x.items.filter(i=>!i.has).length,0),B=pend.res.flatMap(x=>x.bad),bad=B.length;
+ const bc=bookCount(pend.info,pend.grants),yms=pend.res.filter(x=>x.items.some(i=>!i.has)).map(x=>x.ym).sort();
+ const rng=yms.length?monLbl(yms[0])+'～'+monLbl(yms[yms.length-1]):'なし',go=isGo();
+ if(!confirm(f.name+'\n\n'+(go?'空欄の所だけ埋めます':'取り込んで、アプリ運用に切り替えます')+'（アプリで入力済みの所は変えません）\n'+
+  '・残業・休：'+n+'件（'+rng+'）\n・班：'+bc.grp+'人　申請：'+bc.ap+'人\n・年休 付与：'+bc.g+'人　率：'+bc.r+'人'+(bc.set?'\n・年度設定（上限・回数・年休目標・計画）':'')+
+  (bad?'\n\n読めない値が'+bad+'件あります（その日は空欄のまま）\n'+B.slice(0,5).join('\n')+(bad>5?'\nほか'+(bad-5)+'件':''):'')+
+  (go?'':'\n\n切替後、記録表は名簿の読込にだけ使います')+'\n\nよろしいですか？')){pend=null;fbMsg('やめました');return;}
+ const r=applyAll();
+ if(!go){pv('m|go',{t:Date.now(),file:f.name,name:LC.name});persist();}
+ render();
+ const t='取り込みました（残業・休 '+r.c+'件、付与 '+r.g+'人）'+(bad?'。読めない値 '+bad+'件は空欄のままです。アプリで入力してください':'');
+ fbMsg('<span class="ok">OK</span>　'+esc(t));alert((go?'':'アプリ運用に切り替えました。\n')+t);
+}
+
+/* ===== Excel出力（.xlsx・外部ライブラリなし） ===== */
+const CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0;}return t;})();
+function crc32(u){let c=0xFFFFFFFF;for(let i=0;i<u.length;i++)c=CRC[(c^u[i])&255]^(c>>>8);return (c^0xFFFFFFFF)>>>0;}
+function zipBlob(files){
+ const te=new TextEncoder(),parts=[],cen=[],now=new Date(),dd=((now.getFullYear()-1980)<<9)|((now.getMonth()+1)<<5)|now.getDate();let off=0;
+ files.forEach(f=>{const nm=te.encode(f.name),d=te.encode(f.data),c=crc32(d);
+  const a=new DataView(new ArrayBuffer(30));a.setUint32(0,0x04034b50,true);a.setUint16(4,20,true);a.setUint16(6,0x0800,true);a.setUint16(12,dd,true);
+  a.setUint32(14,c,true);a.setUint32(18,d.length,true);a.setUint32(22,d.length,true);a.setUint16(26,nm.length,true);parts.push(new Uint8Array(a.buffer),nm,d);
+  const e=new DataView(new ArrayBuffer(46));e.setUint32(0,0x02014b50,true);e.setUint16(4,20,true);e.setUint16(6,20,true);e.setUint16(8,0x0800,true);e.setUint16(14,dd,true);
+  e.setUint32(16,c,true);e.setUint32(20,d.length,true);e.setUint32(24,d.length,true);e.setUint16(28,nm.length,true);e.setUint32(42,off,true);cen.push(new Uint8Array(e.buffer),nm);
+  off+=30+nm.length+d.length;});
+ const cs=cen.reduce((s,x)=>s+x.length,0),z=new DataView(new ArrayBuffer(22));
+ z.setUint32(0,0x06054b50,true);z.setUint16(8,files.length,true);z.setUint16(10,files.length,true);z.setUint32(12,cs,true);z.setUint32(16,off,true);
+ return new Blob([...parts,...cen,new Uint8Array(z.buffer)],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+function xe(s){return String(s).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g,'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function cl(c){let s='';c++;while(c){const m=(c-1)%26;s=String.fromCharCode(65+m)+s;c=Math.floor((c-1)/26);}return s;}
+/* 書式番号：0標準 1文字 2時間 3見出し 4表題 5小数 6時間太字 7時間赤 8文字赤 9小数太字 10中央 11補足 12小数赤 13名前 14率 */
+const ST={T:1,TM:2,HD:3,TT:4,N:5,TMB:6,TMR:7,TR:8,NB:9,C:10,SUB:11,NR:12,NM:13,P:14};
+function stylesXml(){
+ const F=(b,sz,col)=>'<font>'+(b?'<b/>':'')+'<sz val="'+sz+'"/><color rgb="FF'+col+'"/><name val="Meiryo UI"/><family val="3"/><charset val="128"/></font>';
+ const X=(n,f,b,al,wr)=>'<xf numFmtId="'+n+'" fontId="'+f+'" fillId="0" borderId="'+b+'" xfId="0" applyNumberFormat="1" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="'+al+'" vertical="center"'+(wr?' wrapText="1"':'')+'/></xf>';
+ const xs=[X(0,0,0,'general'),X(0,0,1,'left'),X(164,0,1,'center'),X(0,1,1,'center',1),X(0,2,0,'left'),X(165,0,1,'center'),X(164,1,1,'center'),X(164,3,1,'center'),
+  X(0,3,1,'center'),X(165,1,1,'center'),X(0,0,1,'center'),X(0,4,0,'left'),X(165,3,1,'center'),X(0,1,1,'left'),X(9,0,1,'center')];
+ return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'+
+  '<numFmts count="2"><numFmt numFmtId="164" formatCode="[h]:mm"/><numFmt numFmtId="165" formatCode="0.0"/></numFmts>'+
+  '<fonts count="5">'+F(0,11,'333333')+F(1,11,'333333')+F(1,16,'333333')+F(1,11,'C00000')+F(0,10,'7F7F7F')+'</fonts>'+
+  '<fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills>'+
+  '<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border>'+['left','right','top','bottom'].map(s=>'<'+s+' style="thin"><color rgb="FF7F7F7F"/></'+s+'>').join('')+'<diagonal/></border></borders>'+
+  '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="'+xs.length+'">'+xs.join('')+'</cellXfs>'+
+  '<cellStyles count="1"><cellStyle name="標準" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+}
+function XS(name){return {name:name,rows:{},cols:{},frz:null};}
+function put(sh,r,c,v,s,f){(sh.rows[r]=sh.rows[r]||{})[c]={v:v,s:s||0,f:f};}
+function sheetXml(sh){
+ let x='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheetViews><sheetView workbookViewId="0">';
+ if(sh.frz){const [r,c]=sh.frz;x+='<pane xSplit="'+c+'" ySplit="'+r+'" topLeftCell="'+cl(c)+(r+1)+'" activePane="bottomRight" state="frozen"/>';}
+ x+='</sheetView></sheetViews><sheetFormatPr defaultRowHeight="18"/>';
+ const cs=Object.keys(sh.cols).map(Number).sort((a,b)=>a-b);
+ if(cs.length)x+='<cols>'+cs.map(c=>'<col min="'+(c+1)+'" max="'+(c+1)+'" width="'+sh.cols[c]+'" customWidth="1"/>').join('')+'</cols>';
+ x+='<sheetData>';
+ sortedRows(sh.rows).forEach(r=>{const R=sh.rows[r];x+='<row r="'+(r+1)+'">';
+  sortedRows(R).forEach(c=>{const o=R[c],ref=cl(c)+(r+1),v=o.v;
+   if(o.f)x+='<c r="'+ref+'" s="'+o.s+'"'+(typeof v==='number'?'':' t="str"')+'><f>'+xe(o.f)+'</f><v>'+(v===undefined||v===null?'':xe(v))+'</v></c>';
+   else if(v===undefined||v===null||v==='')x+='<c r="'+ref+'" s="'+o.s+'"/>';
+   else if(typeof v==='number')x+='<c r="'+ref+'" s="'+o.s+'"><v>'+v+'</v></c>';
+   else x+='<c r="'+ref+'" s="'+o.s+'" t="inlineStr"><is><t>'+xe(v)+'</t></is></c>';});
+  x+='</row>';});
+ return x+'</sheetData><pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/></worksheet>';
+}
+function bookBlob(sheets){
+ const W='http://schemas.openxmlformats.org/',f=[];
+ f.push({name:'[Content_Types].xml',data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="'+W+'package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>'+
+  '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'+
+  sheets.map((s,i)=>'<Override PartName="/xl/worksheets/sheet'+(i+1)+'.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>').join('')+'</Types>'});
+ f.push({name:'_rels/.rels',data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="'+W+'package/2006/relationships"><Relationship Id="rId1" Type="'+W+'officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'});
+ f.push({name:'xl/workbook.xml',data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<workbook xmlns="'+W+'spreadsheetml/2006/main" xmlns:r="'+W+'officeDocument/2006/relationships"><bookViews><workbookView/></bookViews><sheets>'+
+  sheets.map((s,i)=>'<sheet name="'+xe(s.name)+'" sheetId="'+(i+1)+'" r:id="rId'+(i+1)+'"/>').join('')+'</sheets><calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>'});
+ f.push({name:'xl/_rels/workbook.xml.rels',data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="'+W+'package/2006/relationships">'+
+  sheets.map((s,i)=>'<Relationship Id="rId'+(i+1)+'" Type="'+W+'officeDocument/2006/relationships/worksheet" Target="worksheets/sheet'+(i+1)+'.xml"/>').join('')+
+  '<Relationship Id="rId'+(sheets.length+1)+'" Type="'+W+'officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>'});
+ f.push({name:'xl/styles.xml',data:stylesXml()});
+ sheets.forEach((s,i)=>f.push({name:'xl/worksheets/sheet'+(i+1)+'.xml',data:sheetXml(s)}));
+ return zipBlob(f);
+}
+function stamp(){return '出力：'+tstr(new Date())+'（残業管理アプリ '+VERSION+'）';}
+/* 総残業（360H）の帳票 */
+function xTot(fy,k,s,ms){
+ const sh=XS('総残業('+k+')'),D=1440,L=s.lim*60;let r=4;const sum=ms.map(()=>0);
+ put(sh,0,0,fy+'年度　'+ORG+k+'総残業時間',ST.TT);
+ put(sh,1,0,'上限：年'+s.lim+'H（'+s.req+'Hで申請）／月45H超は年'+s.over+'回まで（本人の全係の合計）　'+stamp(),ST.SUB);
+ ['班','社員No.','名前',...ms.map(monLbl),'計',s.lim+'Hまで(H)','45H超回数','申請','判定'].forEach((v,c)=>put(sh,3,c,v,ST.HD));
+ fyMembers(fy,k).forEach(p=>{
+  const b=baseOf(p.pid),R=h3Row(fy,b),j=judge(fy,R.t,R.ov,b),x=r+1;
+  put(sh,r,0,grpOf(fy,b),ST.C);put(sh,r,1,p.id,ST.C);put(sh,r,2,p.name,ST.NM);
+  R.v.forEach((v,i)=>{sum[i]+=v;put(sh,r,3+i,v?v/D:null,v>WARN2?ST.TMR:ST.TM);});
+  put(sh,r,15,R.t/D,R.t>=L-3600?ST.TMR:ST.TMB,'SUM(D'+x+':O'+x+')');
+  put(sh,r,16,Math.round((L-R.t)/6)/10,R.t>L?ST.NR:ST.N,'ROUND('+s.lim+'-P'+x+'*24,1)');
+  put(sh,r,17,R.ov,R.ov>s.over?ST.TR:ST.C,'COUNTIF(D'+x+':O'+x+',">"&45/24)');
+  put(sh,r,18,gv('q|'+fy+'|'+b)||'',ST.C);
+  put(sh,r,19,j[0]+(j[1]?' '+j[1]:''),j[0]==='OK'?ST.C:ST.TR,'IF(P'+x+'*24>'+s.lim+'+0.001,"NG '+s.lim+'H超",IF(R'+x+'>'+s.over+',"NG 45H超'+s.over+'回超",IF(AND(P'+x+'*24>='+s.req+'-0.001,S'+x+'<>"済"),"NG 申請を出す",IF(P'+x+'*24>='+(s.lim-60)+'-0.001,"注意","OK"))))');
+  r++;
+ });
+ put(sh,r,2,'合計',ST.HD);
+ sum.forEach((v,i)=>put(sh,r,3+i,v/D,ST.TMB,'SUM('+cl(3+i)+'5:'+cl(3+i)+r+')'));
+ put(sh,r,15,sum.reduce((a,v)=>a+v,0)/D,ST.TMB,'SUM(P5:P'+r+')');
+ Object.assign(sh.cols,{0:7,1:10,2:16,15:9,16:11,17:10,18:7,19:16});for(let c=3;c<15;c++)sh.cols[c]=7.5;
+ sh.frz=[4,3];return sh;
+}
+/* 年休日数の帳票 */
+function xNk(fy,k,s,ms){
+ const sh=XS('年休日数('+k+')'),plan=s.plan||[];let r=4;
+ put(sh,0,0,fy+'年度　'+ORG+k+'年休計画・実績表',ST.TT);
+ put(sh,1,0,nkText()+'　年5日：付与'+NK_MUST_FROM+'日以上の人が対象　'+stamp(),ST.SUB);
+ put(sh,2,2,'計画',ST.HD);
+ ms.forEach((y,i)=>put(sh,2,3+i,+plan[i]||0,ST.C));
+ put(sh,2,15,plan.reduce((a,x)=>a+(+x||0),0),ST.C,'SUM(D3:O3)');put(sh,2,16,s.goal===null?'':s.goal,ST.NB);
+ ['班','社員No.','名前',...ms.map(monLbl),'実績','年間目標まで','付与','残日数','率','個人別目標','年5日'].forEach((v,c)=>put(sh,3,c,v,ST.HD));
+ fyMembers(fy,k).forEach(p=>{
+  const b=baseOf(p.pid),g=getN(fy,b),x=r+1;let t=0;
+  put(sh,r,0,grpOf(fy,b),ST.C);put(sh,r,1,p.id,ST.C);put(sh,r,2,p.name,ST.NM);
+  ms.forEach((y,i)=>{const v=IDX.nk[b+'|'+y]||0;t+=v;put(sh,r,3+i,v||null,ST.C);});
+  const has=typeof g.g==='number',rest=has?g.g-t:'',mu=must(g,t);
+  put(sh,r,15,t,ST.NB,'SUM(D'+x+':O'+x+')');
+  put(sh,r,16,s.goal===null?'':s.goal-t,ST.C,'IF($Q$3="","",$Q$3-P'+x+')');
+  put(sh,r,17,has?g.g:null,ST.C);
+  put(sh,r,18,rest,has&&rest<0?ST.TR:ST.NB,'IF(R'+x+'="","",R'+x+'-P'+x+')');
+  put(sh,r,19,typeof g.r==='number'?g.r:null,ST.P);
+  put(sh,r,20,has&&typeof g.r==='number'?Math.round(g.g*g.r*10)/10:'',ST.N,'IF(OR(R'+x+'="",T'+x+'=""),"",ROUND(R'+x+'*T'+x+',1))');
+  put(sh,r,21,mu,mu==='NG'?ST.TR:ST.C,'IF(R'+x+'="","－",IF(R'+x+'<'+NK_MUST_FROM+',"－",IF(P'+x+'>='+NK_MUST+',"OK","NG")))');
+  r++;
+ });
+ Object.assign(sh.cols,{0:7,1:10,2:16,15:7,16:12,17:7,18:9,19:7,20:11,21:8});for(let c=3;c<15;c++)sh.cols[c]=6;
+ sh.frz=[4,3];return sh;
+}
+/* 月のシート（日ごとの残業・休み） */
+function xMon(y,k){
+ const a=y.split('-'),Y=+a[0],M=+a[1],nd=dimYm(y),sh=XS(M+'月('+k+')'),D=1440,c0=3,cT=c0+nd;let r=4;
+ put(sh,0,0,Y+'年'+M+'月度　'+k+'　勤務状況及び残業休出時間',ST.TT);
+ put(sh,1,0,'／＝名簿から削除した後の日　'+stamp(),ST.SUB);
+ for(let d=1;d<=nd;d++){put(sh,2,c0+d-1,WD[new Date(Y,M-1,d).getDay()],ST.C);put(sh,3,c0+d-1,d,ST.HD);}
+ ['行','社員No.','名前'].forEach((v,c)=>put(sh,3,c,v,ST.HD));
+ ['残業計','年休','本人月計(全係)'].forEach((v,i)=>put(sh,3,cT+i,v,ST.HD));
+ const e1=cl(c0),e2=cl(cT-1);
+ rosterAt(y,k).filter(p=>activeAt(k,p.pid,y+'-01')).forEach(p=>{
+  const x=r+1,rg=e1+x+':'+e2+x;let t=0,n=0;
+  put(sh,r,0,p.row,ST.C);put(sh,r,1,p.id,ST.C);put(sh,r,2,p.name,ST.NM);
+  for(let d=1;d<=nd;d++){const date=y+'-'+pad(d);
+   if(!activeAt(k,p.pid,date)){put(sh,r,c0+d-1,'／',ST.C);continue;}
+   const v=gv(ckey(k,p.pid,date));
+   if(typeof v==='number'){t+=v;put(sh,r,c0+d-1,v/D,ST.TM);}
+   else{if(NENKYU[v])n+=NENKYU[v];put(sh,r,c0+d-1,v||null,ST.C);}}
+  const bm=IDX.base[baseOf(p.pid)+'|'+y]||0;
+  put(sh,r,cT,t/D,ST.TMB,'SUM('+rg+')');
+  put(sh,r,cT+1,n,ST.NB,Object.keys(NENKYU).map(c=>(NENKYU[c]===1?'':NENKYU[c]+'*')+'COUNTIF('+rg+',"'+c+'")').join('+')||'0');
+  put(sh,r,cT+2,bm/D,bm>WARN2?ST.TMR:ST.TM);
+  r++;
+ });
+ Object.assign(sh.cols,{0:5,1:10,2:16});for(let d=0;d<nd;d++)sh.cols[c0+d]=6.5;sh.cols[cT]=9;sh.cols[cT+1]=7;sh.cols[cT+2]=13;
+ sh.frz=[4,3];return sh;
+}
+function xRoster(fy,KS,ms){
+ const sh=XS('名簿');let r=3;
+ put(sh,0,0,fy+'年度　名簿（月・係ごと）',ST.TT);put(sh,1,0,stamp(),ST.SUB);
+ ['年月','係','行','社員No.','名前','班','状態'].forEach((v,c)=>put(sh,2,c,v,ST.HD));
+ ms.forEach(y=>KS.forEach(k=>{if(!hasRosterAt(y,k))return;
+  rosterAt(y,k).filter(p=>activeAt(k,p.pid,y+'-01')).forEach(p=>{const l=leftOf(p,k);
+   [ymText(y),k,p.row,p.id,p.name,grpOf(fy,baseOf(p.pid)),l&&l.last.slice(0,7)===y?offText(l)+'（'+l.why+'）':'在籍'].forEach((v,c)=>put(sh,r,c,v,c===4?ST.NM:ST.C));r++;});}));
+ Object.assign(sh.cols,{0:12,1:6,2:6,3:10,4:16,5:7,6:22});sh.frz=[3,0];return sh;
+}
+function xSet(fy,s){
+ const sh=XS('年度設定');
+ put(sh,0,0,fy+'年度　設定',ST.TT);put(sh,1,0,stamp(),ST.SUB);
+ [['年間の残業上限（H）',s.lim],['月45H超の上限回数（回/年）',s.over],['年休の年間目標（日）',s.goal===null?'':s.goal],['年5日取得の対象（付与日数以上）',NK_MUST_FROM]].forEach((a,i)=>{put(sh,3+i,0,a[0],ST.T);put(sh,3+i,1,a[1],ST.C);});
+ put(sh,8,0,'年休計画（日）',ST.HD);fyMonths(fy).forEach((y,i)=>{put(sh,8,1+i,monLbl(y),ST.HD);put(sh,9,1+i,+(s.plan||[])[i]||0,ST.C);});
+ sh.cols[0]=30;for(let c=1;c<13;c++)sh.cols[c]=7;return sh;
+}
+function exportXlsx(fy){
+ const m=document.getElementById(tab==='fy'?'fyMsg':'xMsg');
+ try{
+  const s=fyS(fy),ms=fyMonths(fy),KS=KAKARI.filter(k=>fyMembers(fy,k).length),sh=[];
+  if(!KS.length){m.innerHTML='<span class="ng">NG　'+fy+'年度の名簿がありません</span>';return;}
+  KS.forEach(k=>sh.push(xTot(fy,k,s,ms)));
+  KS.forEach(k=>sh.push(xNk(fy,k,s,ms)));
+  ms.forEach(y=>KS.forEach(k=>{if(hasRosterAt(y,k))sh.push(xMon(y,k));}));
+  sh.push(xRoster(fy,KS,ms),xSet(fy,s));
+  const d=new Date(),nm='残業記録表_'+fy+'年度_アプリ出力_'+d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+'.xlsx';
+  dl(nm,bookBlob(sh),'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  m.innerHTML='<span class="ok">OK　'+esc(nm)+' を出力しました（'+sh.length+'シート）</span>';
+ }catch(e){m.innerHTML='<span class="ng">NG　出力できませんでした（'+esc(e.message||e)+'）</span>';}
+}
+
+/* ===== ファイルで受け渡し・バックアップ ===== */
+function backup(){
+ const d=new Date();
+ dl('zangyo_'+(LC.name||'端末')+'_'+d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+'.json',JSON.stringify({app:'zangyo',ver:VERSION,dev:LC.dev,name:LC.name,t:Date.now(),e:S.e}),'application/json');
+ document.getElementById('bMsg').innerHTML='<span class="ok">OK　書き出しました</span>';
+}
+function mergeFile(f){
+ if(!f)return;const rd=new FileReader();
+ rd.onload=()=>{const m=document.getElementById('bMsg');
+  try{const j=JSON.parse(rd.result);if(!j||!j.e)throw 0;const n=mergeE(j.e);saveS();rebuild();schedSync();render();
+   if(m)m.innerHTML='<span class="ok">OK　'+n+'件を統合しました</span>';alert(n+'件を統合しました。');}
+  catch(e){if(m)m.innerHTML='<span class="ng">NG　ファイルが正しくありません</span>';}};
+ rd.readAsText(f);
+}
+function wipe(){
+ if(!confirm('この端末の名簿・入力データを全部消します。よろしいですか？'))return;
+ if(!confirm('本当に消しますか？（サーバーのデータは残ります）'))return;
+ S={e:{}};DK={};LC.rev=0;saveL();saveS();rebuild();render();showTab('in');syncNow();
+}
+
+/* ===== ドラッグ＆ドロップ ===== */
+const dropBox=document.getElementById('dropBox');
+['dragenter','dragover'].forEach(ev=>document.addEventListener(ev,e=>{e.preventDefault();if(!locked())dropBox.classList.add('drag');}));
+document.addEventListener('dragleave',e=>{if(!e.relatedTarget)dropBox.classList.remove('drag');});
+document.addEventListener('drop',e=>{
+ e.preventDefault();dropBox.classList.remove('drag');
+ const f=e.dataTransfer.files[0];if(!f||locked())return;
+ if(/\.json$/i.test(f.name)){mergeFile(f);return;}
+ showTab('set');onRoster(f);
+});
+/* ===== Excel読込（.xlsb／.xlsx・外部ライブラリなし） ===== */
+async function unzip(buf){
+ const dv=new DataView(buf),u8=new Uint8Array(buf),td=new TextDecoder();
+ let e=-1;
+ for(let i=buf.byteLength-22;i>=Math.max(0,buf.byteLength-65557);i--){if(dv.getUint32(i,true)===0x06054b50){e=i;break;}}
+ if(e<0)throw new Error('Excelファイルではありません');
+ const n=dv.getUint16(e+10,true),files={};let o=dv.getUint32(e+16,true);
+ for(let k=0;k<n;k++){
+  const nl=dv.getUint16(o+28,true),xl=dv.getUint16(o+30,true),cl=dv.getUint16(o+32,true);
+  files[td.decode(u8.subarray(o+46,o+46+nl)).toLowerCase()]={m:dv.getUint16(o+10,true),sz:dv.getUint32(o+20,true),lo:dv.getUint32(o+42,true)};
+  o+=46+nl+xl+cl;
+ }
+ return {
+  has:nm=>!!files[nm.toLowerCase()],
+  get:async nm=>{
+   const f=files[nm.toLowerCase()];if(!f)return null;
+   const s=f.lo+30+dv.getUint16(f.lo+26,true)+dv.getUint16(f.lo+28,true),raw=u8.subarray(s,s+f.sz);
+   if(f.m===0)return raw.slice();
+   if(typeof DecompressionStream==='undefined')throw new Error('ブラウザが古いため読込めません（Edge／Chromeを使ってください）');
+   const st=new Blob([raw]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+   return new Uint8Array(await new Response(st).arrayBuffer());
+  }
+ };
+}
+function relMap(xml,base){
+ const m={};(xml.match(/<Relationship\b[^>]*>/g)||[]).forEach(t=>{
+  const id=(t.match(/\bId="([^"]+)"/)||[])[1],tg=(t.match(/\bTarget="([^"]+)"/)||[])[1];
+  if(id&&tg)m[id]=tg.charAt(0)==='/'?tg.slice(1):base+tg;});
+ return m;
+}
+/* xlsb：レコード読み */
+function eachRec(u8,cb){
+ let p=0;const n=u8.length;
+ while(p<n){
+  let t=u8[p++];if(t&0x80)t=(t&0x7F)|((u8[p++]&0x7F)<<7);
+  let sz=0;for(let i=0,sh=0;i<4;i++,sh+=7){const b=u8[p++];sz|=(b&0x7F)<<sh;if(!(b&0x80))break;}
+  if(cb(t,p,sz)===false)return;p+=sz;
+ }
+}
+const U16=new TextDecoder('utf-16le');
+function wstr(u8,dv,p){const n=dv.getUint32(p,true);return n===0xFFFFFFFF?['',p+4]:[U16.decode(u8.subarray(p+4,p+4+n*2)),p+4+n*2];}
+function rk(v){let x;if(v&2)x=v>>2;else{const b=new DataView(new ArrayBuffer(8));b.setUint32(4,v&0xFFFFFFFC,true);x=b.getFloat64(0,true);}return v&1?x/100:x;}
+function xlsbRows(u8,sst,maxRow,maxCol){
+ const dv=new DataView(u8.buffer,u8.byteOffset,u8.byteLength),rows={};let r=0,lc=-1;
+ eachRec(u8,(t,p,sz)=>{
+  if(t===0){r=dv.getUint32(p,true)+1;lc=-1;if(r>maxRow)return false;return;}
+  if(t===146)return false;                         // シートデータ終わり
+  let c,q,v;
+  if(t>=1&&t<=11){c=dv.getUint32(p,true);q=p+8;}
+  else if(t>=12&&t<=18){c=lc+1;q=p+4;t-=11;}        // 短縮セル
+  else return;
+  lc=c;if(c>maxCol)return;
+  if(t===2)v=rk(dv.getUint32(q,true));
+  else if(t===5||t===9)v=dv.getFloat64(q,true);
+  else if(t===6||t===8)v=wstr(u8,dv,q)[0];
+  else if(t===7)v=sst[dv.getUint32(q,true)];
+  else return;
+  (rows[r]=rows[r]||{})[c]=v;
+ });
+ return rows;
+}
+async function sheetsXlsb(z){
+ const rel=relMap(new TextDecoder().decode(await z.get('xl/_rels/workbook.bin.rels')),'xl/');
+ const wb=await z.get('xl/workbook.bin'),wdv=new DataView(wb.buffer,wb.byteOffset,wb.byteLength),list=[];
+ eachRec(wb,(t,p)=>{if(t===156){const a=wstr(wb,wdv,p+8),b=wstr(wb,wdv,a[1]);list.push({name:b[0],path:rel[a[0]]});}});
+ const sst=[];const sb=await z.get('xl/sharedStrings.bin');
+ if(sb){const sdv=new DataView(sb.buffer,sb.byteOffset,sb.byteLength);eachRec(sb,(t,p)=>{if(t===19)sst.push(wstr(sb,sdv,p+1)[0]);});}
+ return list.map(s=>({name:s.name,rows:async(mr,mc)=>xlsbRows(await z.get(s.path),sst,mr,mc)}));
+}
+/* xlsx／xlsm */
+function xmlTxt(s){return s.replace(/<rPh\b[\s\S]*?<\/rPh>/g,'').replace(/<[^>]+>/g,'').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&#x([0-9a-f]+);/gi,(a,h)=>String.fromCodePoint(parseInt(h,16))).replace(/&#(\d+);/g,(a,d)=>String.fromCodePoint(+d)).replace(/&amp;/g,'&');}
+function colNo(s){let n=0;for(const ch of s)n=n*26+ch.charCodeAt(0)-64;return n-1;}
+async function sheetsXlsx(z){
+ const td=new TextDecoder(),rel=relMap(td.decode(await z.get('xl/_rels/workbook.xml.rels')),'xl/');
+ const wb=td.decode(await z.get('xl/workbook.xml')),list=[];
+ (wb.match(/<sheet\b[^>]*>/g)||[]).forEach(t=>{list.push({name:xmlTxt((t.match(/\bname="([^"]*)"/)||[])[1]||''),path:rel[(t.match(/\br:id="([^"]+)"/)||[])[1]]});});
+ const sst=[],sx=await z.get('xl/sharedStrings.xml');
+ if(sx)(td.decode(sx).match(/<si>[\s\S]*?<\/si>/g)||[]).forEach(s=>sst.push(xmlTxt(s)));
+ return list.map(s=>({name:s.name,rows:async(mr,mc)=>{
+  const x=td.decode(await z.get(s.path)),rows={};
+  const re=/<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g;let m;
+  while((m=re.exec(x))){
+   const ref=(m[1].match(/\br="([A-Z]+)(\d+)"/)||[]);if(!ref[1])continue;
+   const r=+ref[2],c=colNo(ref[1]);if(r>mr)break;if(c>mc||!m[2])continue;
+   const t=(m[1].match(/\bt="(\w+)"/)||[])[1],vv=(m[2].match(/<v>([\s\S]*?)<\/v>/)||[])[1];let v;
+   if(t==='s')v=sst[+vv];else if(t==='inlineStr')v=xmlTxt(m[2]);else if(t==='str')v=vv===undefined?'':xmlTxt(vv);else if(vv!==undefined&&t!=='b'&&t!=='e')v=+vv;
+   if(v!==undefined)(rows[r]=rows[r]||{})[c]=v;
+  }
+  return rows;}}));
+}
+
+function rosterFromRows(rows){
+ const out=[];
+ for(const r of Object.keys(rows).map(Number).sort((a,b)=>a-b)){
+  if(r<START_ROW)continue;const d=rows[r];
+  if([d[NAME_C],d[ID_C]].some(v=>typeof v==='string'&&END_W.indexOf(norm(v))>=0))break;
+  const nm=typeof d[NAME_C]==='string'?d[NAME_C].trim():'';let id=d[ID_C];
+  if(!nm||id===undefined||id===''||id===0)continue;
+  if(typeof id==='number')id=String(Math.round(id));
+  out.push({row:r,id:String(id).trim(),name:nm.replace(/[\s\u3000]+/g,' ')});
+ }
+ return withPid(out);
+}
+async function readBook(file){
+ const z=await unzip(await file.arrayBuffer());
+ let sheets;
+ if(z.has('xl/workbook.bin'))sheets=await sheetsXlsb(z);
+ else if(z.has('xl/workbook.xml'))sheets=await sheetsXlsx(z);
+ else throw new Error('Excelファイルではありません');
+ const months=[],grants=[],tots=[],nks=[],fy=fyOf(today());
+ for(const sh of sheets){
+  const nm=sh.name.replace(/[０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0));
+  if(/^\s*年休付与日数\s*$/.test(nm)){                 // 1係側：B列＝社員No・M列＝付与日数／2係側：N列＝社員No・Y列＝付与日数
+   const rows=await sh.rows(MAX_ROW,Math.max(...GRANT.flat()));
+   for(const r in rows){const d=rows[r];if(+r<6)continue;
+    GRANT.forEach(([ci,cg])=>{const id=nid(d[ci]),g=d[cg];if(id&&typeof g==='number')grants.push({id:id,days:g});});}
+   continue;
+  }
+  let mm=nm.match(/^\s*総残業\s*[（(]\s*(.+?)\s*[)）]\s*$/);
+  if(mm&&kOf(mm[1])){tots.push(await sh.rows(MAX_ROW,20));continue;}
+  mm=nm.match(/^\s*年休日数\s*[（(]\s*(.+?)\s*[)）]\s*$/);
+  if(mm&&kOf(mm[1])){nks.push(await sh.rows(MAX_ROW,30));continue;}
+  let k=null,m0=0;const m=nm.match(/^\s*(\d{1,2})\s*月\s*[（(]\s*(.+?)\s*[)）]\s*$/);
+  if(m){k=kOf(m[2]);m0=+m[1];}
+  else if(KAKARI.length===1){const m1=nm.match(/^\s*(\d{1,2})\s*月\s*$/);if(m1){k=KAKARI[0];m0=+m1[1];}}   // 係が1つなら「11月」だけのシートも可
+  if(!k||!(m0>=1&&m0<=12))continue;
+  const rows=await sh.rows(Math.max(MAX_ROW,Y_CELL.r,M_CELL.r),Math.max(FIRST_COL+30,ID_C,NAME_C,Y_CELL.c,M_CELL.c));
+  const hm_=(rows[M_CELL.r]||{})[M_CELL.c],hy=(rows[Y_CELL.r]||{})[Y_CELL.c];
+  const mo=typeof hm_==='number'&&hm_>=1&&hm_<=12?hm_:m0,y=typeof hy==='number'&&hy>=2000&&hy<=2100?hy:(mo<4?fy+1:fy);
+  months.push({ym:y+'-'+pad(mo),k:k,list:rosterFromRows(rows),rows:rows});
+ }
+ const yms=months.map(x=>x.ym).sort(),a=(yms[0]||ym(today())).split('-');
+ return {months:months,grants:grants,info:bookInfo(fyOf(new Date(+a[0],+a[1]-1,1)),tots,nks)};
+}
+function nid(v){if(v===undefined||v===null||v==='')return '';if(typeof v==='number')return String(Math.round(v));return String(v).trim();}
+function glab(s){return String(s).replace(/[０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0)).trim().replace(/係$/,'班');}
+function sortedRows(rows){return Object.keys(rows).map(Number).sort((a,b)=>a-b);}
+/* 総残業・年休日数の帳票から：班、360H申請、付与数、取得率、上限・目標・計画 */
+function bookInfo(fy,tots,nks){
+ const I={fy:fy,grp:{},ap:{},g:{},r:{},set:{}};
+ tots.forEach(rows=>{let grp='';
+  sortedRows(rows).forEach(r=>{const d=rows[r];
+   for(const c in d){const v=d[c];if(typeof v!=='string')continue;
+    let x=v.match(/45H.*?(\d+)\s*回/);if(x)I.set.over=+x[1];x=v.match(/(\d{3})\s*H\s*\/\s*Y/i);if(x)I.set.lim=+x[1];}
+   if(r<5)return;
+   if(typeof d[0]==='string'&&d[0].trim())grp=glab(d[0]);
+   const id=nid(d[1]);if(!id)return;
+   if(!(id in I.grp))I.grp[id]=grp;
+   const ap=typeof d[17]==='string'?d[17].trim():'';if(ap==='済'||ap==='なし')I.ap[id]=ap;
+  });});
+ nks.forEach(rows=>{const hd=rows[4]||{},r3=rows[3]||{};let cg=-1,cv=-1,co=-1;
+  for(const c in hd){const v=String(hd[c]).trim();if(v==='付与数')cg=+c;if(v==='個人別年間取得目標')cv=+c;if(v==='年間目標'||v==='取得目標まで')co=+c;}
+  if(co>=0&&typeof r3[co]==='number'&&I.set.goal===undefined)I.set.goal=r3[co];
+  const plan=[];for(let c=3;c<=14;c++)plan.push(typeof r3[c]==='number'?r3[c]:0);
+  if(plan.some(x=>x)&&!I.set.plan)I.set.plan=plan;
+  let grp='';
+  sortedRows(rows).forEach(r=>{if(r<5)return;const d=rows[r];
+   if(typeof d[0]==='string'&&d[0].trim())grp=glab(d[0]);
+   const id=nid(d[1]);if(!id)return;
+   if(!(id in I.grp))I.grp[id]=grp;
+   if(cg>=0&&typeof d[cg]==='number'&&!(id in I.g))I.g[id]=d[cg];
+   if(cv>=0&&typeof d[cv+1]==='number'&&!(id in I.r))I.r[id]=d[cv+1];
+  });});
+ return I;
+}
+
+/* ===== 起動 ===== */
+document.getElementById('verLbl').textContent=VERSION;
+migrate();rebuild();buildKeys();applyKiosk();render();syncNow();
+
+</script>
+</body>
+</html>
