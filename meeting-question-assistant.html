@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'none'; img-src data:; base-uri 'none'; form-action 'none'">
+<title>会議質問アシスタント</title>
+<style>
+:root{color-scheme:light;--ink:#17324a;--blue:#175b87;--paper:#fff;--line:#cbd6df;--muted:#506476;--wash:#edf3f7}*{box-sizing:border-box}body{margin:0;background:var(--wash);color:var(--ink);font:16px/1.7 'Meiryo UI','Meiryo',sans-serif}header{background:var(--ink);color:white;padding:30px max(24px,calc((100vw - 1180px)/2))}h1{font-size:28px;margin:0}header p{margin:6px 0 0;color:#d4e5f1}main{max-width:1228px;margin:24px auto;padding:0 24px}.workspace{display:grid;grid-template-columns:minmax(300px,440px) 1fr;gap:24px;align-items:start}.panel{background:var(--paper);padding:24px;border:1px solid var(--line);border-radius:8px}h2{font-size:20px;margin:0 0 16px}h3{font-size:16px;margin:0}label{display:block;font-weight:600;margin:14px 0 6px}textarea,input[type=text],select{width:100%;border:1px solid #95a9b9;border-radius:4px;padding:10px;font:inherit;background:white;color:var(--ink)}textarea{resize:vertical;min-height:240px}button,.filelabel{font:inherit;cursor:pointer;border:1px solid #95a9b9;background:white;color:var(--ink);border-radius:4px;padding:8px 13px;display:inline-block;text-align:center;line-height:1.5}button:hover,.filelabel:hover{background:#e7f0f6}button.primary{background:var(--blue);border-color:var(--blue);color:white;width:100%;padding:12px;margin-top:20px;font-weight:700}button:disabled{opacity:.45;cursor:default}button[aria-pressed=true]{background:#d4e9f5;border-color:var(--blue);font-weight:700}.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.settings{display:grid;grid-template-columns:1fr 1fr;gap:12px}.small,small{font-size:13px;color:var(--muted)}.hint{margin:8px 0}.status{padding:12px 16px;background:#e2edf5;border-left:4px solid var(--blue);margin:0 0 20px;white-space:pre-wrap}.empty{padding:46px 12px;text-align:center;color:var(--muted)}.question{padding:18px 0;border-bottom:1px solid var(--line)}.question p{margin:8px 0 12px}.tag{font-size:12px;background:#edf3f7;padding:3px 8px;border-radius:3px;display:inline-block;margin-right:6px}.source{font-size:13px;color:var(--muted);border-left:2px solid var(--line);padding-left:10px;overflow-wrap:anywhere}.toolbar{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center}.toolbar h2{margin:0}details{margin-top:24px;background:white;padding:20px 24px;border:1px solid var(--line);border-radius:8px}summary{cursor:pointer;font-weight:700}.history{max-height:420px;overflow:auto}.danger{color:#9b3030}footer{font-size:13px;color:var(--muted);margin:24px 0}:focus-visible{outline:3px solid #d59921;outline-offset:3px}input[type=file]{max-width:100%;font:inherit;font-size:13px}#counter{text-align:right}.nowrap{white-space:nowrap}@media(max-width:760px){.workspace{grid-template-columns:1fr}main{padding:0 14px}.panel{padding:18px}header{padding:24px 18px}h1{font-size:24px}}@media print{body{background:white}header{background:white;color:black;padding:0}header p,.workspace>.panel:first-child,details,footer,.question button,.toolbar button,#status{display:none}.workspace{display:block}main{padding:0}.panel{border:0;padding:0}.question{break-inside:avoid}}
+.dropzone{margin-top:14px;padding:22px 16px;border:2px dashed #7393ab;border-radius:6px;background:#f4f8fb;text-align:center}.dropzone[data-dragging]{border-color:var(--blue);background:#dcecf7}.dropzone p{margin:0 0 10px}.dropzone label{margin:0}.dropzone input{display:block;margin:12px auto 0}
+</style>
+</head>
+<body>
+<header><h1>会議質問アシスタント</h1><p>資料を読み、会議で確かめたいことを整理する。</p></header>
+<main>
+<div id="status" class="status" role="status" aria-live="polite">資料を貼り付けるか、テキストファイルを取り込んでください。インターネット接続は不要です。</div>
+<div class="workspace">
+<section class="panel" aria-labelledby="inputHeading"><h2 id="inputHeading">1. 資料を用意する</h2>
+<label for="title">会議・資料名（任意）</label><input id="title" type="text" maxlength="120" placeholder="例：11月 品質改善会議">
+<div id="dropzone" class="dropzone" role="group" aria-label="資料のドラッグ＆ドロップ取込" aria-describedby="fileHelp"><p><strong>資料ファイルをここに<br>ドラッグ＆ドロップ</strong></p><label for="file">または、ファイルを選択</label><input id="file" type="file" accept=".txt,.md,.csv,.tsv,.html,.htm,text/plain,text/csv,text/html"></div>
+<p id="fileHelp" class="small hint">1ファイルずつ、4MBまで。対応：TXT・Markdown・CSV・TSV・HTML。PDF・Word・PowerPointは、本文をコピーして下欄へ貼り付けてください。</p>
+<label for="encoding">ファイルの文字コード</label><select id="encoding"><option value="utf-8">UTF-8（通常はこちら）</option><option value="shift_jis">Shift_JIS（文字化けする場合）</option></select>
+<label for="source">資料の本文</label><textarea id="source" maxlength="200000" placeholder="議題、現状、課題、対策などを貼り付けてください。"></textarea><div id="counter" class="small">0 / 200,000文字</div>
+<div class="row"><button id="sample">サンプルを入れる</button><button id="clearSource">本文を消す</button></div>
+<h2 style="margin-top:26px">2. 質問の視点を選ぶ</h2>
+<div class="settings"><div><label for="domain">分野</label><select id="domain"><option value="auto">資料から自動判定</option><option>全般</option><option>安全</option><option>品質</option><option>納期</option><option>コスト</option><option>人材</option><option>改善</option></select></div><div><label for="level">質問レベル</label><select id="level"><option value="balanced">バランス</option><option value="simple">素朴</option><option value="standard">標準</option><option value="sharp">鋭い</option></select></div></div>
+<label for="count">質問数</label><select id="count"><option>6</option><option>9</option><option>12</option></select>
+<button id="generate" class="primary">質問を作成する</button>
+<p class="small">本文のキーワードに合う定型質問を提案します。資料の正しさや論理をAIが判断する機能ではありません。</p></section>
+<section class="panel" aria-labelledby="resultHeading"><div class="toolbar"><h2 id="resultHeading">3. 会議で使う質問</h2><span id="resultMeta" class="small"></span></div><p class="small">「良い」「悪い」の評価を、次回の質問の優先順位に反映します。</p><div class="row"><button id="copyAll" disabled>まとめてコピー</button><button id="saveText" disabled>テキストで保存</button><button id="print" disabled>印刷</button></div><div id="results"><p class="empty">資料を用意して「質問を作成する」を押すと、ここに質問が並びます。</p></div></section>
+</div>
+<details><summary>評価と質問履歴 <span id="historyCount" class="small"></span></summary><p class="small">評価した質問を最大2,000件、同じブラウザに保存します。資料の本文は保存しませんが、資料名・質問・引用した短い抜粋は履歴に残ります。別PCへ移す場合やバックアップには書出しを使ってください。</p><div class="row"><button id="exportMemory">学習データを書き出す</button><label class="filelabel" style="margin:0" for="importMemory">学習データを読み込む</label><input id="importMemory" type="file" accept=".json,application/json" style="max-width:220px" aria-label="学習データJSONファイル"><button id="deleteMemory" class="danger">履歴をすべて削除</button></div><p class="small">評価は質問の型・分野ごとに集計します。高評価の過去質問は、現在の資料に関連する場合に再提案します。同じ質問は一度の生成で重複させません。</p><div id="history" class="history"></div></details>
+<details><summary>使い方・保存について</summary><ol><li>このHTMLファイルをPCに保存し、EdgeやChromeなどのブラウザで開きます。</li><li>資料ファイルをドラッグ＆ドロップ欄に置き、分野と質問レベルを選んで質問を作成します。ファイル選択や本文の貼り付けも使えます。</li><li>質問を評価すると、次回から好みに応じて順番が変わります。</li><li>必要な質問をコピーするか、テキストで保存します。</li></ol><p>ファイルを繰り返し読み込むだけでは学習しません。評価に応じた優先順位調整です。ブラウザのデータ削除・プライベートモード・ファイルの移動等で履歴を利用できなくなる場合があるため、定期的に学習データを書き出してください。</p><p>外部ライブラリ、外部AI、サーバーとの通信は使いません。HTMLを移しただけでは評価履歴は移りません。</p></details>
+<footer>会議質問アシスタント ／ 会話で確認できた仕様を基に再生成した単一HTML版（2026年11月12日）</footer>
+</main>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+const KEY='meeting-question-assistant-v1';
+const LEVELS={simple:'素朴',standard:'標準',sharp:'鋭い'};
+const DOMAINS={安全:['安全','災害','事故','危険','ヒヤリ','リスク'],品質:['品質','不良','検査','クレーム','欠陥'],納期:['納期','遅延','進捗','工程','日程'],コスト:['コスト','費用','予算','原価','経費'],人材:['人材','教育','研修','担当','人員','育成'],改善:['改善','効率','削減','対策','標準化']};
+const COMMON={simple:['この取組は、そもそも何のために行うのでしょうか？','今のやり方では、誰がどのようなことで困っていますか？','資料で使われている用語を、具体例で説明してもらえますか？','今回の会議では、何を決めればよいですか？'],standard:['対策の担当者と、完了期限は決まっていますか？','効果を確認する指標と、確認する時期を教えてください。','現状と目標の差は、どのデータで確認できますか？','実行に必要な人員・時間・費用は確保できていますか？'],sharp:['想定した原因が正しいと判断した根拠は何ですか？','この案以外の選択肢と比較したときの利点と欠点は何ですか？','期待した効果が出なかった場合、何を基準に見直しますか？','この対策によって、新たに生じるリスクはありますか？']};
+const SPECIAL={
+安全:{simple:['どの作業に、どのような危険がありますか？','現場でいちばん不安に感じる場面はどこですか？'],standard:['危険への対策は、誰がいつ現場で確認しますか？','作業者への周知と、対策の実施状況をどう確認しますか？'],sharp:['注意喚起だけに頼らず、危険そのものを減らせますか？','想定外の作業や非定常作業でも、この対策は機能しますか？']},
+品質:{simple:['今回の不良は、どのような状態を指しますか？','お客様には、具体的にどのような影響がありますか？'],standard:['不良率の計算期間と対象数はそろっていますか？','対策前後の品質を、どの条件で比較しますか？'],sharp:['不良を発生させた原因と、流出させた原因を分けて確認しましたか？','検査の追加に加えて、工程内で発生を防ぐ方法はありますか？']},
+納期:{simple:['いつまでに、何を終える必要がありますか？','今、どの工程で遅れが出ていますか？'],standard:['遅れが後工程に与える影響と、回復計画を教えてください。','進捗の確認頻度と、遅延時の連絡先は決まっていますか？'],sharp:['回復計画は、設備能力と人員の実績に照らして実行可能ですか？','納期を優先することで、安全や品質に無理が生じませんか？']},
+コスト:{simple:['この費用は、何に使われるものですか？','費用が増えている主な理由は何ですか？'],standard:['初期費用と継続費用を含めた総額はいくらですか？','投資の効果は、いつどの指標で確認しますか？'],sharp:['削減額の計算に、追加作業や維持費も含めていますか？','数量や価格の前提が変わっても、この案は有効ですか？']},
+人材:{simple:['誰が、どの仕事を担当する予定ですか？','担当者が困っていることは何ですか？'],standard:['教育後にできるようになる業務と、習熟の確認方法は何ですか？','担当者が不在のときの代替体制はありますか？'],sharp:['特定の人に頼らず、同じ品質で仕事を続けられる仕組みはありますか？','業務量の増加が、時間外労働やミスに与える影響を確認しましたか？']},
+改善:{simple:['今回の改善で、作業のどこが変わりますか？','現場では、何がいちばん手間になっていますか？'],standard:['改善前後の作業時間を、同じ条件で測定していますか？','改善した方法を、標準作業に反映する予定はありますか？'],sharp:['一部の工程の改善で、他の工程に負担が移っていませんか？','改善効果が一時的でないことを、どう確認しますか？']}
+};
+let memory=[],current=[],storageOK=true;
+function tell(s){$('status').textContent=s;}
+function cleanRecord(r){
+ if(!r||typeof r!=='object'||typeof r.question!=='string'||!r.question.trim()||r.question.length>1000||!Object.hasOwn(LEVELS,r.level)||!(r.domain==='全般'||Object.hasOwn(DOMAINS,r.domain))||![1,-1].includes(r.rating)||typeof r.id!=='string'||r.id.length>160||typeof r.date!=='string'||!Number.isFinite(Date.parse(r.date)))throw Error('質問履歴の形式が正しくありません。');
+ return {id:r.id,question:r.question,level:r.level,domain:r.domain,rating:r.rating,date:r.date,title:String(r.title||'').slice(0,120),snippet:String(r.snippet||'').slice(0,160)};
+}
+function persist(){try{localStorage.setItem(KEY,JSON.stringify({version:1,records:memory}));storageOK=true;return true;}catch{storageOK=false;tell('ブラウザへの保存ができません。この画面では評価を利用できますが、閉じる前に学習データを書き出してください。');return false;}}
+function load(){try{const raw=localStorage.getItem(KEY);if(raw){const data=JSON.parse(raw);if(data.version!==1||!Array.isArray(data.records)||data.records.length>2000)throw Error();memory=data.records.map(cleanRecord);}}catch{storageOK=false;tell('保存済み履歴を読み込めませんでした。元データは上書きしていません。バックアップがあれば読み込んでください。');}}
+function node(tag,text,cls){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;}
+function button(text,action){const b=node('button',text);b.type='button';b.onclick=action;return b;}
+function detectDomains(text){const counts=Object.entries(DOMAINS).map(([domain,words])=>[domain,words.reduce((n,w)=>n+text.split(w).length-1,0)]).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]);return counts.length?counts.slice(0,3).map(x=>x[0]):['全般'];}
+function excerpt(text,domain){const sentences=text.split(/[\n。！？]/).map(s=>s.trim()).filter(Boolean);const words=DOMAINS[domain]||[];return (sentences.find(s=>words.some(w=>s.includes(w)))||sentences[0]||'').slice(0,160);}
+function score(q,records){return records.filter(r=>r.id===q.id&&r.domain===q.domain).reduce((n,r)=>n+r.rating*3,0);}
+function buildQuestions(text,domain,level,count,records){
+ const domains=domain==='auto'?detectDomains(text):[domain];const levels=level==='balanced'?Object.keys(LEVELS):[level];
+ let pool=[];for(const d of domains)for(const l of levels){const set=[...(SPECIAL[d]?.[l]||[]),...COMMON[l]];set.forEach((question,i)=>pool.push({id:d+':'+l+':'+i,question,domain:d,level:l,snippet:excerpt(text,d),order:i}));}
+ for(const r of records)if(r.rating===1&&domains.includes(r.domain)&&levels.includes(r.level)&&!pool.some(q=>q.question===r.question)){pool.push({id:r.id,question:r.question,domain:r.domain,level:r.level,snippet:excerpt(text,r.domain),order:20});}
+ pool.sort((a,b)=>score(b,records)-score(a,records)||a.order-b.order);
+ const selected=[],seen=new Set();while(selected.length<count&&pool.length){let progressed=false;for(const l of levels){const i=pool.findIndex(q=>q.level===l&&!seen.has(q.question));if(i>=0){const q=pool.splice(i,1)[0];selected.push(q);seen.add(q.question);progressed=true;if(selected.length===count)break;}}if(!progressed)break;}
+ return selected;
+}
+function vote(q,rating){const r={...q,rating,date:new Date().toISOString(),title:$('title').value.trim()};delete r.order;memory=memory.filter(x=>!(x.id===r.id&&x.question===r.question&&x.domain===r.domain));memory.push(cleanRecord(r));memory=memory.slice(-2000);const ok=persist();renderQuestions();renderHistory();if(ok)tell('評価を保存しました。次回の質問の優先順位に反映します。');}
+function questionCard(q,historyMode=false){const card=node('article',undefined,'question');const meta=node('div');meta.append(node('span',LEVELS[q.level],'tag'),node('span',q.domain,'tag'));if(historyMode)meta.append(node('span',q.rating===1?'良い':'悪い','tag'));card.append(meta,node('p',q.question));if(q.snippet)card.append(node('p','資料の参考箇所：'+q.snippet,'source'));if(historyMode){card.append(node('p',(q.title||'名称なし')+' ／ '+new Date(q.date).toLocaleString('ja-JP'),'small'));}
+ const controls=node('div',undefined,'row');controls.append(button('コピー',()=>copy(q.question)));if(!historyMode){for(const [label,rating] of [['良い',1],['悪い',-1]]){const b=button(label,()=>vote(q,rating));const saved=memory.find(r=>r.id===q.id&&r.question===q.question&&r.domain===q.domain);b.setAttribute('aria-pressed',String(saved?.rating===rating));b.setAttribute('aria-label',q.question+'：'+label);controls.append(b);}}card.append(controls);return card;}
+function renderQuestions(){$('results').replaceChildren(...current.map(q=>questionCard(q)));}
+function renderHistory(){$('historyCount').textContent='（'+memory.length+'件）';$('history').replaceChildren(...(memory.length?memory.slice().reverse().map(q=>questionCard(q,true)):[node('p','まだ評価した質問はありません。','small')]));}
+async function copy(text){try{if(!navigator.clipboard?.writeText)throw Error();await navigator.clipboard.writeText(text);tell('コピーしました。');}catch{const t=node('textarea');t.value=text;document.body.append(t);t.select();let ok=false;try{ok=document.execCommand('copy');}catch{}t.remove();tell(ok?'コピーしました。':'コピーできませんでした。「テキストで保存」を使うか、質問を選択してコピーしてください。');}}
+function download(content,name,type){const blob=new Blob([content],{type});const url=URL.createObjectURL(blob);const a=node('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);tell('保存を開始しました。ブラウザのダウンロード先を確認してください。');}
+function questionText(){return ($('title').value.trim()||'会議質問')+'\n\n'+current.map((q,i)=>(i+1)+'. ['+LEVELS[q.level]+' / '+q.domain+'] '+q.question+(q.snippet?'\n   参考：'+q.snippet:'')).join('\n\n');}
+$('generate').onclick=()=>{const text=$('source').value.trim();if(!text){tell('資料の本文を入力してください。');$('source').focus();return;}current=buildQuestions(text,$('domain').value,$('level').value,Number($('count').value),memory);renderQuestions();$('resultMeta').textContent=current.length+'件 ／ '+[...new Set(current.map(q=>q.domain))].join('・');for(const id of ['copyAll','saveText','print'])$(id).disabled=false;tell(current.length+'件の質問を作成しました。参考箇所はキーワードで選んだ抜粋です。質問が資料に合うか確認してください。');};
+$('copyAll').onclick=()=>copy(questionText());$('saveText').onclick=()=>download('\ufeff'+questionText(),'会議質問.txt','text/plain;charset=utf-8');$('print').onclick=()=>window.print();
+$('source').oninput=()=>{$('counter').textContent=$('source').value.length.toLocaleString()+' / 200,000文字';};
+$('sample').onclick=()=>{if($('source').value.trim()&&!confirm('現在の本文をサンプルに置き換えますか？'))return;$('title').value='品質改善会議（サンプル）';$('source').value='11月の品質改善会議\n組立工程の不良率は前月2.4%から3.1%に増加した。検査での見落としと作業手順のばらつきが課題。\n対策として標準作業の見直しと担当者への教育を行う。実施期限は月末。\n検査を追加する案もあるが、コストと納期への影響を確認する必要がある。';$('source').oninput();tell('サンプルを入れました。「質問を作成する」を押してください。');};
+$('clearSource').onclick=()=>{if($('source').value&&!confirm('資料の本文を消しますか？'))return;$('source').value='';$('file').value='';$('source').oninput();tell('本文を消しました。');};
+async function importFile(f){if(!f)return;try{if(!/\.(txt|md|csv|tsv|html?)$/i.test(f.name))throw Error('対応外のファイルです。本文をコピーして貼り付けてください。');if(f.size>4*1024*1024)throw Error('ファイルは4MB以下にしてください。');if($('source').value.trim()&&!confirm('現在の本文を、ファイルの内容に置き換えますか？'))return;let text=new TextDecoder($('encoding').value).decode(await f.arrayBuffer());if(/\.html?$/i.test(f.name)){const doc=new DOMParser().parseFromString(text,'text/html');doc.querySelectorAll('script,style,noscript,template').forEach(n=>n.remove());doc.querySelectorAll('p,div,br,li,tr,h1,h2,h3').forEach(n=>n.append(doc.createTextNode('\n')));text=doc.body.textContent||'';}if(text.includes('\0'))throw Error('テキストとして読み込めません。本文をコピーして貼り付けてください。');if(text.length>200000)throw Error('本文が20万文字を超えています。必要な箇所だけ貼り付けてください。');$('source').value=text;$('title').value=f.name.slice(0,120);$('source').oninput();tell(f.name+' を取り込みました。文字化けしている場合は文字コードを切り替えて、同じファイルを選び直してください。');}catch(e){tell('取込できませんでした：'+e.message);}finally{$('file').value='';}}
+$('file').onchange=()=>importFile($('file').files[0]);
+const dropzone=$('dropzone');
+dropzone.ondragover=e=>{e.preventDefault();if(e.dataTransfer)e.dataTransfer.dropEffect='copy';dropzone.setAttribute('data-dragging','');};
+dropzone.ondragleave=e=>{if(!dropzone.contains(e.relatedTarget))dropzone.removeAttribute('data-dragging');};
+dropzone.ondrop=async e=>{e.preventDefault();e.stopPropagation();dropzone.removeAttribute('data-dragging');const files=Array.from(e.dataTransfer?.files||[]);if(files.length!==1){tell('資料ファイルを1つずつドロップしてください。');return;}await importFile(files[0]);};
+document.addEventListener('dragover',e=>{if(Array.from(e.dataTransfer?.types||[]).includes('Files'))e.preventDefault();});
+document.addEventListener('drop',e=>{if(Array.from(e.dataTransfer?.types||[]).includes('Files')){e.preventDefault();dropzone.removeAttribute('data-dragging');tell('資料ファイルを、左側のドラッグ＆ドロップ欄に置いてください。');}});
+$('exportMemory').onclick=()=>download(JSON.stringify({version:1,records:memory},null,2),'会議質問_学習データ.json','application/json');
+$('importMemory').onchange=async()=>{const f=$('importMemory').files[0];if(!f)return;try{if(f.size>8*1024*1024)throw Error('8MB以下のJSONファイルを選んでください。');const data=JSON.parse(await f.text());if(data.version!==1||!Array.isArray(data.records)||data.records.length>2000)throw Error('対応する学習データではありません。');const incoming=data.records.map(cleanRecord);const merged=new Map(memory.map(r=>[r.id+'\n'+r.domain+'\n'+r.question,r]));for(const r of incoming){const key=r.id+'\n'+r.domain+'\n'+r.question;const old=merged.get(key);if(!old||Date.parse(r.date)>Date.parse(old.date))merged.set(key,r);}memory=[...merged.values()].sort((a,b)=>Date.parse(a.date)-Date.parse(b.date)).slice(-2000);const ok=persist();renderHistory();if(current.length)renderQuestions();if(ok)tell(incoming.length+'件を読み込みました。重複する質問は新しい評価を採用しました。');}catch(e){tell('読込できませんでした：'+e.message+' 現在の履歴は変更していません。');}finally{$('importMemory').value='';}};
+$('deleteMemory').onclick=()=>{if(!confirm('すべての評価・質問履歴を削除します。必要なら先に書き出してください。削除しますか？'))return;try{localStorage.removeItem(KEY);memory=[];renderHistory();if(current.length)renderQuestions();tell('評価と質問履歴を削除しました。');}catch{tell('保存データを削除できませんでした。ブラウザの設定を確認してください。');}};
+load();renderHistory();
+</script>
+</body>
+</html>
