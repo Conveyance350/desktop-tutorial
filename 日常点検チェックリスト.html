@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>日常点検チェックリスト</title>
+<style>
+:root{--txt:#333333;--sub:#7F7F7F;--line:#BFBFBF;--acc:#2F5597;--ng:#C00000;--ok:#548235;--bg:#FFFFFF}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--txt);font-family:"Meiryo UI","メイリオ",Meiryo,sans-serif;font-size:20px;line-height:1.5}
+button,input,textarea,select{font-family:inherit;color:var(--txt)}
+header{position:sticky;top:0;z-index:5;background:#fff;border-bottom:2px solid var(--acc);padding:10px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+header h1{font-size:24px;margin:0;flex:1;white-space:nowrap}
+.nav{display:flex;gap:8px;flex-wrap:wrap}
+.nav button{font-size:18px;padding:8px 14px;border:2px solid var(--sub);background:#fff;cursor:pointer;min-height:48px}
+.nav button.on{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:bold}
+main{max-width:900px;margin:0 auto;padding:16px 16px 80px}
+h2{font-size:22px;margin:22px 0 8px;padding-bottom:4px;border-bottom:2px solid var(--line)}
+.sub{color:var(--sub);font-size:17px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.pick{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
+.pick button{font-size:20px;padding:14px 10px;min-height:64px;border:2px solid var(--sub);background:#fff;cursor:pointer;text-align:center}
+.pick button.on{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:bold}
+input[type=text],input[type=date],input[type=month],select,textarea{font-size:20px;padding:10px 12px;border:2px solid var(--sub);background:#fff}
+input:focus,textarea:focus,select:focus,button:focus-visible{outline:3px solid var(--acc);outline-offset:0}
+.item{border:2px solid var(--line);padding:12px 14px;margin-bottom:10px}
+.item.isOK{border-color:var(--ok)}
+.item.isNG{border:4px solid var(--ng)}
+.itop{display:grid;grid-template-columns:1fr 260px;gap:12px;align-items:center}
+.ino{font-size:26px;font-weight:bold;margin-right:10px}
+.itx{font-size:22px;font-weight:bold}
+.ipt{color:var(--sub);font-size:17px}
+.jb{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.jb button{min-height:80px;font-size:28px;font-weight:bold;background:#fff;cursor:pointer}
+.jOK{border:3px solid var(--ok);color:var(--ok)}
+.jNG{border:3px solid var(--ng);color:var(--ng)}
+.jOK.on{background:var(--ok);color:#fff}
+.jNG.on{background:var(--ng);color:#fff}
+.note{margin-top:10px}
+.note textarea{width:100%;height:80px}
+.err{color:var(--ng);font-weight:bold;min-height:1.5em}
+.prog{font-size:22px;margin:12px 0}
+.prog b{font-size:48px;color:var(--acc)}
+.big{width:100%;font-size:28px;font-weight:bold;min-height:88px;border:2px solid var(--acc);background:var(--acc);color:#fff;cursor:pointer;margin-top:10px}
+.big:disabled{background:#fff;color:var(--sub);border-color:var(--sub);cursor:default}
+.btn{font-size:18px;padding:10px 16px;border:2px solid var(--sub);background:#fff;cursor:pointer;min-height:52px}
+.btn.pri{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:bold}
+.btn.dng{color:var(--ng);border-color:var(--ng)}
+table{border-collapse:collapse;width:100%;font-size:18px}
+th,td{border:1px solid var(--sub);padding:6px 10px;text-align:left;vertical-align:top}
+td.n{text-align:right;white-space:nowrap}
+.ok{color:var(--ok);font-weight:bold}.ng{color:var(--ng);font-weight:bold}
+.done{border:2px solid var(--ok);padding:14px 16px;margin:12px 0}
+.done .t{font-size:26px;font-weight:bold;color:var(--ok)}
+.ed{display:grid;grid-template-columns:1fr auto auto auto;gap:6px;align-items:center;margin-bottom:6px}
+.ed input{width:100%}
+.ed button{min-height:48px;font-size:16px;padding:6px 10px;border:2px solid var(--sub);background:#fff;cursor:pointer}
+.msg{font-weight:bold;margin:8px 0;min-height:1.5em}
+footer{color:var(--sub);font-size:13px;text-align:center;padding:20px}
+@media (max-width:640px){.itop{grid-template-columns:1fr}}
+@media print{header,.noprint,footer{display:none!important}body{font-size:11pt}}
+</style>
+</head>
+<body>
+<header>
+ <h1 id="title">日常点検チェックリスト</h1>
+ <div class="nav" id="nav"></div>
+</header>
+<main id="main"></main>
+<footer id="foot"></footer>
+<script>
+"use strict";
+const APP={name:"日常点検チェックリスト",ver:"1.0.0"};
+const KEY="nichijoTenken_v1";
+const DEF={title:"日常点検チェックリスト",nightEnd:0,lists:[
+ {id:"L1",name:"始業点検",items:["通路に物がはみ出していない","消火器の前に物を置いていない","運搬具のタイヤ・ブレーキに異常がない","作業場の照明がすべて点いている","前日の申し送りを確認した"]},
+ {id:"L2",name:"終業点検",items:["空箱を所定の置き場に戻した","運搬具を所定の位置に戻し充電した","ゴミ・異物を片付けた","翌日の申し送りを書いた"]}],
+ names:["山田","佐藤","鈴木"]};
+let D=load();
+const UI={view:"run",list:null,editList:null,hMonth:""};
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const pad=n=>String(n).padStart(2,"0");
+const ymd=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+function workDay(){const d=new Date();if(d.getHours()<(D.cfg.nightEnd||0))d.setDate(d.getDate()-1);return ymd(d);}
+function hm(){const d=new Date();return pad(d.getHours())+":"+pad(d.getMinutes());}
+function load(){let o=null;try{o=JSON.parse(localStorage.getItem(KEY)||"null");}catch(e){}
+ if(!o||!o.cfg)o={cfg:JSON.parse(JSON.stringify(DEF)),recs:[],draft:{}};o.recs=o.recs||[];o.draft=o.draft||{};return o;}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(D));return true;}catch(e){alert("保存できませんでした。CSVを出力して古い記録を削除してください。");return false;}}
+function lists(){return D.cfg.lists;}
+function listOf(id){return lists().find(l=>l.id===id)||null;}
+function draftOf(l){const k=workDay()+"|"+l.id;let d=D.draft[k];
+ if(!d||d.sig!==l.items.join("\n")){d={sig:l.items.join("\n"),who:(d&&d.who)||"",res:l.items.map(()=>({j:"",memo:""}))};D.draft[k]=d;}
+ return d;}
+function doneOf(l){return D.recs.filter(r=>r.date===workDay()&&r.list===l.id);}
+function cleanDrafts(){const w=workDay();Object.keys(D.draft).forEach(k=>{if(k.split("|")[0]!==w)delete D.draft[k];});}
+
+/* ===== 表示 ===== */
+function render(){
+ document.title=D.cfg.title;$("title").textContent=D.cfg.title;
+ $("nav").innerHTML=[["run","点検する"],["hist","記録・CSV"],["edit","項目の設定"]].map(([v,l])=>'<button data-nav="'+v+'" class="'+(UI.view===v?"on":"")+'">'+l+'</button>').join("");
+ $("main").innerHTML={run:viewRun,hist:viewHist,edit:viewEdit}[UI.view]();
+ $("foot").textContent=APP.name+" Ver."+APP.ver+"　データはこの端末のブラウザ内だけに保存されます";
+}
+function viewRun(){
+ if(!lists().length)return '<p>点検表がありません。「項目の設定」で作ってください。</p>';
+ if(!listOf(UI.list))UI.list=lists()[0].id;
+ const l=listOf(UI.list),d=draftOf(l),dn=doneOf(l);
+ let h='<h2>点検表を選ぶ　<span class="sub">勤務日 '+workDay().slice(5).replace("-","/")+'</span></h2><div class="pick">'+
+  lists().map(x=>'<button data-list="'+x.id+'" class="'+(x.id===l.id?"on":"")+'">'+esc(x.name)+(doneOf(x).length?'<br><span style="font-size:15px">OK　本日済</span>':'')+'</button>').join("")+'</div>';
+ if(dn.length)h+='<div class="done"><div class="t">OK　本日の'+esc(l.name)+'は完了しています</div>'+dn.map(r=>'<div>'+esc(r.time)+'　'+esc(r.who)+'　NG '+r.ng+'件</div>').join("")+'<div class="sub">もう一度行う場合は、そのまま下から入力できます。</div></div>';
+ h+='<h2>点検者</h2><div class="pick">'+D.cfg.names.map(n=>'<button data-who="'+esc(n)+'" class="'+(d.who===n?"on":"")+'">'+esc(n)+'</button>').join("")+'</div>';
+ if(!D.cfg.names.length)h+='<input type="text" id="whoIn" value="'+esc(d.who)+'" placeholder="点検者名">';
+ h+='<h2>'+esc(l.name)+'（'+l.items.length+'項目）</h2>';
+ l.items.forEach((t,i)=>{const r=d.res[i];
+  h+='<div class="item '+(r.j==="OK"?"isOK":r.j==="NG"?"isNG":"")+'" id="it'+i+'"><div class="itop"><div><span class="ino">'+(i+1)+'</span><span class="itx">'+esc(t)+'</span></div>'+
+   '<div class="jb"><button class="jOK '+(r.j==="OK"?"on":"")+'" data-j="OK" data-i="'+i+'">〇 OK</button><button class="jNG '+(r.j==="NG"?"on":"")+'" data-j="NG" data-i="'+i+'">✕ NG</button></div></div>'+
+   (r.j==="NG"?'<div class="note"><div class="ng">NGの内容・処置（必須）</div><textarea data-memo="'+i+'" placeholder="例：右前輪のブレーキが効かない。使用禁止の札を掛け、保全に連絡">'+esc(r.memo)+'</textarea></div>':'')+'</div>';
+ });
+ const c=count(l,d);
+ h+='<div class="prog">判定済み <b>'+(c.ok+c.ng)+'</b>／'+l.items.length+'項目（OK '+c.ok+'・<span class="'+(c.ng?"ng":"")+'">NG '+c.ng+'</span>）</div>'+
+  '<div class="err" id="runErr"></div><button class="big" id="btnDone">点検を完了して記録する</button>';
+ return h;
+}
+function count(l,d){let ok=0,ng=0;d.res.forEach(r=>{if(r.j==="OK")ok++;else if(r.j==="NG")ng++;});return {ok,ng};}
+function viewHist(){
+ if(!UI.hMonth)UI.hMonth=workDay().slice(0,7);
+ const rs=D.recs.filter(r=>r.date.indexOf(UI.hMonth)===0).sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time));
+ const p=UI.hMonth.split("-").map(Number),last=new Date(p[0],p[1],0).getDate();
+ let h='<h2>月を選ぶ</h2><div class="row"><input type="month" id="hMonth" value="'+UI.hMonth+'"><button class="btn pri" id="btnCsv">この月をCSV出力</button><button class="btn" id="btnPrint">印刷</button></div>';
+ h+='<h2>日別の実施状況</h2><div style="overflow-x:auto"><table><tr><th>点検表</th>';
+ for(let i=1;i<=last;i++)h+='<th style="padding:4px;text-align:center">'+i+'</th>';
+ h+='</tr>'+lists().map(l=>'<tr><td style="white-space:nowrap">'+esc(l.name)+'</td>'+Array.from({length:last},(_,i)=>{const ds=UI.hMonth+"-"+pad(i+1);const x=rs.filter(r=>r.date===ds&&r.list===l.id);
+  return '<td style="padding:4px;text-align:center">'+(x.length?(x.some(r=>r.ng)?'<span class="ng">NG</span>':'<span class="ok">OK</span>'):'')+'</td>';}).join("")+'</tr>').join("")+'</table></div>';
+ h+='<p class="sub">OK：点検済み（NGなし）　NG：NG項目あり　空欄：未実施</p>';
+ h+='<h2>記録（'+rs.length+'件）</h2>'+(rs.length?'<table><tr><th>日付</th><th>時刻</th><th>点検表</th><th>点検者</th><th>結果</th><th>NGの内容</th></tr>'+
+  rs.map(r=>'<tr><td>'+r.date.slice(5).replace("-","/")+'</td><td>'+esc(r.time)+'</td><td>'+esc(r.listName)+'</td><td>'+esc(r.who)+'</td><td>'+(r.ng?'<span class="ng">NG '+r.ng+'件</span>':'<span class="ok">OK</span>')+'</td><td>'+
+   r.res.filter(x=>x.j==="NG").map(x=>esc(x.t)+"："+esc(x.memo)).join("<br>")+'</td></tr>').join("")+'</table>':'<p class="sub">この月の記録はありません。</p>');
+ h+='<div class="noprint"><h2>古い記録の削除</h2><p class="sub">端末の保存容量には上限があります。CSVで保存してから削除してください。</p><button class="btn dng" id="btnDelOld">この月より前の記録を削除</button></div>';
+ return h;
+}
+function viewEdit(){
+ if(!listOf(UI.editList))UI.editList=lists().length?lists()[0].id:null;
+ const l=listOf(UI.editList);
+ let h='<h2>基本設定</h2><div class="row"><span>画面のタイトル</span><input type="text" id="cfTitle" value="'+esc(D.cfg.title)+'" style="flex:1"></div>'+
+  '<div class="row" style="margin-top:8px"><span>夜勤の終わる時刻（この時刻までは前日の点検として扱う。夜勤なしは0）</span><select id="cfNight">'+Array.from({length:9},(_,i)=>'<option value="'+i+'"'+((D.cfg.nightEnd||0)===i?" selected":"")+'>'+i+'時</option>').join("")+'</select></div>';
+ h+='<h2>点検者（1行に1人）</h2><textarea id="cfNames" style="width:100%;height:120px">'+esc(D.cfg.names.join("\n"))+'</textarea>';
+ h+='<h2>点検表</h2><div class="pick">'+lists().map(x=>'<button data-elist="'+x.id+'" class="'+(l&&x.id===l.id?"on":"")+'">'+esc(x.name)+'</button>').join("")+'<button data-newlist="1">＋ 点検表を追加</button></div>';
+ if(l){
+  h+='<h2>「'+esc(l.name)+'」の編集</h2><div class="row"><span>点検表の名前</span><input type="text" id="lName" value="'+esc(l.name)+'" style="flex:1"></div>'+
+   '<p class="sub">項目は1行に1つ。並べ替えは「上へ」「下へ」。</p><div id="edItems">'+
+   l.items.map((t,i)=>'<div class="ed"><input type="text" data-ei="'+i+'" value="'+esc(t)+'"><button data-up="'+i+'">上へ</button><button data-dn="'+i+'">下へ</button><button data-del="'+i+'">削除</button></div>').join("")+
+   '</div><div class="row"><button class="btn" id="btnAddItem">＋ 項目を追加</button><button class="btn dng" id="btnDelList">この点検表を削除</button></div>';
+ }
+ h+='<div class="msg" id="edMsg"></div><button class="big" id="btnSaveCfg">設定を保存する</button>';
+ h+='<h2>バックアップ</h2><p class="sub">設定と記録を1つのファイルに保存・復元できます。端末の入れ替えや、同じ点検表を他の端末に配るときに使います。</p>'+
+  '<div class="row"><button class="btn" id="btnBak">バックアップを保存</button><button class="btn" id="btnRes">ファイルから復元</button><button class="btn" id="btnCfgOnly">設定だけ読み込む</button><input type="file" id="inBak" accept=".json" hidden></div>';
+ return h;
+}
+
+/* ===== 操作 ===== */
+document.addEventListener("click",e=>{
+ const b=e.target.closest("button");if(!b)return;
+ if(b.dataset.nav){commitEdit(false);UI.view=b.dataset.nav;render();scrollTo(0,0);return;}
+ if(UI.view==="run")return clickRun(b);
+ if(UI.view==="hist")return clickHist(b);
+ if(UI.view==="edit")return clickEdit(b);
+});
+document.addEventListener("input",e=>{
+ const t=e.target;
+ if(t.dataset.memo!==undefined){const l=listOf(UI.list),d=draftOf(l);d.res[+t.dataset.memo].memo=t.value;save();return;}
+ if(t.id==="whoIn"){const d=draftOf(listOf(UI.list));d.who=t.value.trim();save();return;}
+ if(t.id==="hMonth"){UI.hMonth=t.value;render();}
+});
+function clickRun(b){
+ const l=listOf(UI.list),d=l?draftOf(l):null;
+ if(b.dataset.list){UI.list=b.dataset.list;render();return;}
+ if(b.dataset.who!==undefined){d.who=b.dataset.who;save();render();return;}
+ if(b.dataset.j){const i=+b.dataset.i;d.res[i].j=b.dataset.j;save();render();
+  if(b.dataset.j==="OK"){const nx=d.res.findIndex(r=>!r.j);const el=$(nx>=0?"it"+nx:"btnDone");if(el)el.scrollIntoView({behavior:"smooth",block:"center"});}
+  else{const ta=document.querySelector('[data-memo="'+i+'"]');if(ta)ta.focus();}
+  return;}
+ if(b.id==="btnDone"){
+  const miss=[];if(!d.who)miss.push("点検者");
+  const un=d.res.map((r,i)=>r.j?null:i+1).filter(Boolean);if(un.length)miss.push("未判定（No."+un.join("・")+"）");
+  const nm=d.res.map((r,i)=>r.j==="NG"&&r.memo.trim().length<2?i+1:null).filter(Boolean);if(nm.length)miss.push("NGの内容（No."+nm.join("・")+"）");
+  if(miss.length){$("runErr").textContent="未入力："+miss.join("、");return;}
+  const c=count(l,d);
+  D.recs.push({id:"R"+Date.now(),date:workDay(),time:hm(),list:l.id,listName:l.name,who:d.who,ng:c.ng,
+   res:l.items.map((t,i)=>({t:t,j:d.res[i].j,memo:d.res[i].j==="NG"?d.res[i].memo.trim():""}))});
+  delete D.draft[workDay()+"|"+l.id];cleanDrafts();
+  if(save()){render();scrollTo(0,0);}
+ }
+}
+function csvq(v){v=v==null?"":String(v);return /[",\r\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}
+function clickHist(b){
+ if(b.id==="btnCsv"){
+  const rs=D.recs.filter(r=>r.date.indexOf(UI.hMonth)===0);
+  if(!rs.length){alert("この月の記録はありません。");return;}
+  const rows=[["日付","時刻","点検表","点検者","No","点検項目","判定","NGの内容・処置"]];
+  rs.forEach(r=>r.res.forEach((x,i)=>rows.push([r.date,r.time,r.listName,r.who,i+1,x.t,x.j,x.memo])));
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["\uFEFF"+rows.map(r=>r.map(csvq).join(",")).join("\r\n")],{type:"text/csv;charset=utf-8"}));
+  a.download="点検記録_"+UI.hMonth+".csv";document.body.appendChild(a);a.click();a.remove();return;}
+ if(b.id==="btnPrint"){window.print();return;}
+ if(b.id==="btnDelOld"){const n=D.recs.filter(r=>r.date<UI.hMonth+"-01").length;
+  if(!n){alert("削除する記録はありません。");return;}
+  if(!confirm(UI.hMonth.replace("-","年")+"月より前の記録 "+n+" 件を削除します。CSVは保存しましたか？"))return;
+  D.recs=D.recs.filter(r=>r.date>=UI.hMonth+"-01");save();render();}
+}
+function commitEdit(showMsg){
+ if(UI.view!=="edit"||!$("cfTitle"))return true;
+ D.cfg.title=$("cfTitle").value.trim()||DEF.title;
+ D.cfg.nightEnd=+$("cfNight").value||0;
+ D.cfg.names=[...new Set($("cfNames").value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean))];
+ const l=listOf(UI.editList);
+ if(l){l.name=$("lName").value.trim()||l.name;
+  l.items=[...document.querySelectorAll("[data-ei]")].map(x=>x.value.trim()).filter(Boolean);}
+ const ok=save();if(showMsg&&ok){$("edMsg").innerHTML='<span class="ok">OK　保存しました</span>';}
+ return ok;
+}
+function clickEdit(b){
+ const l=listOf(UI.editList);
+ if(b.id==="btnSaveCfg"){commitEdit(false);render();$("edMsg").innerHTML='<span class="ok">OK　保存しました</span>';return;}
+ if(b.dataset.elist){commitEdit(false);UI.editList=b.dataset.elist;render();return;}
+ if(b.dataset.newlist){commitEdit(false);const id="L"+Date.now();lists().push({id:id,name:"新しい点検表",items:["点検項目1"]});UI.editList=id;save();render();return;}
+ if(b.id==="btnAddItem"){commitEdit(false);l.items.push("");save();render();const ins=document.querySelectorAll("[data-ei]");ins[ins.length-1].focus();return;}
+ if(b.dataset.up!==undefined||b.dataset.dn!==undefined){commitEdit(false);const i=+(b.dataset.up!==undefined?b.dataset.up:b.dataset.dn),j=b.dataset.up!==undefined?i-1:i+1;
+  if(j<0||j>=l.items.length)return;[l.items[i],l.items[j]]=[l.items[j],l.items[i]];save();render();return;}
+ if(b.dataset.del!==undefined){commitEdit(false);l.items.splice(+b.dataset.del,1);save();render();return;}
+ if(b.id==="btnDelList"){if(lists().length<=1){alert("点検表が1つだけのため削除できません。");return;}
+  if(!confirm("「"+l.name+"」を削除します。記録は残ります。"))return;
+  D.cfg.lists=lists().filter(x=>x.id!==l.id);UI.editList=null;save();render();return;}
+ if(b.id==="btnBak"){commitEdit(false);const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([JSON.stringify({app:APP.name,ver:APP.ver,saved:new Date().toISOString(),data:D})],{type:"application/json"}));
+  a.download="点検_バックアップ_"+workDay()+".json";document.body.appendChild(a);a.click();a.remove();return;}
+ if(b.id==="btnRes"||b.id==="btnCfgOnly"){UI.restoreMode=b.id;$("inBak").value="";$("inBak").click();}
+}
+document.addEventListener("change",e=>{
+ if(e.target.id!=="inBak")return;const f=e.target.files[0];if(!f)return;
+ const r=new FileReader();r.onload=()=>{
+  try{const o=JSON.parse(r.result);if(o.app!==APP.name||!o.data||!o.data.cfg)throw 0;
+   if(UI.restoreMode==="btnCfgOnly"){if(!confirm("設定（点検表・点検者）を読み込みます。記録はそのまま残ります。"))return;D.cfg=o.data.cfg;}
+   else{if(!confirm("今の設定と記録を消して、ファイルの内容に置き換えます。よろしいですか？"))return;D=o.data;D.recs=D.recs||[];D.draft=D.draft||{};}
+   save();UI.editList=null;UI.list=null;render();$("edMsg").innerHTML='<span class="ok">OK　読み込みました</span>';
+  }catch(err){alert("このアプリのバックアップファイルではありません。");}
+ };r.readAsText(f);
+});
+cleanDrafts();save();render();
+</script>
+</body>
+</html>
