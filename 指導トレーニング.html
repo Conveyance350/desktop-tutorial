@@ -1,0 +1,1318 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>指導トレーニング</title>
+<script id="bakedData" type="application/json">null</script>
+<style>
+*{box-sizing:border-box;}
+[hidden]{display:none!important;}
+html{-webkit-text-size-adjust:100%;}
+body{margin:0;font-family:"Meiryo UI","メイリオ",Meiryo,"Hiragino Sans","Hiragino Kaku Gothic ProN",sans-serif;color:#333333;background:#ffffff;font-size:18px;line-height:1.7;}
+header{padding:12px 16px 8px;border-bottom:1px solid #7F7F7F;}
+header h1{font-size:24px;margin:0;}
+header .sub{margin:2px 0 0;font-size:15px;color:#7F7F7F;}
+nav{display:flex;position:sticky;top:0;z-index:10;background:#ffffff;border-bottom:1px solid #7F7F7F;}
+nav button{flex:1 1 0;min-width:0;min-height:56px;font-family:inherit;font-size:18px;color:#333333;background:#ffffff;border:none;border-bottom:4px solid transparent;border-radius:0;cursor:pointer;padding:4px 2px;white-space:nowrap;}
+nav button.active{color:#2F5597;font-weight:bold;border-bottom-color:#2F5597;}
+main{max-width:860px;margin:0 auto;padding:8px 16px 40px;}
+main section{display:none;}
+main section.active{display:block;}
+h2{font-size:21px;margin:24px 0 8px;padding-bottom:4px;border-bottom:2px solid #2F5597;}
+h3{font-size:19px;margin:18px 0 6px;}
+p{margin:6px 0;}
+ul{padding-left:1.2em;margin:6px 0;}
+label,.label{display:block;font-weight:bold;margin:14px 0 4px;}
+input[type=text],input[type=date],select,textarea{display:block;width:100%;max-width:100%;min-width:0;font-family:inherit;font-size:18px;color:#333333;background:#ffffff;border:1px solid #7F7F7F;border-radius:0;padding:10px;}
+input[type=text],input[type=date],select{min-height:52px;}
+input[type=date]{-webkit-appearance:none;appearance:none;}
+textarea{resize:vertical;line-height:1.6;}
+.btn{display:block;width:100%;min-height:58px;margin:12px 0;padding:8px 12px;font-family:inherit;font-size:19px;font-weight:bold;color:#ffffff;background:#2F5597;border:2px solid #2F5597;border-radius:0;cursor:pointer;}
+.btn.sub{color:#2F5597;background:#ffffff;}
+.btn.danger{color:#C00000;background:#ffffff;border-color:#C00000;}
+.btn.small{display:inline-block;width:auto;min-height:48px;font-size:16px;margin:6px 0;}
+.btn:active,.choice:active,.yn:active,.selfBtn:active{opacity:.7;}
+.note{color:#7F7F7F;font-size:16px;}
+.msg{min-height:1.7em;font-weight:bold;}
+.warn{color:#C00000;font-weight:bold;}
+.steps{padding-left:0;list-style:none;margin:0;}
+.steps li{padding:10px 0;border-bottom:1px solid #7F7F7F;}
+.steps b{font-size:22px;margin-right:8px;}
+.steps .hint{display:block;color:#7F7F7F;font-size:16px;}
+.situation{border-left:4px solid #2F5597;padding:6px 12px;font-size:19px;}
+.choice{display:block;width:100%;text-align:left;font-family:inherit;font-size:18px;line-height:1.6;color:#333333;background:#ffffff;border:2px solid #7F7F7F;border-radius:0;padding:12px;margin:10px 0;cursor:pointer;min-height:58px;}
+.choice:disabled{cursor:default;color:#333333;opacity:1;}
+.choiceLabel{font-weight:bold;margin-right:8px;color:#2F5597;}
+.choice.right{border-color:#548235;border-width:3px;}
+.choice.wrong{border-color:#C00000;border-width:3px;}
+.tag{display:block;font-weight:bold;margin-top:6px;}
+.tag.ok{color:#548235;}
+.tag.ng{color:#C00000;}
+.resultHead{font-size:40px;font-weight:bold;margin:12px 0 0;line-height:1.3;}
+.sc{display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid #7F7F7F;padding:6px 0;}
+.sc .ok{color:#548235;font-weight:bold;white-space:nowrap;}
+.sc .ng{color:#C00000;font-weight:bold;white-space:nowrap;}
+.model{border-left:4px solid #548235;padding:6px 12px;}
+.mine{border-left:4px solid #7F7F7F;padding:6px 12px;white-space:pre-wrap;word-break:break-all;}
+.selfBtn{display:block;width:100%;min-height:52px;margin:6px 0;font-family:inherit;font-size:18px;text-align:left;padding:8px 12px;background:#ffffff;color:#333333;border:2px solid #7F7F7F;border-radius:0;cursor:pointer;}
+.selfBtn.on{border-color:#548235;color:#548235;font-weight:bold;}
+.big{font-size:40px;font-weight:bold;color:#2F5597;line-height:1.2;}
+.stats{display:flex;flex-wrap:wrap;gap:8px 28px;margin:8px 0;}
+.stat .cap{display:block;font-size:15px;color:#7F7F7F;}
+.ba{display:flex;align-items:stretch;gap:8px;}
+.baBox{flex:1 1 0;min-width:0;border:1px solid #7F7F7F;padding:10px 12px;}
+.baHead{font-weight:bold;font-size:20px;margin:0 0 6px;}
+.baHead.ng{color:#C00000;}
+.baArrow{display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:bold;color:#2F5597;}
+.baArrow .narrow{display:none;}
+.stepTag{color:#2F5597;font-weight:bold;font-size:15px;margin-right:6px;white-space:nowrap;}
+.formGrid{display:grid;grid-template-columns:1fr 1fr;gap:0 16px;}
+.formGrid>div{min-width:0;}
+.stepRow{border-bottom:1px solid #7F7F7F;padding:10px 0;}
+.stepLab b{font-size:20px;margin-right:8px;}
+.stepLab .hint{font-size:15px;color:#7F7F7F;}
+.ynGroup{display:flex;gap:8px;margin-top:6px;}
+.yn{flex:1 1 0;min-width:0;min-height:56px;font-family:inherit;font-size:18px;font-weight:bold;background:#ffffff;color:#333333;border:2px solid #7F7F7F;border-radius:0;cursor:pointer;}
+.yn.selOk{background:#548235;border-color:#548235;color:#ffffff;}
+.yn.selNg{background:#C00000;border-color:#C00000;color:#ffffff;}
+.bar{display:grid;grid-template-columns:7em 1fr 4.5em;align-items:center;gap:8px;margin:8px 0;}
+.barTrack{height:24px;border:1px solid #7F7F7F;}
+.barFill{height:100%;background:#2F5597;}
+.barVal{font-weight:bold;text-align:right;line-height:1.3;}
+.weak{display:block;color:#C00000;font-size:14px;}
+.recItem{border-bottom:1px solid #7F7F7F;padding:10px 0;}
+.recHead{display:flex;justify-content:space-between;align-items:center;gap:8px;}
+.recInfo{min-width:0;word-break:break-all;}
+.recScore{font-size:36px;font-weight:bold;color:#2F5597;white-space:nowrap;}
+.recMemo{word-break:break-all;white-space:pre-wrap;}
+.marks span{margin-right:10px;font-weight:bold;white-space:nowrap;display:inline-block;}
+.marks .ok{color:#548235;}
+.marks .ng{color:#C00000;}
+.optBox{border:1px solid #7F7F7F;padding:8px 12px 12px;margin:16px 0;}
+.optHead{font-weight:bold;font-size:20px;color:#2F5597;margin:0;}
+.tgGroup{display:flex;flex-wrap:wrap;gap:6px;}
+.tg{flex:1 1 30%;min-width:0;min-height:48px;font-family:inherit;font-size:16px;background:#ffffff;color:#333333;border:2px solid #7F7F7F;border-radius:0;cursor:pointer;padding:4px;}
+.tg.on{border-color:#2F5597;color:#2F5597;font-weight:bold;}
+.modelBtn{display:block;width:100%;margin-top:10px;}
+@media (max-width:600px){
+  .formGrid{grid-template-columns:1fr;}
+  .ba{flex-direction:column;}
+  .baArrow .wide{display:none;}
+  .baArrow .narrow{display:inline;}
+  nav button{font-size:17px;}
+  .bar{grid-template-columns:6.2em 1fr 4em;}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>指導トレーニング</h1>
+  <p class="sub">「気をつけて」で終わらせない指導を身につける（班長向け）</p>
+  <p id="verNote" class="sub"></p>
+</header>
+<nav>
+  <button type="button" data-tab="home" class="active">基本</button>
+  <button type="button" data-tab="drill">ドリル</button>
+  <button type="button" data-tab="rp">ロープレ</button>
+  <button type="button" data-tab="rec">記録</button>
+  <button type="button" data-tab="edit">編集</button>
+</nav>
+<main>
+
+<section id="tab-home" class="active">
+  <h2>指導の5ステップ</h2>
+  <ol id="homeSteps" class="steps"></ol>
+
+  <h2>Before → After</h2>
+  <div class="ba">
+    <div class="baBox">
+      <p class="baHead ng">Before（NG）</p>
+      <p id="exBefore"></p>
+      <p id="exNote" class="note"></p>
+    </div>
+    <div class="baArrow"><span class="wide">→</span><span class="narrow">↓</span></div>
+    <div class="baBox">
+      <p class="baHead">After</p>
+      <div id="exAfterView"></div>
+    </div>
+  </div>
+
+  <h2>教えるときのコツ</h2>
+  <ul>
+    <li>「急所（ここを外すと失敗する点）」と「理由」をセットで言う</li>
+    <li>一度に教えるのは3つまで</li>
+    <li>「わかった？」は聞かない。やらせて確かめる</li>
+    <li>できたら、その場で「できてる」と言う</li>
+  </ul>
+
+  <h2>使い方</h2>
+  <ul>
+    <li>ドリル：1日1問（5分）</li>
+    <li>ロープレ：週1回、会社の生成AIで練習</li>
+    <li>記録：実際に指導したら5ステップを○×で記録</li>
+    <li>課長：月1回、指導場面を観察して記録者「課長」で記録</li>
+  </ul>
+  <button type="button" class="btn" id="goDrill">ドリルを始める</button>
+</section>
+
+<section id="tab-drill">
+  <h2>場面ドリル</h2>
+  <div id="drillStats" class="stats"></div>
+  <label for="drillPick">場面を選ぶ</label>
+  <select id="drillPick"></select>
+  <button type="button" class="btn" id="drillStart">出題する</button>
+
+  <div id="drillArea" hidden>
+    <h3 id="drillTitle"></h3>
+    <p id="drillSituation" class="situation"></p>
+    <label for="drillFree">1. 自分ならどう言う？（書かなくてもよい）</label>
+    <textarea id="drillFree" rows="3" maxlength="400" placeholder="例：「今、〇〇していたよ。……」"></textarea>
+    <p id="drillWarn" class="warn"></p>
+    <p class="label">2. いちばん良い声かけを選ぶ</p>
+    <div id="drillChoices"></div>
+    <div id="drillResult" hidden></div>
+    <button type="button" class="btn" id="drillNext" hidden>次の問題（ランダム）</button>
+  </div>
+  <button type="button" class="btn danger" id="drillReset">ドリル成績をリセット</button>
+  <p id="drillMsg" class="msg"></p>
+</section>
+
+<section id="tab-rp">
+  <h2>ロールプレイ（会社の生成AI）</h2>
+  <p>AIが部下役になります。依頼文を作り、会社の生成AIに貼り付けてください。指導が終わったら「終了」と送ると、5ステップで採点されます。</p>
+  <label for="rpScene">場面</label>
+  <select id="rpScene"></select>
+  <div id="rpCustomWrap" hidden>
+    <label for="rpCustom">場面を書く（実際にあったことでよい）</label>
+    <textarea id="rpCustom" rows="4" maxlength="600" placeholder="例：部下が空箱を通路に置いたままにしていた。"></textarea>
+  </div>
+  <label for="rpType">部下のタイプ</label>
+  <select id="rpType"></select>
+  <p id="rpTypeDesc" class="note"></p>
+  <label for="rpLevel">難しさ</label>
+  <select id="rpLevel"></select>
+  <button type="button" class="btn" id="rpMake">依頼文を作る</button>
+  <label for="rpOut">依頼文</label>
+  <textarea id="rpOut" rows="10" readonly></textarea>
+  <button type="button" class="btn sub" id="rpCopy">コピー</button>
+  <p id="rpMsg" class="msg"></p>
+</section>
+
+<section id="tab-rec">
+  <h2>指導の記録</h2>
+  <p class="note">実際に指導したら、5ステップができたかを記録します。課長が観察した場合は、記録者を「課長」にします。</p>
+  <div class="formGrid">
+    <div><label for="recDate">日付</label><input type="date" id="recDate"></div>
+    <div><label for="recWho">記録者</label>
+      <select id="recWho"><option value="本人">本人（班長）</option><option value="課長">課長（観察）</option></select></div>
+    <div><label for="recLeader">班長名</label><input type="text" id="recLeader" maxlength="20" placeholder="例：山田"></div>
+    <div><label for="recPartner">相手（イニシャル可）</label><input type="text" id="recPartner" maxlength="20" placeholder="例：Aさん"></div>
+  </div>
+  <label for="recMemo">場面メモ</label>
+  <textarea id="recMemo" rows="2" maxlength="200" placeholder="例：誤品供給の注意"></textarea>
+  <div id="recSteps"></div>
+  <button type="button" class="btn" id="recSave">保存する</button>
+  <p id="recMsg" class="msg"></p>
+
+  <h2>集計</h2>
+  <label for="recFilter">班長で絞り込む</label>
+  <select id="recFilter"></select>
+  <div id="recSummary"></div>
+
+  <h2>記録一覧</h2>
+  <div id="recList"></div>
+  <button type="button" class="btn sub" id="recCsv">CSVで出力</button>
+  <button type="button" class="btn danger" id="recClear">記録を全て削除</button>
+  <p id="recMsg2" class="msg"></p>
+</section>
+
+<section id="tab-edit">
+  <h2>場面の編集</h2>
+  <p class="note">ドリルとロープレで使う場面を直せます。変更はこの端末に保存されます。他の端末へは、下の「書き出す」「読み込む」で移します。</p>
+  <label for="edPick">編集する場面</label>
+  <select id="edPick"></select>
+  <label for="edTitle">タイトル</label>
+  <input type="text" id="edTitle" maxlength="40">
+  <label for="edSituation">場面</label>
+  <textarea id="edSituation" rows="3" maxlength="300"></textarea>
+  <label for="edPoint">ポイント</label>
+  <textarea id="edPoint" rows="2" maxlength="300"></textarea>
+  <div id="edOptions"></div>
+  <button type="button" class="btn" id="edSave">この場面を保存</button>
+  <button type="button" class="btn danger" id="edDelete">この場面を削除</button>
+  <p id="edMsg" class="msg"></p>
+
+  <h2>基本画面の例（Before → After）</h2>
+  <label for="exBeforeIn">Before の声かけ</label>
+  <input type="text" id="exBeforeIn" maxlength="80">
+  <label for="exNoteIn">Before の説明</label>
+  <input type="text" id="exNoteIn" maxlength="80">
+  <div id="exAfterInputs"></div>
+  <button type="button" class="btn" id="exSave">例を保存</button>
+  <p id="exMsg" class="msg"></p>
+
+  <h2>班長の端末へ配る</h2>
+  <p class="note">編集した場面と例が入ったHTMLを保存します。このファイルを班長に配れば、開くだけで反映されます（班長の記録は消えません）。</p>
+  <button type="button" class="btn" id="edDist">配布用HTMLを保存</button>
+
+  <h2>その他</h2>
+  <button type="button" class="btn sub" id="edExport">場面データを書き出す</button>
+  <button type="button" class="btn sub" id="edImportBtn">場面データを読み込む</button>
+  <input type="file" id="edImport" accept=".json,application/json" hidden>
+  <button type="button" class="btn danger" id="edReset">全て初期の内容に戻す</button>
+  <p id="edMsg2" class="msg"></p>
+</section>
+
+</main>
+
+<script>
+(function(){
+'use strict';
+
+/* 配布用HTMLの元にするため、画面を書き換える前のHTMLを控えておく */
+var ORIGINAL_HTML = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+
+var APP = '指導トレーニング_';
+var KEY_REC = APP + 'records';
+var KEY_DRILL = APP + 'drill';
+var KEY_LEADER = APP + 'leader';
+
+var STEPS = [
+  {n:'①', name:'伝える', hint:'注意：いつ・どこで・何を見たか／教える：何を教えるか'},
+  {n:'②', name:'聞く', hint:'注意：なぜそうなったか／教える：どこまで知っているか'},
+  {n:'③', name:'見せる', hint:'正しいやり方・急所と、その理由'},
+  {n:'④', name:'やらせる', hint:'その場で1回やってもらう'},
+  {n:'⑤', name:'確かめる', hint:'いつ見に行くかを伝え、実際に見る'}
+];
+
+var VAGUE = ['気をつけて','気を付けて','ちゃんと','しっかり','きちんと','注意して','確実に','よく見て'];
+
+var DEFAULT_SCENES = [
+{id:'s1', title:'指差呼称をしていない',
+ situation:'部品供給の最中、部下のAさんが棚番の指差呼称をせずに部品を置いていた。',
+ point:'「気をつけて」の代わりに「今ここで1回やってみて」。その場でやらせると、本人に残る。',
+ options:[
+  {ok:true, s:[1,2,3,4,5], t:'「今、3番棚で指差呼称がなかったよ。何かあった？……指差しは、棚番と品番が合っているかを声と指で確かめるためにやっているんだ。こうやるよ。じゃあ今ここで1回やってみて。午後の供給でもう一回見に来るね」', c:'5ステップが全て入っている。理由を聞いてから、やって見せ、その場でやらせ、見に行く時間まで伝えている。'},
+  {s:[], t:'「指差呼称、気をつけてね」', c:'何をどう変えるかが伝わらない。明日も同じことが起きる。'},
+  {s:[], t:'「何回言ったらわかるの。ちゃんとやって」', c:'人を責めているだけ。部下は見えないところで省くようになる。'},
+  {s:[3], t:'「指差呼称はルールで決まっているから必ずやって。やらないと誤品につながるからね。安全と品質のためだよ、わかった？」', c:'理由は伝えているが、本人の事情を聞かず、できるかも確かめていない。「わかった？」には「はい」しか返ってこない。'}
+ ]},
+{id:'s2', title:'かんばんを受け箱に入れていない',
+ situation:'部品を取り出した後、部下のBさんがかんばんを受け箱に入れず、ポケットに入れたまま次の作業に移っていた。',
+ point:'「なぜポケットに入れたか」を聞くと、本当の原因（急いでいた、受け箱が遠い等）が見える。',
+ options:[
+  {ok:true, s:[1,2,3,4,5], t:'「Bさん、さっきのかんばん、ポケットに入ったままだよ。どうしてポケットに入れたの？……かんばんが戻らないと次の部品が来なくて欠品になる。取ったらその場で受け箱に入れる。今のを入れてみて。今日の終わりにもう一回一緒に見よう」', c:'5ステップが全て入っている。欠品という理由と、「その場で入れる」という具体的なやり方がセットになっている。'},
+  {s:[], t:'「かんばん、忘れないように気をつけて」', c:'「忘れないように」では、何を変えればいいかわからない。'},
+  {s:[1,2], t:'「ポケットに入れたままだったね。どうしたの？……そうか、急いでたんだね。次から気をつけてね」', c:'事実と理由は聞けたが、最後が「気をつけて」で終わっている。やり方が決まっていない。'},
+  {s:[], t:'「かんばんは取ったら受け箱。基本でしょ。ベテランなんだから」', c:'「ベテランなんだから」は人格への指摘。理由も伝わらず、反発を生む。'}
+ ]},
+{id:'s3', title:'誤品供給（2回目）',
+ situation:'部下のCさんが、品番の末尾だけ違う部品を間違えてラインに供給した。先月に続いて2回目。',
+ point:'同じミスの2回目は「どこで間違えたか」を一緒に現場で見る。急所（末尾2桁を指で押さえる）を決める。',
+ options:[
+  {ok:true, s:[1,2,3,4,5], t:'「今朝、ラインに末尾が違う品番を供給していたよ。先月と同じ間違いだね。どこで間違えたか一緒に見に行こう。……照合のとき、末尾の2桁を指で押さえて読むのが急所。似た品番が多いからね。この箱で一度やってみて。明日の朝の1便も一緒に見るよ」', c:'5ステップが全て入っている。「よく見る」ではなく「末尾2桁を指で押さえる」と、やり方が具体的。'},
+  {s:[1], t:'「また？　2回目だよ。もっと集中して」', c:'事実は言えているが、「集中して」では何をすればいいかわからない。'},
+  {s:[], t:'「誤品が出ると、ラインが止まって大変なことになるんだよ。品番はよく見て、確認を確実にね。気をつけて」', c:'影響の説明は長いが、「よく見て」「確実に」はやり方ではない。'},
+  {s:[1,2], t:'「末尾が違う品番を供給していたね。何があった？……そうか、棚が隣同士で似てるんだね。棚の表示を変えるよう、私から上に相談しておくね」', c:'原因を聞いたのは良い。設備の対策も大事だが、本人の今日からのやり方を決めて確かめていない。'}
+ ]},
+{id:'s4', title:'フォークリフトの一時停止なし',
+ situation:'構内の交差点で、部下のDさんがフォークリフトで一時停止せずに通過した。',
+ point:'安全の指導も同じ5ステップ。罰だけでは正しいやり方は身につかない。',
+ options:[
+  {ok:true, s:[1,2,3,4,5], t:'「Dさん、さっき北側の交差点、止まらずに通過してたよ。何か急いでた？……交差点は死角から人や台車が出てくるから、停止線で一度完全に止まって左右を見る。今から一緒に交差点まで行って、1回やって見せて。午後の運搬でもう一度見るね」', c:'5ステップが全て入っている。現場に行ってやらせているので、確実に身につく。'},
+  {s:[], t:'「一時停止、ちゃんとしてね。事故になるよ」', c:'「ちゃんと」では止まり方が伝わらない。'},
+  {s:[1], t:'「止まらなかったのを見たよ。安全ルール違反だから、今日はフォークに乗らないで。明日から乗っていいよ」', c:'事実は伝えたが、罰だけでは正しいやり方が身につかない。'},
+  {s:[3], t:'「交差点は停止線で一度完全に止まって、左右を確認する。死角から人が出てくるからね。次から必ずね」', c:'やり方と理由は良い。ただ、何を見たか・本人の事情・その場での確認がない。'}
+ ]},
+{id:'s5', title:'新人に荷山の積み方を教える',
+ situation:'入社1週目の新人Eさんに、台車への荷山の積み方を教えることになった。',
+ point:'教えるときは「見せる→言いながらやらせる→後で確かめる」。手順書を渡すだけでは身につかない。',
+ options:[
+  {ok:true, s:[1,2,3,4,5], t:'「今日は台車への荷山の積み方を教えるね。前の職場で似た作業はやった？……じゃあまず私がやるから見てて。重い箱を下にするのは荷崩れ防止のため。高さはこの線まで、前が見えなくなるから。次は今の2つを言いながらやってみて。……できてる。昼にもう一回一緒に確認しよう」', c:'5ステップが全て入っている。急所を2つに絞り、理由をつけ、言いながらやらせている。'},
+  {s:[], t:'「見ればわかるから、まずやってみて。わからなかったら聞いて」', c:'新人は何がわからないかもわからない。聞けずに自己流になる。'},
+  {s:[], t:'「重い箱は下、高さはこの線まで。わかった？　じゃあよろしく」', c:'急所は言えているが理由がない。やらせて確かめていない。「わかった？」には「はい」としか返ってこない。'},
+  {s:[1], t:'「今日は荷山の積み方を覚えてもらうね。作業手順書を渡すから、今日中に読んでおいて。明日から一人でやってもらうね」', c:'何を教えるかは伝えたが、読むだけでは身につかない。やって見せる・やらせるがない。'}
+ ]},
+{id:'s6', title:'教えたのにできていない',
+ situation:'昨日教えたはずの空スキットの返却場所を、新人のFさんが間違えていた。',
+ point:'教えたのにできないときは、教え方を疑う。「どこがわかりにくかったか」を聞く。',
+ options:[
+  {ok:true, s:[1,2,3,4,5], t:'「Fさん、空スキットが3番置き場に置いてあったよ。昨日の説明でわかりにくかったところある？……返却は5番。番号が近くて間違えやすいから、床の表示の色で覚えるといいよ。私と一緒に一回運んでみよう。明日の朝、一人でやるところを見せてね」', c:'5ステップが全て入っている。間違えやすい理由に合わせて、覚え方（床の色）まで示している。'},
+  {s:[], t:'「昨日言ったよね？　ちゃんと聞いてた？」', c:'教え方の問題を本人のせいにしている。次から質問しにくくなる。'},
+  {s:[1], t:'「3番に置いてあったよ。返却は5番だから、気をつけてね」', c:'事実と正しい場所は伝えたが、なぜ間違えたかを聞いていない。また同じことが起きる。'},
+  {s:[3], t:'「もう一回最初から全部説明するね。まず空スキットは……（10分説明が続く）」', c:'丁寧だが、どこでつまずいたかを聞いていない。一方的な長い説明は残らない。'}
+ ]},
+{id:'s7', title:'ベテランの自己流',
+ situation:'経験15年のGさんが、標準作業の順番を入れ替えて作業していた（先にラベルを貼ってから照合）。',
+ point:'ベテランには、まず理由を聞いて受け止める。そのうえで「品質上の理由」で納得してもらう。',
+ options:[
+  {ok:true, s:[1,2,3,4,5], t:'「Gさん、さっきラベルを先に貼ってから照合してましたよね。何か理由があるんですか？……なるほど、その方が速いんですね。ただ、先に貼ると誤品のまま貼ってしまうので、照合が先なんです。一度、標準の順でやってもらえますか。明日もう一度見せてください。速さが気になるなら、来週一緒に手順を見直しましょう」', c:'5ステップが全て入っている。本人のやり方を否定から入らず、理由で納得させている。'},
+  {s:[], t:'「Gさんほどのベテランなら、わかってますよね。気をつけてください」', c:'遠慮して何も伝わっていない。'},
+  {s:[1], t:'「順番が違います。標準作業どおりにやってください。決まりなので」', c:'事実は伝えたが、理由がない。ベテランは納得しない。'},
+  {s:[1,2], t:'「ラベルを先に貼ってましたね。理由を教えてください。……わかりました。速いならそれでもいいですね」', c:'聞いたのは良いが、品質上の理由を伝えずに認めてしまっている。'}
+ ]},
+{id:'s8', title:'同じミス3回目',
+ situation:'Hさんが空箱を通路にはみ出して置いていた。今月3回目で、毎回「気をつけて」と言ってきた。',
+ point:'同じミスが続くのは、伝え方が同じだから。伝え方を変え、数日続けて確かめる。',
+ options:[
+  {ok:true, s:[1,2,3,4,5], t:'「Hさん、今朝また空箱が通路にはみ出していたよ。今月3回目だね。毎回『気をつけて』としか言っていなくて、私の伝え方も悪かった。どうしてはみ出すのか、一緒に置き場を見に行こう。……置き場がいっぱいなら、満杯になった時点で回収を呼ぶ。通路は台車とフォークが通るからね。今から1回、呼ぶところまでやってみよう。明日から3日間、朝一番に一緒に見るね」', c:'5ステップが全て入っている。自分の伝え方も振り返り、3日間続けて確かめる約束をしている。'},
+  {s:[1], t:'「3回目だよ。次やったら上に報告するからね」', c:'事実は伝えたが、脅しになっている。やり方は変わらない。'},
+  {s:[1], t:'「通路にはみ出しているね。気をつけて」', c:'これまでと同じ伝え方。4回目も起きる。'},
+  {s:[2], t:'「どうしてはみ出しちゃうの？……置き場が狭いのか。じゃあ置き場を広げる方法を考えておくね」', c:'原因を聞けたのは前進。ただ、本人が今日からどうするかが決まっていない。'}
+ ]},
+{id:'s9', title:'質問してこない新人',
+ situation:'新人のIさんが、作業の途中で手が止まっていたが、誰にも聞かずに立っていた。',
+ point:'新人は「聞いていいタイミング」がわからない。その場で教え、呼び方まで決めておく。',
+ options:[
+  {ok:true, s:[1,2,3,4,5], t:'「Iさん、手が止まっていたけど、どこで迷った？……かんばんの見方だね。この欄の番号が棚番。見るのはここだけでいいよ。じゃあ次の1枚、読んでみて。……そう。迷ったら手を挙げて呼んでいいからね。30分後にまた来るよ」', c:'5ステップが全て入っている。見る場所を1つに絞り、呼び方と次に来る時間まで決めている。'},
+  {s:[], t:'「わからなかったら聞いてって言ったでしょ」', c:'責めると、次も聞けなくなる。'},
+  {s:[1,2], t:'「手が止まってたね。どうしたの？……そうか、かんばんの見方ね。あとでまとめて教えるから、とりあえず隣の人の真似して」', c:'聞いたのは良いが、その場で教えていない。自己流のまま作業させている。'},
+  {s:[1], t:'「手が止まると後工程が遅れるから、止まらないように気をつけて」', c:'止まった理由を聞いていない。焦らせるだけ。'}
+ ]},
+{id:'s10', title:'遅れを取り戻すため確認を省いた',
+ situation:'供給が10分遅れていた日、Jさんが品番照合を省いて供給していた。',
+ point:'良かれと思ってやった省略は、まず気持ちを受け止める。そのうえで「遅れたときの正しい動き」を決める。',
+ options:[
+  {ok:true, s:[1,2,3,4,5], t:'「Jさん、さっき照合を省いて供給してたね。遅れを取り戻そうとしてくれた？……ありがとう。でも、遅れより誤品の方がラインを長く止める。遅れそうなときは、照合は省かずに私を呼んで。次の便は横で一緒に照合しよう。遅れの原因は今日の終わりに一緒に洗い出そう」', c:'5ステップが全て入っている。気持ちを受け止めたうえで、遅れたときの動き方を決めている。'},
+  {s:[], t:'「遅れていても照合はちゃんとやって。気をつけて」', c:'遅れたときにどうすればいいかが決まっていない。また省く。'},
+  {s:[1], t:'「照合を省いたでしょ。誤品が出たら誰が責任取るの」', c:'事実は伝えたが脅しになっている。遅れの相談もしづらくなる。'},
+  {s:[3], t:'「遅れているのはわかるけど、照合は大事。なぜ大事かというと、誤品が流れるとライン停止、手直し、お客様への迷惑……（説明が続く）」', c:'理由は伝わるが長い説教。本人の事情を聞かず、次にどうするかも決まっていない。'}
+ ]}
+];
+
+var TYPES = [
+  {id:'new', name:'素直な新人', desc:'入社3か月。素直だが、わからないことを自分から聞けない。返事は「はい」が多い。'},
+  {id:'veteran', name:'言い返すベテラン', desc:'経験15年。自分のやり方に自信があり「前からこうやってる」「これで問題は出ていない」と言い返す。理由に納得すれば従う。'},
+  {id:'quiet', name:'無口な中堅', desc:'経験5年。返事は「はい」「わかりました」ばかりで、本音は言わない。具体的に質問されれば少し答える。'},
+  {id:'busy', name:'余裕がない作業者', desc:'遅れを気にしていて「今それどころじゃない」「後でいいですか」と言いがち。'}
+];
+
+var LEVELS = [
+  {id:'easy', name:'やさしい', desc:'理由を聞かれたら、素直に本当の理由を答える。'},
+  {id:'normal', name:'ふつう', desc:'理由を聞かれたら答えるが、少し言い訳を混ぜる。'},
+  {id:'hard', name:'むずかしい', desc:'最初は「別に」「大丈夫です」とかわし、2回以上掘り下げて聞かれて初めて本当の理由を言う。納得できない説明には言い返す。'}
+];
+
+var DEFAULT_EXAMPLE = {
+  before: '「指差呼称、気をつけてね」',
+  note: '何をどう変えるかが伝わらない。明日も同じことが起きる。',
+  after: [
+    '「今、3番棚で指差呼称がなかったよ」',
+    '「何かあった？」',
+    '「指差しは棚番と品番の一致を確かめるため。こうやるよ」',
+    '「じゃあ今、1回やってみて」',
+    '「午後にもう一回見に来るね」'
+  ]
+};
+
+/* ---------- 共通 ---------- */
+function $(id){ return document.getElementById(id); }
+function el(tag, cls, text){
+  var e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined && text !== null) e.textContent = text;
+  return e;
+}
+function loadArr(key){
+  try {
+    var v = JSON.parse(localStorage.getItem(key) || '[]');
+    return Array.isArray(v) ? v : [];
+  } catch (e) { return []; }
+}
+function saveJson(key, arr){
+  try { localStorage.setItem(key, JSON.stringify(arr)); return true; }
+  catch (e) { return false; }
+}
+function loadStr(key){
+  try { return localStorage.getItem(key) || ''; } catch (e) { return ''; }
+}
+function saveStr(key, v){
+  try { localStorage.setItem(key, v); } catch (e) { /* 保存できなくても動作は続ける */ }
+}
+function pad2(n){ return (n < 10 ? '0' : '') + n; }
+function today(){
+  var d = new Date();
+  return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+}
+function shuffle(a){
+  var b = a.slice();
+  for (var i = b.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = b[i]; b[i] = b[j]; b[j] = t;
+  }
+  return b;
+}
+function msg(id, text, ng){
+  var m = $(id);
+  m.textContent = text;
+  m.style.color = ng ? '#C00000' : '#548235';
+}
+function findVague(text){
+  return VAGUE.filter(function(w){ return text.indexOf(w) >= 0; });
+}
+function pct(a, b){ return b > 0 ? Math.round(a / b * 100) : 0; }
+function loadJson(key){
+  try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch (e) { return null; }
+}
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+function str(v, max){ return String(v === undefined || v === null ? '' : v).trim().slice(0, max); }
+function download(text, type, name){
+  var blob = new Blob([text], {type: type});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); a.parentNode.removeChild(a); }, 1000);
+}
+
+/* ---------- 場面データ（編集できる） ---------- */
+var KEY_SCENES = APP + 'scenes';
+var KEY_EXAMPLE = APP + 'example';
+
+function cleanScene(x){
+  if (!x || typeof x !== 'object' || !Array.isArray(x.options)) return null;
+  var title = str(x.title, 40), sit = str(x.situation, 300);
+  if (!title || !sit) return null;
+  var opts = x.options.filter(function(o){ return o && typeof o === 'object' && str(o.t, 400); }).slice(0, 4).map(function(o){
+    var s = (Array.isArray(o.s) ? o.s : []).filter(function(n, i, arr){
+      return typeof n === 'number' && n >= 1 && n <= 5 && Math.floor(n) === n && arr.indexOf(n) === i;
+    }).sort(function(a, b){ return a - b; });
+    return {ok: o.ok === true, t: str(o.t, 400), c: str(o.c, 300), s: s};
+  });
+  if (opts.length < 2) return null;
+  var found = false;
+  opts.forEach(function(o){ if (o.ok) { if (found) o.ok = false; found = true; } });
+  if (!found) return null;
+  return {id: str(x.id, 40) || ('u' + Date.now()), title: title, situation: sit, point: str(x.point, 300), options: opts};
+}
+function cleanScenes(arr){
+  if (!Array.isArray(arr)) return null;
+  var out = [], ids = {};
+  arr.forEach(function(x){
+    var c = cleanScene(x);
+    if (!c) return;
+    if (ids[c.id]) c.id = c.id + '_' + out.length;
+    ids[c.id] = true;
+    out.push(c);
+  });
+  return out.length ? out : null;
+}
+function cleanExample(x){
+  if (!x || typeof x !== 'object' || Array.isArray(x)) return null;
+  var after = Array.isArray(x.after) ? x.after : [];
+  return {before: str(x.before, 80), note: str(x.note, 80), after: [0, 1, 2, 3, 4].map(function(i){ return str(after[i], 80); })};
+}
+function hasScene(id){ return SCENES.some(function(s){ return s.id === id; }); }
+
+var KEY_SAVED = APP + 'savedAt';
+
+/* 配布用HTMLに埋め込まれた場面データ（元のファイルでは null） */
+function readBaked(){
+  try {
+    var d = JSON.parse($('bakedData').textContent || 'null');
+    if (!d || typeof d !== 'object') return null;
+    var sc = cleanScenes(d.scenes);
+    var st = Number(d.stamp);
+    if (!sc || !(st > 0)) return null;
+    return {stamp: st, scenes: sc, example: cleanExample(d.example) || clone(DEFAULT_EXAMPLE)};
+  } catch (e) { return null; }
+}
+var BAKED = readBaked();
+var BASE_SCENES = BAKED ? BAKED.scenes : DEFAULT_SCENES;
+var BASE_EXAMPLE = BAKED ? BAKED.example : DEFAULT_EXAMPLE;
+var SCENES, EXAMPLE;
+
+/* 新しいほうを使う：配布版がこの端末の編集より新しければ配布版に置き換える */
+(function loadSceneData(){
+  var savedAt = Number(loadStr(KEY_SAVED)) || 0;
+  if (BAKED && BAKED.stamp > savedAt) {
+    SCENES = clone(BAKED.scenes);
+    EXAMPLE = clone(BAKED.example);
+    saveJson(KEY_SCENES, SCENES);
+    saveJson(KEY_EXAMPLE, EXAMPLE);
+    saveStr(KEY_SAVED, String(BAKED.stamp));
+    return;
+  }
+  SCENES = cleanScenes(loadJson(KEY_SCENES)) || clone(BASE_SCENES);
+  EXAMPLE = cleanExample(loadJson(KEY_EXAMPLE)) || clone(BASE_EXAMPLE);
+})();
+
+function fmtTime(t){
+  var d = new Date(t);
+  return d.getFullYear() + '/' + pad2(d.getMonth() + 1) + '/' + pad2(d.getDate()) + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+}
+function updateVerNote(){
+  var savedAt = Number(loadStr(KEY_SAVED)) || 0;
+  var t;
+  if (savedAt > 0) {
+    t = (BAKED && savedAt === BAKED.stamp) ? '配布版（' + fmtTime(savedAt) + ' 作成）' : 'この端末で編集（' + fmtTime(savedAt) + '）';
+  } else {
+    t = BAKED ? '配布版（' + fmtTime(BAKED.stamp) + ' 作成）' : '初期の内容';
+  }
+  $('verNote').textContent = '場面データ：' + t;
+}
+function markSaved(){
+  saveStr(KEY_SAVED, String(Date.now()));
+  updateVerNote();
+}
+
+function renderHomeExample(){
+  $('exBefore').textContent = EXAMPLE.before || '（未入力）';
+  $('exNote').textContent = EXAMPLE.note;
+  var box = $('exAfterView');
+  box.innerHTML = '';
+  STEPS.forEach(function(st, i){
+    if (!EXAMPLE.after[i]) return;
+    var p = el('p');
+    p.appendChild(el('span', 'stepTag', st.n + st.name));
+    p.appendChild(document.createTextNode(EXAMPLE.after[i]));
+    box.appendChild(p);
+  });
+}
+
+function refreshScenes(){
+  var dp = $('drillPick'), dv = dp.value;
+  dp.innerHTML = '';
+  dp.appendChild(new Option('おまかせ（ランダム）', 'random'));
+  SCENES.forEach(function(s, i){ dp.appendChild(new Option((i + 1) + '. ' + s.title, s.id)); });
+  dp.value = hasScene(dv) ? dv : 'random';
+
+  var rs = $('rpScene'), rv = rs.value;
+  rs.innerHTML = '';
+  SCENES.forEach(function(s, i){ rs.appendChild(new Option((i + 1) + '. ' + s.title, s.id)); });
+  rs.appendChild(new Option('自分で場面を書く', 'custom'));
+  rs.value = (rv === 'custom' || hasScene(rv)) ? rv : SCENES[0].id;
+  $('rpCustomWrap').hidden = rs.value !== 'custom';
+
+  var ep = $('edPick');
+  ep.innerHTML = '';
+  SCENES.forEach(function(s, i){ ep.appendChild(new Option((i + 1) + '. ' + s.title, s.id)); });
+  ep.appendChild(new Option('＋ 新しい場面を追加', '__new'));
+}
+
+/* ---------- タブ ---------- */
+var navButtons = document.querySelectorAll('nav button');
+function showTab(name){
+  for (var i = 0; i < navButtons.length; i++) {
+    navButtons[i].classList.toggle('active', navButtons[i].getAttribute('data-tab') === name);
+  }
+  var secs = document.querySelectorAll('main section');
+  for (var k = 0; k < secs.length; k++) {
+    secs[k].classList.toggle('active', secs[k].id === 'tab-' + name);
+  }
+  if (name === 'rec') renderRecords();
+  if (name === 'drill') renderDrillStats();
+  window.scrollTo(0, 0);
+}
+for (var nb = 0; nb < navButtons.length; nb++) {
+  navButtons[nb].addEventListener('click', function(){ showTab(this.getAttribute('data-tab')); });
+}
+$('goDrill').addEventListener('click', function(){ showTab('drill'); });
+
+/* ---------- 基本 ---------- */
+(function renderHome(){
+  var ol = $('homeSteps');
+  STEPS.forEach(function(st){
+    var li = el('li');
+    li.appendChild(el('b', '', st.n + st.name));
+    li.appendChild(el('span', 'hint', st.hint));
+    ol.appendChild(li);
+  });
+})();
+
+/* ---------- ドリル ---------- */
+var cur = null, answered = false, lastId = null;
+
+function renderDrillStats(){
+  var box = $('drillStats');
+  box.innerHTML = '';
+  var h = loadArr(KEY_DRILL).filter(function(x){ return x && typeof x.ok === 'boolean'; });
+  if (!h.length) { box.appendChild(el('p', 'note', 'まだ解答がありません。')); return; }
+  var okAll = h.filter(function(x){ return x.ok; }).length;
+  var last = h.slice(-10);
+  var okLast = last.filter(function(x){ return x.ok; }).length;
+  [['解答数', h.length + '問'], ['正解率', pct(okAll, h.length) + '%'], ['直近' + last.length + '問の正解率', pct(okLast, last.length) + '%']]
+    .forEach(function(p){
+      var d = el('div', 'stat');
+      d.appendChild(el('span', 'cap', p[0]));
+      d.appendChild(el('span', 'big', p[1]));
+      box.appendChild(d);
+    });
+}
+
+function stepCheck(arr){
+  var wrap = el('div');
+  STEPS.forEach(function(st, i){
+    var has = arr.indexOf(i + 1) >= 0;
+    var row = el('div', 'sc');
+    row.appendChild(el('span', '', st.n + st.name));
+    row.appendChild(el('span', has ? 'ok' : 'ng', has ? '○ 入っている' : '× 入っていない'));
+    wrap.appendChild(row);
+  });
+  return wrap;
+}
+
+function startDrill(){
+  var v = $('drillPick').value;
+  var s = null;
+  if (v === 'random') {
+    var pool = SCENES.filter(function(x){ return x.id !== lastId; });
+    if (!pool.length) pool = SCENES;
+    s = pool[Math.floor(Math.random() * pool.length)];
+  } else {
+    s = SCENES.filter(function(x){ return x.id === v; })[0] || SCENES[0];
+  }
+  cur = s; lastId = s.id; answered = false;
+  $('drillArea').hidden = false;
+  $('drillTitle').textContent = s.title;
+  $('drillSituation').textContent = s.situation;
+  $('drillFree').value = '';
+  $('drillWarn').textContent = '';
+  var box = $('drillChoices');
+  box.innerHTML = '';
+  shuffle(s.options).forEach(function(o, i){
+    var b = el('button', 'choice');
+    b.type = 'button';
+    b.appendChild(el('span', 'choiceLabel', 'ABCD'.charAt(i)));
+    b.appendChild(el('span', '', o.t));
+    b._opt = o;
+    b.addEventListener('click', function(){ answer(b); });
+    box.appendChild(b);
+  });
+  $('drillResult').innerHTML = '';
+  $('drillResult').hidden = true;
+  $('drillNext').hidden = true;
+  $('drillMsg').textContent = '';
+  $('drillArea').scrollIntoView({block:'start'});
+}
+
+function answer(btn){
+  if (answered || !cur) return;
+  answered = true;
+  var o = btn._opt;
+  var buttons = $('drillChoices').children;
+  for (var i = 0; i < buttons.length; i++) {
+    var b = buttons[i];
+    b.disabled = true;
+    if (b._opt.ok) {
+      b.classList.add('right');
+      b.appendChild(el('span', 'tag ok', b === btn ? 'OK 模範（あなたの選択）' : 'OK 模範'));
+    } else if (b === btn) {
+      b.classList.add('wrong');
+      b.appendChild(el('span', 'tag ng', 'NG あなたの選択'));
+    }
+  }
+  var r = $('drillResult');
+  r.innerHTML = '';
+  r.hidden = false;
+  var head = el('p', 'resultHead', o.ok ? 'OK 正解' : 'NG 不正解');
+  head.style.color = o.ok ? '#548235' : '#C00000';
+  r.appendChild(head);
+  if (o.c) r.appendChild(el('p', '', o.c));
+  r.appendChild(el('h3', '', '選んだ声かけに入っている5ステップ'));
+  r.appendChild(stepCheck(o.s));
+  if (!o.ok) {
+    var okOpt = cur.options.filter(function(x){ return x.ok; })[0];
+    r.appendChild(el('h3', '', '模範の声かけ'));
+    r.appendChild(el('p', 'model', okOpt.t));
+    if (okOpt.c) r.appendChild(el('p', '', okOpt.c));
+  }
+  if (cur.point) {
+    r.appendChild(el('h3', '', 'ポイント'));
+    r.appendChild(el('p', '', cur.point));
+  }
+
+  var free = $('drillFree').value.trim();
+  if (free) {
+    r.appendChild(el('h3', '', '自分の言葉を点検（入っていたものを押す）'));
+    r.appendChild(el('p', 'mine', free));
+    var vg = findVague(free);
+    if (vg.length) r.appendChild(el('p', 'warn', '注意：あいまいな言葉「' + vg.join('」「') + '」が入っています。'));
+    var cnt = el('p', 'big', '0 / 5');
+    var on = [false, false, false, false, false];
+    STEPS.forEach(function(st, k){
+      var sb = el('button', 'selfBtn', st.n + st.name + '：入っていない');
+      sb.type = 'button';
+      sb.addEventListener('click', function(){
+        on[k] = !on[k];
+        sb.classList.toggle('on', on[k]);
+        sb.textContent = st.n + st.name + (on[k] ? '：○ 入っていた' : '：入っていない');
+        cnt.textContent = on.filter(Boolean).length + ' / 5';
+      });
+      r.appendChild(sb);
+    });
+    r.appendChild(cnt);
+  }
+
+  var h = loadArr(KEY_DRILL);
+  h.push({d: today(), id: cur.id, ok: !!o.ok});
+  if (h.length > 500) h.splice(0, h.length - 500);
+  if (!saveJson(KEY_DRILL, h)) msg('drillMsg', '成績を保存できませんでした（端末の保存設定を確認）', true);
+  renderDrillStats();
+  $('drillNext').hidden = false;
+}
+
+(function initDrill(){
+  $('drillStart').addEventListener('click', startDrill);
+  $('drillNext').addEventListener('click', function(){ $('drillPick').value = 'random'; startDrill(); });
+  $('drillFree').addEventListener('input', function(){
+    var vg = findVague(this.value);
+    $('drillWarn').textContent = vg.length ? '注意：あいまいな言葉「' + vg.join('」「') + '」があります。何をどう変えるかを言えていますか？' : '';
+  });
+  $('drillReset').addEventListener('click', function(){
+    if (!confirm('ドリルの成績を全て消します。よろしいですか？')) return;
+    if (saveJson(KEY_DRILL, [])) msg('drillMsg', '成績をリセットしました');
+    else msg('drillMsg', 'リセットできませんでした', true);
+    renderDrillStats();
+  });
+  renderDrillStats();
+})();
+
+/* ---------- ロールプレイ ---------- */
+function updateTypeDesc(){
+  var t = TYPES.filter(function(x){ return x.id === $('rpType').value; })[0] || TYPES[0];
+  $('rpTypeDesc').textContent = t.desc;
+}
+
+function makePrompt(){
+  var sv = $('rpScene').value;
+  var sit = '';
+  if (sv === 'custom') {
+    sit = $('rpCustom').value.trim();
+    if (!sit) { msg('rpMsg', '場面を書いてください', true); return; }
+  } else {
+    var s = SCENES.filter(function(x){ return x.id === sv; })[0] || SCENES[0];
+    sit = s.situation;
+  }
+  var t = TYPES.filter(function(x){ return x.id === $('rpType').value; })[0] || TYPES[0];
+  var l = LEVELS.filter(function(x){ return x.id === $('rpLevel').value; })[0] || LEVELS[1];
+  var lines = [
+    'あなたは、構内物流の現場で働く作業者の役を演じてください。私は班長として、あなたを指導します。指導の練習です。',
+    '',
+    '# 場面',
+    sit,
+    '',
+    '# あなたの役',
+    t.name + '：' + t.desc,
+    '（場面に書かれた名前や経験年数と、この役の設定が違う場合は、役の設定を優先してください）',
+    '',
+    '# 演じ方',
+    '- 1回の返答は1〜3文。現場の作業者らしい話し言葉で返す。',
+    '- ' + l.desc,
+    '- 私が「気をつけて」「ちゃんとやって」など、あいまいな言葉だけで終わったら「はい、気をつけます」とだけ返し、何をどう変えるかは自分から言わない。',
+    '- 私がやり方を説明しただけで、やらせてみなかった場合は、内容を少し間違えて覚えたまま返事をする。',
+    '- 役になりきり、解説やアドバイスはしない。',
+    '',
+    '# 終了と採点',
+    '私が「終了」と書いたら役をやめ、次の5項目で私の指導を採点してください。',
+    '①伝える：いつ・どこで・何を見たか（教える場面では、何を教えるか）を具体的に伝えたか',
+    '②聞く：なぜそうなったか（どこまで知っているか）を聞いたか',
+    '③見せる：正しいやり方・急所と、その理由を示したか',
+    '④やらせる：その場で1回やらせたか',
+    '⑤確かめる：いつ見に行くかを伝えたか',
+    '各項目を○・△・×で判定し、根拠になった私の発言を短く引用してください。',
+    '最後に「良かった点」1つ、「改善点」1つ、「私の発言をよりよくした言い換え例」1つを示してください。',
+    '',
+    '# 開始',
+    'あなたは場面のとおり作業をしているところです。準備ができたら「（作業中）」とだけ返し、私の最初の声かけを待ってください。'
+  ];
+  $('rpOut').value = lines.join('\n');
+  msg('rpMsg', '依頼文を作りました。「コピー」を押してください');
+}
+
+function copyPrompt(){
+  var ta = $('rpOut');
+  var text = ta.value;
+  if (!text) { msg('rpMsg', '先に「依頼文を作る」を押してください', true); return; }
+  var done = function(){ msg('rpMsg', 'コピーしました。会社の生成AIに貼り付けてください'); };
+  var fallback = function(){
+    var ok = false;
+    ta.removeAttribute('readonly');
+    ta.focus();
+    ta.select();
+    ta.setSelectionRange(0, text.length);
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    ta.setAttribute('readonly', '');
+    if (ok) done();
+    else msg('rpMsg', 'コピーできませんでした。文章を長押し（または全選択）して手動でコピーしてください', true);
+  };
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(done, fallback);
+  } else {
+    fallback();
+  }
+}
+
+(function initRp(){
+  var s = $('rpScene');
+  TYPES.forEach(function(t){ $('rpType').appendChild(new Option(t.name, t.id)); });
+  LEVELS.forEach(function(l){ $('rpLevel').appendChild(new Option(l.name, l.id)); });
+  $('rpLevel').value = 'normal';
+  s.addEventListener('change', function(){ $('rpCustomWrap').hidden = s.value !== 'custom'; });
+  $('rpType').addEventListener('change', updateTypeDesc);
+  $('rpMake').addEventListener('click', makePrompt);
+  $('rpCopy').addEventListener('click', copyPrompt);
+  updateTypeDesc();
+})();
+
+/* ---------- 記録 ---------- */
+var recState = [null, null, null, null, null];
+var stepRows = [];
+
+function getRecords(){
+  return loadArr(KEY_REC).filter(function(x){
+    return x && Array.isArray(x.r) && x.r.length === 5 && typeof x.date === 'string';
+  }).map(function(x){
+    return {
+      id: String(x.id || ''),
+      date: x.date,
+      who: x.who === '課長' ? '課長' : '本人',
+      leader: String(x.leader || ''),
+      partner: String(x.partner || ''),
+      memo: String(x.memo || ''),
+      r: x.r.map(function(v){ return v === 1 ? 1 : 0; })
+    };
+  });
+}
+
+function paintRec(){
+  stepRows.forEach(function(row, i){
+    row.ok.classList.toggle('selOk', recState[i] === 1);
+    row.ng.classList.toggle('selNg', recState[i] === 0);
+  });
+}
+
+function saveRec(){
+  if (recState.some(function(v){ return v === null; })) {
+    msg('recMsg', '5項目すべてに○か×をつけてください', true); return;
+  }
+  var leader = $('recLeader').value.trim().slice(0, 20);
+  var rec = {
+    id: Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+    date: $('recDate').value || today(),
+    who: $('recWho').value,
+    leader: leader,
+    partner: $('recPartner').value.trim().slice(0, 20),
+    memo: $('recMemo').value.trim().slice(0, 200),
+    r: recState.slice()
+  };
+  var arr = getRecords();
+  arr.push(rec);
+  if (!saveJson(KEY_REC, arr)) { msg('recMsg', '保存できませんでした（端末の保存容量・設定を確認）', true); return; }
+  saveStr(KEY_LEADER, leader);
+  recState = [null, null, null, null, null];
+  paintRec();
+  $('recPartner').value = '';
+  $('recMemo').value = '';
+  if (!$('recDate').value) $('recDate').value = today();
+  msg('recMsg', '保存しました（' + rec.r.reduce(function(a, b){ return a + b; }, 0) + ' / 5）');
+  renderRecords();
+}
+
+function avgScore(list){
+  if (!list.length) return 0;
+  var sum = 0;
+  list.forEach(function(x){ sum += x.r.reduce(function(a, b){ return a + b; }, 0); });
+  return sum / list.length;
+}
+
+function renderSummary(list){
+  var box = $('recSummary');
+  box.innerHTML = '';
+  if (!list.length) { box.appendChild(el('p', 'note', '記録がありません。')); return; }
+  var stats = el('div', 'stats');
+  var items = [['件数', list.length + '件'], ['平均（5点満点）', avgScore(list).toFixed(1)]];
+  if (list.length > 5) {
+    items.push(['直近5件の平均', avgScore(list.slice(0, 5)).toFixed(1)]);
+    items.push(['それ以前の平均', avgScore(list.slice(5)).toFixed(1)]);
+  }
+  items.forEach(function(p){
+    var d = el('div', 'stat');
+    d.appendChild(el('span', 'cap', p[0]));
+    d.appendChild(el('span', 'big', p[1]));
+    stats.appendChild(d);
+  });
+  box.appendChild(stats);
+  box.appendChild(el('h3', '', 'ステップ別のできた率'));
+  STEPS.forEach(function(st, i){
+    var okN = list.filter(function(x){ return x.r[i] === 1; }).length;
+    var p = pct(okN, list.length);
+    var row = el('div', 'bar');
+    row.appendChild(el('span', '', st.n + st.name));
+    var track = el('div', 'barTrack');
+    var fill = el('div', 'barFill');
+    fill.style.width = p + '%';
+    track.appendChild(fill);
+    row.appendChild(track);
+    var val = el('span', 'barVal', p + '%');
+    if (p < 50) val.appendChild(el('span', 'weak', 'NG 要強化'));
+    row.appendChild(val);
+    box.appendChild(row);
+  });
+}
+
+function renderList(list){
+  var box = $('recList');
+  box.innerHTML = '';
+  if (!list.length) { box.appendChild(el('p', 'note', '記録がありません。')); return; }
+  var shown = list.slice(0, 50);
+  if (list.length > 50) box.appendChild(el('p', 'note', '最新50件を表示しています（全' + list.length + '件。全件はCSVで確認）'));
+  shown.forEach(function(x){
+    var item = el('div', 'recItem');
+    var head = el('div', 'recHead');
+    var info = el('div', 'recInfo');
+    info.appendChild(el('div', '', x.date + '　記録者：' + x.who));
+    info.appendChild(el('div', '', '班長：' + (x.leader || '（未入力）') + '　相手：' + (x.partner || '（未入力）')));
+    head.appendChild(info);
+    head.appendChild(el('span', 'recScore', x.r.reduce(function(a, b){ return a + b; }, 0) + '/5'));
+    item.appendChild(head);
+    var marks = el('div', 'marks');
+    STEPS.forEach(function(st, i){
+      marks.appendChild(el('span', x.r[i] ? 'ok' : 'ng', st.n + st.name + (x.r[i] ? '○' : '×')));
+    });
+    item.appendChild(marks);
+    if (x.memo) item.appendChild(el('p', 'recMemo', x.memo));
+    var del = el('button', 'btn danger small', 'この記録を削除');
+    del.type = 'button';
+    del.addEventListener('click', function(){
+      if (!confirm('この記録を削除しますか？')) return;
+      var rest = getRecords().filter(function(y){ return y.id !== x.id; });
+      if (!saveJson(KEY_REC, rest)) { msg('recMsg2', '削除できませんでした', true); return; }
+      msg('recMsg2', '削除しました');
+      renderRecords();
+    });
+    item.appendChild(del);
+    box.appendChild(item);
+  });
+}
+
+function renderRecords(){
+  var all = getRecords();
+  var f = $('recFilter');
+  var curF = f.value;
+  var seen = {};
+  var leaders = [];
+  all.forEach(function(x){ if (x.leader && !seen[x.leader]) { seen[x.leader] = true; leaders.push(x.leader); } });
+  leaders.sort();
+  f.innerHTML = '';
+  f.appendChild(new Option('全員', ''));
+  leaders.forEach(function(n){ f.appendChild(new Option(n, n)); });
+  f.value = leaders.indexOf(curF) >= 0 ? curF : '';
+  var list = all.filter(function(x){ return !f.value || x.leader === f.value; });
+  list.sort(function(a, b){
+    if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+    return a.id < b.id ? 1 : (a.id > b.id ? -1 : 0);
+  });
+  renderSummary(list);
+  renderList(list);
+}
+
+function csvCell(v){
+  v = String(v);
+  if (/^[=+\-@]/.test(v)) v = "'" + v;
+  return /[",\r\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+}
+
+function exportCsv(){
+  var arr = getRecords();
+  if (!arr.length) { msg('recMsg2', '記録がありません', true); return; }
+  var header = ['日付', '記録者', '班長', '相手'].concat(STEPS.map(function(s){ return s.n + s.name; })).concat(['合計', 'メモ']);
+  var lines = [header.map(csvCell).join(',')];
+  arr.forEach(function(x){
+    var row = [x.date, x.who, x.leader, x.partner]
+      .concat(x.r.map(function(v){ return v ? '○' : '×'; }))
+      .concat([x.r.reduce(function(a, b){ return a + b; }, 0), x.memo]);
+    lines.push(row.map(csvCell).join(','));
+  });
+  try {
+    download('﻿' + lines.join('\r\n'), 'text/csv', '指導トレーニング_記録_' + today().replace(/-/g, '') + '.csv');
+    msg('recMsg2', 'CSVを出力しました（' + arr.length + '件）');
+  } catch (e) {
+    msg('recMsg2', 'CSVを出力できませんでした', true);
+  }
+}
+
+(function initRec(){
+  $('recDate').value = today();
+  $('recLeader').value = loadStr(KEY_LEADER).slice(0, 20);
+  var box = $('recSteps');
+  STEPS.forEach(function(st, i){
+    var row = el('div', 'stepRow');
+    var lab = el('div', 'stepLab');
+    lab.appendChild(el('b', '', st.n + st.name));
+    lab.appendChild(el('span', 'hint', st.hint));
+    row.appendChild(lab);
+    var g = el('div', 'ynGroup');
+    var okB = el('button', 'yn', '○ できた');
+    var ngB = el('button', 'yn', '× できなかった');
+    okB.type = 'button';
+    ngB.type = 'button';
+    okB.addEventListener('click', function(){ recState[i] = 1; paintRec(); });
+    ngB.addEventListener('click', function(){ recState[i] = 0; paintRec(); });
+    g.appendChild(okB);
+    g.appendChild(ngB);
+    row.appendChild(g);
+    box.appendChild(row);
+    stepRows.push({ok: okB, ng: ngB});
+  });
+  $('recSave').addEventListener('click', saveRec);
+  $('recFilter').addEventListener('change', renderRecords);
+  $('recCsv').addEventListener('click', exportCsv);
+  $('recClear').addEventListener('click', function(){
+    if (!confirm('記録を全て削除します。元に戻せません。よろしいですか？')) return;
+    if (saveJson(KEY_REC, [])) msg('recMsg2', '全て削除しました');
+    else msg('recMsg2', '削除できませんでした', true);
+    renderRecords();
+  });
+  renderRecords();
+})();
+
+/* ---------- 編集 ---------- */
+var edWork = null, edDirty = false, edPrev = '';
+var edOptEls = [];
+
+function blankOpt(){ return {ok: false, t: '', c: '', s: []}; }
+
+function paintEditor(){
+  edOptEls.forEach(function(o, i){
+    var d = edWork.options[i];
+    o.tg.forEach(function(b, k){
+      var on = d.s.indexOf(k + 1) >= 0;
+      b.classList.toggle('on', on);
+      b.textContent = STEPS[k].n + STEPS[k].name + (on ? ' ○' : ' ×');
+    });
+    o.model.classList.toggle('selOk', d.ok);
+    o.model.textContent = d.ok ? 'OK 模範に設定中' : 'この選択肢を模範にする';
+  });
+}
+
+function loadEditor(id){
+  var src = SCENES.filter(function(s){ return s.id === id; })[0];
+  edWork = src ? clone(src) : {id: 'u' + Date.now(), title: '', situation: '', point: '', options: []};
+  while (edWork.options.length < 4) edWork.options.push(blankOpt());
+  $('edPick').value = src ? src.id : '__new';
+  edPrev = $('edPick').value;
+  $('edTitle').value = edWork.title;
+  $('edSituation').value = edWork.situation;
+  $('edPoint').value = edWork.point;
+  edOptEls.forEach(function(o, i){
+    o.t.value = edWork.options[i].t;
+    o.c.value = edWork.options[i].c;
+  });
+  $('edDelete').hidden = !src;
+  paintEditor();
+  edDirty = false;
+}
+
+function buildEditor(){
+  var box = $('edOptions');
+  [0, 1, 2, 3].forEach(function(i){
+    var wrap = el('div', 'optBox');
+    wrap.appendChild(el('p', 'optHead', '選択肢' + 'ABCD'.charAt(i) + (i >= 2 ? '（空欄なら使わない）' : '')));
+    var lt = el('label', '', '声かけ');
+    lt.htmlFor = 'edOptT' + i;
+    var t = el('textarea');
+    t.id = 'edOptT' + i; t.rows = 5; t.maxLength = 400;
+    var lc = el('label', '', '解説');
+    lc.htmlFor = 'edOptC' + i;
+    var c = el('textarea');
+    c.id = 'edOptC' + i; c.rows = 2; c.maxLength = 300;
+    var lg = el('p', 'label', '入っているステップ（押して切り替え）');
+    var g = el('div', 'tgGroup');
+    var tgs = [];
+    STEPS.forEach(function(st, k){
+      var b = el('button', 'tg');
+      b.type = 'button';
+      b.addEventListener('click', function(){
+        var s = edWork.options[i].s;
+        var p = s.indexOf(k + 1);
+        if (p >= 0) s.splice(p, 1); else s.push(k + 1);
+        s.sort(function(a, b2){ return a - b2; });
+        edDirty = true;
+        paintEditor();
+      });
+      g.appendChild(b);
+      tgs.push(b);
+    });
+    var m = el('button', 'yn modelBtn');
+    m.type = 'button';
+    m.addEventListener('click', function(){
+      edWork.options.forEach(function(o, j){ o.ok = (j === i); });
+      edDirty = true;
+      paintEditor();
+    });
+    t.addEventListener('input', function(){ edWork.options[i].t = t.value; edDirty = true; });
+    c.addEventListener('input', function(){ edWork.options[i].c = c.value; edDirty = true; });
+    [lt, t, lc, c, lg, g, m].forEach(function(e){ wrap.appendChild(e); });
+    box.appendChild(wrap);
+    edOptEls.push({t: t, c: c, tg: tgs, model: m});
+  });
+}
+
+function afterSceneChange(){
+  refreshScenes();
+  $('drillArea').hidden = true;
+}
+
+function saveScene(){
+  var title = str($('edTitle').value, 40);
+  var sit = str($('edSituation').value, 300);
+  if (!title || !sit) { msg('edMsg', 'タイトルと場面は必ず入力してください', true); return; }
+  var filled = edWork.options.filter(function(o){ return str(o.t, 400); });
+  if (filled.length < 2) { msg('edMsg', '声かけは2つ以上入力してください', true); return; }
+  if (filled.filter(function(o){ return o.ok; }).length !== 1) {
+    msg('edMsg', '声かけを入力した選択肢の中から、模範を1つ選んでください', true); return;
+  }
+  var scene = cleanScene({id: edWork.id, title: title, situation: sit, point: $('edPoint').value, options: filled});
+  if (!scene) { msg('edMsg', '保存できない内容です。入力を確認してください', true); return; }
+  var next = SCENES.slice();
+  var idx = -1;
+  next.forEach(function(s, k){ if (s.id === scene.id) idx = k; });
+  if (idx >= 0) next[idx] = scene; else next.push(scene);
+  if (!saveJson(KEY_SCENES, next)) { msg('edMsg', '保存できませんでした（端末の保存容量・設定を確認）', true); return; }
+  SCENES = next;
+  markSaved();
+  afterSceneChange();
+  loadEditor(scene.id);
+  msg('edMsg', '保存しました。ドリルとロープレに反映されています');
+}
+
+function deleteScene(){
+  if (!hasScene(edWork.id)) return;
+  if (SCENES.length <= 1) { msg('edMsg', '場面は最低1つ必要です', true); return; }
+  if (!confirm('この場面を削除しますか？')) return;
+  var next = SCENES.filter(function(s){ return s.id !== edWork.id; });
+  if (!saveJson(KEY_SCENES, next)) { msg('edMsg', '削除できませんでした', true); return; }
+  SCENES = next;
+  markSaved();
+  afterSceneChange();
+  loadEditor(SCENES[0].id);
+  msg('edMsg', '削除しました');
+}
+
+function buildExampleEditor(){
+  var box = $('exAfterInputs');
+  STEPS.forEach(function(st, i){
+    var l = el('label', '', 'After ' + st.n + st.name);
+    l.htmlFor = 'exAfterIn' + i;
+    var inp = el('input');
+    inp.type = 'text'; inp.id = 'exAfterIn' + i; inp.maxLength = 80;
+    box.appendChild(l);
+    box.appendChild(inp);
+  });
+}
+function loadExampleEditor(){
+  $('exBeforeIn').value = EXAMPLE.before;
+  $('exNoteIn').value = EXAMPLE.note;
+  EXAMPLE.after.forEach(function(v, i){ $('exAfterIn' + i).value = v; });
+}
+function saveExample(){
+  var ex = cleanExample({
+    before: $('exBeforeIn').value,
+    note: $('exNoteIn').value,
+    after: [0, 1, 2, 3, 4].map(function(i){ return $('exAfterIn' + i).value; })
+  });
+  if (!saveJson(KEY_EXAMPLE, ex)) { msg('exMsg', '保存できませんでした', true); return; }
+  EXAMPLE = ex;
+  markSaved();
+  renderHomeExample();
+  loadExampleEditor();
+  msg('exMsg', '保存しました。基本画面に反映されています');
+}
+
+function refreshAllEdit(){
+  afterSceneChange();
+  renderHomeExample();
+  loadEditor(SCENES[0].id);
+  loadExampleEditor();
+}
+
+function importScenes(file){
+  if (file.size > 1000000) { msg('edMsg2', 'ファイルが大きすぎます', true); return; }
+  var rd = new FileReader();
+  rd.onload = function(){
+    var d = null;
+    try { d = JSON.parse(rd.result); } catch (e) { d = null; }
+    var sc = d ? cleanScenes(d.scenes) : null;
+    if (!sc) { msg('edMsg2', '読み込めませんでした。このアプリで書き出したファイルを選んでください', true); return; }
+    if (!confirm('今の場面データを、読み込んだ内容（' + sc.length + '場面）で置き換えます。よろしいですか？')) return;
+    var ex = cleanExample(d.example) || EXAMPLE;
+    if (!saveJson(KEY_SCENES, sc) || !saveJson(KEY_EXAMPLE, ex)) { msg('edMsg2', '保存できませんでした', true); return; }
+    SCENES = sc;
+    EXAMPLE = ex;
+    markSaved();
+    refreshAllEdit();
+    msg('edMsg2', '読み込みました（' + sc.length + '場面）');
+  };
+  rd.onerror = function(){ msg('edMsg2', 'ファイルを読めませんでした', true); };
+  rd.readAsText(file);
+}
+
+function exportDistHtml(){
+  if (edDirty) { msg('edMsg2', '保存していない場面の変更があります。先に「この場面を保存」を押してください', true); return; }
+  var re = /(<script id="bakedData" type="application\/json">)([\s\S]*?)(<\/script>)/;
+  if (!re.test(ORIGINAL_HTML)) { msg('edMsg2', '配布用HTMLを作れませんでした（元のファイルが変更されています）', true); return; }
+  var stamp = Date.now();
+  var json = JSON.stringify({app: '指導トレーニング', stamp: stamp, scenes: SCENES, example: EXAMPLE}).replace(/</g, '\\u003c');
+  var html = ORIGINAL_HTML.replace(re, function(all, a, b, c){ return a + json + c; });
+  try {
+    download(html, 'text/html', '指導トレーニング_配布用_' + today().replace(/-/g, '') + '.html');
+  } catch (e) { msg('edMsg2', '保存できませんでした', true); return; }
+  saveStr(KEY_SAVED, String(stamp));
+  updateVerNote();
+  msg('edMsg2', '配布用HTMLを保存しました（' + fmtTime(stamp) + ' 作成）。このファイルを班長に配ってください');
+}
+
+(function initEdit(){
+  buildEditor();
+  buildExampleEditor();
+  ['edTitle', 'edSituation', 'edPoint'].forEach(function(id){
+    $(id).addEventListener('input', function(){ edDirty = true; });
+  });
+  $('edPick').addEventListener('change', function(){
+    if (edDirty && !confirm('保存していない変更があります。破棄して切り替えますか？')) { this.value = edPrev; return; }
+    loadEditor(this.value === '__new' ? null : this.value);
+    $('edMsg').textContent = '';
+  });
+  $('edSave').addEventListener('click', saveScene);
+  $('edDelete').addEventListener('click', deleteScene);
+  $('exSave').addEventListener('click', saveExample);
+  $('edExport').addEventListener('click', function(){
+    try {
+      download(JSON.stringify({app: '指導トレーニング', version: 1, scenes: SCENES, example: EXAMPLE}, null, 2),
+        'application/json', '指導トレーニング_場面データ_' + today().replace(/-/g, '') + '.json');
+      msg('edMsg2', '書き出しました。他の端末で「読み込む」から選んでください');
+    } catch (e) { msg('edMsg2', '書き出せませんでした', true); }
+  });
+  $('edImportBtn').addEventListener('click', function(){ $('edImport').click(); });
+  $('edImport').addEventListener('change', function(){
+    var f = this.files && this.files[0];
+    this.value = '';
+    if (f) importScenes(f);
+  });
+  var resetName = BAKED ? '配布時の内容' : '初期の内容';
+  $('edReset').textContent = '全て' + resetName + 'に戻す';
+  $('edReset').addEventListener('click', function(){
+    if (!confirm('場面と例を全て' + resetName + 'に戻します。この端末で編集した内容は消えます。よろしいですか？')) return;
+    try {
+      localStorage.removeItem(KEY_SCENES);
+      localStorage.removeItem(KEY_EXAMPLE);
+      localStorage.removeItem(KEY_SAVED);
+    } catch (e) { /* 消せなくても画面は戻す */ }
+    SCENES = clone(BASE_SCENES);
+    EXAMPLE = clone(BASE_EXAMPLE);
+    refreshAllEdit();
+    updateVerNote();
+    msg('edMsg2', resetName + 'に戻しました');
+  });
+  $('edDist').addEventListener('click', exportDistHtml);
+  updateVerNote();
+  refreshAllEdit();
+})();
+
+})();
+</script>
+</body>
+</html>
