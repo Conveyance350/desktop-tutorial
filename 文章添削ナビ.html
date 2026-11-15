@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>文章添削ナビ</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:"Meiryo UI","Meiryo","メイリオ","Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic UI",sans-serif;font-size:18px;line-height:1.6;color:#333333;background:#ffffff}
+header,footer{max-width:1400px;margin:0 auto;padding:16px 24px 8px}
+header{border-bottom:2px solid #333333}
+footer{border-top:1px solid #7F7F7F;color:#7F7F7F;font-size:14px;padding-bottom:24px}
+h1{margin:0;font-size:28px}
+h1 small{font-size:15px;font-weight:normal;color:#7F7F7F;margin-left:10px}
+header p{margin:4px 0 0;font-size:16px;color:#7F7F7F}
+.wrap{max-width:1400px;margin:0 auto;padding:16px 24px 40px;display:grid;grid-template-columns:1fr 1fr;gap:28px}
+.wrap>section{min-width:0}
+h2{margin:0 0 12px;font-size:22px;border-left:6px solid #2F5597;padding-left:10px}
+h3{margin:24px 0 8px;font-size:20px}
+h4{margin:20px 0 0;font-size:18px;border-bottom:1px solid #7F7F7F}
+label{display:block;margin:14px 0 4px;font-weight:bold}
+label small,h4 small{font-weight:normal;color:#7F7F7F;font-size:15px}
+label.chk{display:flex;align-items:center;gap:10px;font-weight:normal;margin:10px 0 0;cursor:pointer}
+label.chk input{width:24px;height:24px;margin:0;flex:none}
+select,input[type=text],input[type=number],textarea{width:100%;font:inherit;color:#333333;background:#ffffff;border:1px solid #7F7F7F;border-radius:0;padding:10px}
+select,input[type=text],input[type=number]{height:52px}
+textarea{resize:vertical;line-height:1.7}
+#body{height:400px}
+#prompt{height:220px}
+#rules{height:160px}
+select:focus,input:focus,textarea:focus,button:focus,summary:focus{outline:3px solid #2F5597;outline-offset:1px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.btns{display:flex;flex-wrap:wrap;gap:12px;margin-top:16px}
+button{font:inherit;font-size:20px;font-weight:bold;min-height:56px;padding:8px 22px;border-radius:0;border:2px solid #2F5597;background:#ffffff;color:#2F5597;cursor:pointer}
+button.main{background:#2F5597;color:#ffffff}
+button.small{font-size:16px;min-height:40px;padding:4px 14px;margin-top:8px}
+button:disabled{border-color:#7F7F7F;color:#7F7F7F;background:#ffffff;cursor:default}
+#stats{color:#7F7F7F;font-size:16px;margin-top:6px}
+#msg{min-height:30px;margin-top:10px;font-weight:bold;color:#2F5597}
+details{margin-top:20px;border:1px solid #7F7F7F;padding:0 16px 16px}
+summary{font-size:20px;font-weight:bold;padding:12px 0;cursor:pointer}
+details ol{margin:0;padding-left:1.5em}
+details ol li{margin-top:6px}
+.band{padding:14px 18px;font-size:20px;font-weight:bold;color:#ffffff}
+.band .num{font-size:40px;line-height:1;margin:0 4px 0 10px}
+.band .big{font-size:40px;line-height:1;margin-right:14px}
+.band.idle{background:#ffffff;color:#7F7F7F;border:1px solid #7F7F7F;font-weight:normal}
+.band.ok{background:#548235}
+.band.ng{background:#C00000}
+.band.warn{background:#2F5597}
+#findings{list-style:none;margin:0;padding:0}
+#findings li{border:1px solid #7F7F7F;border-left-width:6px;padding:10px 14px;margin-top:10px}
+#findings li.ng{border-left-color:#C00000}
+#findings li.warn{border-left-color:#2F5597}
+#findings li.info{border-left-color:#7F7F7F}
+.lv{font-weight:bold;margin-right:12px}
+.ng .lv{color:#C00000}
+.warn .lv{color:#2F5597}
+.info .lv{color:#7F7F7F}
+.ft{font-weight:bold}
+.fx{color:#7F7F7F;font-size:16px;word-break:break-all}
+#preview{border:1px solid #7F7F7F;padding:12px;white-space:pre-wrap;word-break:break-all;min-height:80px;max-height:460px;overflow:auto;line-height:1.9}
+.hl{font-weight:bold;text-decoration:underline;text-decoration-thickness:2px}
+.hl.ng{color:#C00000}
+.hl.warn{color:#2F5597}
+.tag{font-size:13px;font-weight:bold;border:1px solid;padding:0 4px;margin:0 3px;vertical-align:top}
+.tag.ng{color:#C00000}
+.tag.warn{color:#2F5597}
+.note{color:#7F7F7F;font-size:15px;margin:6px 0 0}
+.hide{display:none}
+#impFile{display:none}
+@media (max-width:1000px){.wrap{grid-template-columns:1fr}.row2,.row3{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <h1>文章添削ナビ<small>Ver.1.0</small></h1>
+  <p>ブラウザの中だけで動きます。入力した文章や設定が外部へ送信されることはありません。</p>
+</header>
+
+<div class="wrap">
+  <section>
+    <h2>1. 文章を入力</h2>
+    <div class="row3">
+      <div>
+        <label for="docType">文書の種類</label>
+        <select id="docType">
+          <option value="mail">メール</option>
+          <option value="report">報告書</option>
+          <option value="proposal">提案書・企画書</option>
+          <option value="minutes">議事録</option>
+          <option value="notice">通知・案内</option>
+          <option value="general">一般文書</option>
+        </select>
+      </div>
+      <div>
+        <label for="to">読み手</label>
+        <select id="to">
+          <option value="peer">社内（同僚・部下・他部署）</option>
+          <option value="boss">社内の上位者（上司・役員など）</option>
+          <option value="ext">社外（取引先・お客様）</option>
+        </select>
+      </div>
+      <div id="kindWrap">
+        <label for="kind">用件</label>
+        <select id="kind">
+          <option>依頼</option>
+          <option>報告</option>
+          <option>連絡</option>
+          <option>相談</option>
+          <option>お詫び</option>
+          <option>お礼</option>
+          <option>催促</option>
+          <option>お断り</option>
+        </select>
+      </div>
+    </div>
+    <label for="subject" id="subjectLabel">件名</label>
+    <input type="text" id="subject" maxlength="200">
+    <label for="body">本文</label>
+    <textarea id="body" maxlength="30000" placeholder="ここに文章を貼り付けます"></textarea>
+    <div id="stats"></div>
+    <div class="btns">
+      <button type="button" class="main" id="btnFixAll" disabled>直せる所を全部直す</button>
+      <button type="button" id="btnUndo" disabled>元に戻す</button>
+      <button type="button" id="btnCopyBody">本文をコピー</button>
+      <button type="button" id="btnSample">サンプル</button>
+      <button type="button" id="btnClear">消去</button>
+    </div>
+    <div id="msg" role="status"></div>
+
+    <h3>3. AIに仕上げを頼む（任意）</h3>
+    <label for="note">AIへの補足 <small>（任意。例：上司が3分で読める長さに）</small></label>
+    <input type="text" id="note" maxlength="300">
+    <div class="btns">
+      <button type="button" id="btnPrompt">AI用の依頼文を作る</button>
+      <button type="button" id="btnCopyPrompt" disabled>依頼文をコピー</button>
+    </div>
+    <label for="prompt">依頼文 <small>（お使いの生成AIに貼り付けます）</small></label>
+    <textarea id="prompt" readonly></textarea>
+
+    <details>
+      <summary>設定</summary>
+
+      <h4>文章全般</h4>
+      <div class="row3">
+        <div>
+          <label for="cStyle">文体</label>
+          <select id="cStyle">
+            <option value="auto">自動（多い方に統一）</option>
+            <option value="desu">です・ます調</option>
+            <option value="dearu">だ・である調</option>
+          </select>
+        </div>
+        <div><label for="cMaxSentence">一文の上限（字）</label><input type="number" id="cMaxSentence" min="20" max="300"></div>
+        <div><label for="cMaxSubject">件名・タイトルの上限（字）</label><input type="number" id="cMaxSubject" min="10" max="200"></div>
+      </div>
+      <label class="chk"><input type="checkbox" id="cChkKana">ひらがなで書く語（下さい→ください、出来る→できる 等）を指摘する</label>
+      <label class="chk"><input type="checkbox" id="cChkRedund">回りくどい表現（することができる 等）を指摘する</label>
+      <label class="chk"><input type="checkbox" id="cChkYure">表記ゆれ（打ち合わせ／打合せ 等）を指摘する</label>
+      <label class="chk"><input type="checkbox" id="cChkWidth">英数字の全角・半角の混在を指摘する</label>
+      <label class="chk"><input type="checkbox" id="cChkHou">「のほう」を指摘する</label>
+      <label class="chk"><input type="checkbox" id="cChkOmou">「思います」の多用を指摘する</label>
+
+      <h4>メール用 <small>（宛名・挨拶・結びの自動挿入に使います）</small></h4>
+      <div class="row3">
+        <div><label for="cCompany">会社名</label><input type="text" id="cCompany" maxlength="40" placeholder="例：○○株式会社"></div>
+        <div><label for="cDept">部署</label><input type="text" id="cDept" maxlength="40" placeholder="例：総務部"></div>
+        <div><label for="cName">氏名</label><input type="text" id="cName" maxlength="20" placeholder="例：山田"></div>
+      </div>
+      <div class="row2">
+        <div><label for="cGreetIn">社内向けの挨拶</label><input type="text" id="cGreetIn" maxlength="60"></div>
+        <div><label for="cGreetEx">社外向けの挨拶</label><input type="text" id="cGreetEx" maxlength="60"></div>
+        <div><label for="cCloseIn">社内向けの結び</label><input type="text" id="cCloseIn" maxlength="60"></div>
+        <div><label for="cCloseEx">社外向けの結び</label><input type="text" id="cCloseEx" maxlength="60"></div>
+        <div><label for="cMaxBody">メール本文の上限（字）</label><input type="number" id="cMaxBody" min="100" max="30000"></div>
+      </div>
+      <label class="chk"><input type="checkbox" id="cChkTag">件名の先頭に【用件】がないとき確認を出す</label>
+
+      <h4>自分のルール</h4>
+      <label for="rules">1行に1つ <small>（「誤→正」で言い換え、語句だけなら使用禁止）</small></label>
+      <textarea id="rules" maxlength="5000" placeholder="例：&#10;打ち合わせ→打合せ&#10;取り急ぎ&#10;させて頂き→させていただき"></textarea>
+      <p class="note" id="rulesInfo"></p>
+
+      <h4>設定の保存・共有</h4>
+      <p class="note">設定をファイルに書き出すと、別のPCやチームの人と同じ設定を使えます。</p>
+      <div class="btns">
+        <button type="button" id="btnExport">設定を書き出す</button>
+        <button type="button" id="btnImport">設定を読み込む</button>
+        <button type="button" id="btnResetCfg">設定を初期値に戻す</button>
+      </div>
+      <input type="file" id="impFile" accept=".json,application/json">
+    </details>
+  </section>
+
+  <section>
+    <h2>2. チェック結果</h2>
+    <div id="summary" class="band idle">本文を入力すると、ここに結果が出ます。</div>
+    <ul id="findings"></ul>
+    <h3>該当箇所</h3>
+    <div id="preview"></div>
+    <p class="note">「確認」は目で見て確かめるための項目で、一括修正の対象外です。</p>
+
+    <details>
+      <summary>使い方</summary>
+      <ol>
+        <li>文書の種類と読み手を選び、件名（タイトル）と本文を貼り付けます。入力すると自動でチェックされます。</li>
+        <li>「直せる所を全部直す」を押します。指摘ごとのボタンで1つずつ直すこともできます。</li>
+        <li>【　】で残った所は、ご自身で書き入れてください。</li>
+        <li>報告書・提案書・議事録・通知では、足りない見出しを末尾に追加できます。追加後、正しい位置へ移してください。</li>
+        <li>仕上げたい場合は「AI用の依頼文を作る」を押し、お使いの生成AIに貼り付けます。</li>
+        <li>間違えて直したときは「元に戻す」を押します（30回まで）。</li>
+        <li>メールを使う場合は、最初に「設定」で会社名・部署・氏名を入れておくと、挨拶を自動で入れられます。</li>
+      </ol>
+      <p class="note">入力内容と設定は、このブラウザに自動で保存されます。ブラウザの閲覧データを消去すると消えるため、設定は「設定を書き出す」で控えておくことをおすすめします。</p>
+    </details>
+  </section>
+</div>
+
+<footer>
+  文章添削ナビ Ver.1.0　／　【販売者名】<br>
+  チェック結果は機械的な目安で、文意や事実の正しさまでは判定しません。提出・送信の前に必ず内容をご確認ください。本アプリの利用により生じた損害について、販売者は責任を負いません。
+</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  var APP = '文章添削ナビ';
+  var VER = '1.0';
+  var DKEY = 'bunshonavi_draft';
+  var SKEY = 'bunshonavi_settings';
+  var UPPER = ['boss', 'ext'];
+  var RANK = { 'NG': 0, '注意': 1, '確認': 2 };
+  var CLS = { 'NG': 'ng', '注意': 'warn', '確認': 'info' };
+  var UNDO_MAX = 30;
+  var BODY_MAX = 30000;
+  var TYPE_NAME = { mail: 'メール', report: '報告書', proposal: '提案書・企画書', minutes: '議事録', notice: '通知・案内', general: '一般文書' };
+  var TITLE_PH = {
+    mail: '例：【依頼】12/5 会議資料の確認', report: '例：11月度 作業ミスの報告', proposal: '例：受付業務の電子化について',
+    minutes: '例：12/5 定例会議 議事録', notice: '例：年末大掃除のお知らせ', general: '例：文書のタイトル'
+  };
+  var RE_ADDR = /(?:様|さん|各位|殿|部長|課長|係長|主任|次長|社長|室長|所長|店長|工場長|支店長|本部長|取締役|専務|常務|会長|班長|リーダー|先生|【役職】)[\s　、,]*$/;
+  var RE_GREET = /お疲れ(?:様|さま)|お世話にな|おはようございます|ご無沙汰|お忙しいところ|突然のご連絡|初めてご連絡|はじめまして|平素より/;
+  var RE_NAME = /と申します|でございます|の.{1,20}です/;
+  var RE_CLOSE = /よろしく(?:お願|御願)|お願い(?:いた|致)します|お願い申し上げ|以上です|以上、|失礼(?:いた|致)します|ありがとうございま/;
+  var RE_DATE = /[0-9０-９]{1,2}[\/／月][0-9０-９]{1,2}|[0-9０-９]{1,2}日|[月火水木金土日]曜|本日|明日|今週|来週|今月|[0-9０-９]{1,2}時|[0-9０-９]{1,2}[:：][0-9０-９]{2}|午前|午後/;
+  var RE_POLITE = /(?:です|ます|でした|ました|ません|でしょう|ください|下さい|ましょう|ませんか|ございます)。$/;
+  var RE_PLAIN = /(?:である|であった|だ|だった|ない|なかった|た|る|う|い|ぬ)。$/;
+
+  // 文書の種類ごとに必要な見出し [見出し名, 判定する語]
+  var SECTIONS = {
+    report: [['目的・概要', /目的|概要/], ['結果・結論', /結果|結論|まとめ/], ['今後の対応', /今後|対応|予定|対策/]],
+    proposal: [['目的', /目的|ねらい|狙い/], ['現状・課題', /現状|課題|問題/], ['対策', /対策|提案|施策|改善案/], ['効果', /効果|メリット|削減|向上/], ['お願い事項', /お願い|依頼|承認|判断|ご検討/]],
+    minutes: [['日時', RE_DATE], ['出席者', /出席|参加者|メンバー/], ['決定事項', /決定|決まっ|合意/], ['宿題（担当・期限）', /宿題|ToDo|TODO|アクション|担当/]],
+    notice: [['日時', RE_DATE], ['場所', /場所|会場|於|にて|オンライン/], ['対象', /対象|各位|全員|参加者/], ['問い合わせ先', /問い?合わ?せ|連絡先|担当/]]
+  };
+
+  // 表記ゆれ [表示名, 判定式] の組
+  var YURE = [
+    [['打ち合わせ', /打ち合わせ/], ['打合せ', /打合せ/]],
+    [['問い合わせ', /問い合わせ/], ['問合せ', /問合せ/]],
+    [['申し込み', /申し込み/], ['申込み', /申込み/], ['申込', /申込(?!み)/]],
+    [['取り扱い', /取り扱い/], ['取扱い', /取扱い/], ['取扱', /取扱(?!い)/]],
+    [['受け付け', /受け付け/], ['受付', /受付/]],
+    [['サーバー', /サーバー/], ['サーバ', /サーバ(?!ー)/]],
+    [['ユーザー', /ユーザー/], ['ユーザ', /ユーザ(?!ー)/]],
+    [['コンピューター', /コンピューター/], ['コンピュータ', /コンピュータ(?!ー)/]],
+    [['メモリー', /メモリー/], ['メモリ', /メモリ(?!ー)/]],
+    [['子供', /子供/], ['子ども', /子ども/]],
+    [['お客様', /お客様/], ['お客さま', /お客さま/]],
+    [['ください', /ください/], ['下さい', /下さい/]]
+  ];
+
+  /* ---------- 設定 ---------- */
+  var DEF = {
+    style: 'auto', maxSentence: 60, maxSubject: 30,
+    chkKana: true, chkRedund: true, chkYure: true, chkWidth: true, chkHou: true, chkOmou: true,
+    company: '', dept: '', name: '',
+    greetIn: 'お疲れ様です。', greetEx: 'いつもお世話になっております。',
+    closeIn: '以上、よろしくお願いいたします。', closeEx: '今後ともよろしくお願い申し上げます。',
+    maxBody: 600, chkTag: true,
+    rules: ''
+  };
+  // [設定キー, 要素ID, 種類, 最小または選択肢, 最大]
+  var FIELDS = [
+    ['style', 'cStyle', 'sel', ['auto', 'desu', 'dearu']],
+    ['maxSentence', 'cMaxSentence', 'n', 20, 300], ['maxSubject', 'cMaxSubject', 'n', 10, 200],
+    ['chkKana', 'cChkKana', 'b'], ['chkRedund', 'cChkRedund', 'b'], ['chkYure', 'cChkYure', 'b'],
+    ['chkWidth', 'cChkWidth', 'b'], ['chkHou', 'cChkHou', 'b'], ['chkOmou', 'cChkOmou', 'b'],
+    ['company', 'cCompany', 's'], ['dept', 'cDept', 's'], ['name', 'cName', 's'],
+    ['greetIn', 'cGreetIn', 's'], ['greetEx', 'cGreetEx', 's'],
+    ['closeIn', 'cCloseIn', 's'], ['closeEx', 'cCloseEx', 's'],
+    ['maxBody', 'cMaxBody', 'n', 100, 30000], ['chkTag', 'cChkTag', 'b'],
+    ['rules', 'rules', 's']
+  ];
+
+  function $(id) { return document.getElementById(id); }
+  var el = {
+    docType: $('docType'), to: $('to'), kind: $('kind'), kindWrap: $('kindWrap'),
+    subject: $('subject'), subjectLabel: $('subjectLabel'), body: $('body'), note: $('note'),
+    rulesInfo: $('rulesInfo'), stats: $('stats'), msg: $('msg'), summary: $('summary'),
+    findings: $('findings'), preview: $('preview'), prompt: $('prompt'), impFile: $('impFile'),
+    btnFixAll: $('btnFixAll'), btnUndo: $('btnUndo'), btnCopyBody: $('btnCopyBody'),
+    btnSample: $('btnSample'), btnClear: $('btnClear'), btnPrompt: $('btnPrompt'),
+    btnCopyPrompt: $('btnCopyPrompt'), btnExport: $('btnExport'), btnImport: $('btnImport'),
+    btnResetCfg: $('btnResetCfg')
+  };
+  FIELDS.forEach(function (f) { el[f[1]] = $(f[1]); });
+
+  function sanitizeCfg(src) {
+    var o = {};
+    src = src && typeof src === 'object' && !Array.isArray(src) ? src : {};
+    FIELDS.forEach(function (f) {
+      var k = f[0], v = src[k], d = DEF[k];
+      if (f[2] === 's') {
+        o[k] = typeof v === 'string' ? v.slice(0, k === 'rules' ? 5000 : 60) : d;
+      } else if (f[2] === 'n') {
+        var n = parseInt(v, 10);
+        o[k] = isFinite(n) ? Math.min(f[4], Math.max(f[3], n)) : d;
+      } else if (f[2] === 'sel') {
+        o[k] = f[3].indexOf(v) >= 0 ? v : d;
+      } else {
+        o[k] = typeof v === 'boolean' ? v : d;
+      }
+    });
+    return o;
+  }
+  function cfgFromUI() {
+    var src = {};
+    FIELDS.forEach(function (f) {
+      var n = el[f[1]];
+      src[f[0]] = f[2] === 'b' ? n.checked : n.value;
+    });
+    return sanitizeCfg(src);
+  }
+  function cfgToUI(c) {
+    FIELDS.forEach(function (f) {
+      var n = el[f[1]];
+      if (f[2] === 'b') n.checked = c[f[0]]; else n.value = String(c[f[0]]);
+    });
+  }
+
+  var cfg = sanitizeCfg({});
+  var findings = [];
+  var last = { subject: '', body: '' };
+  var undoStack = [];
+  var userRules = [];
+  var timer = null, msgTimer = null;
+
+  /* ---------- 修正用の関数 ---------- */
+  function toNFKC(t) { return t.normalize ? t.normalize('NFKC') : t; }
+  function fixDep(t) {
+    return toNFKC(t.replace(/[①-⑳]/g, function (c) { return '(' + (c.charCodeAt(0) - 0x2460 + 1) + ')'; }));
+  }
+  function toHalf(t) {
+    return t.replace(/[Ａ-Ｚａ-ｚ０-９]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); });
+  }
+
+  /* ---------- 表現ルール ----------
+     only：読み手を限定　opt：設定でオン・オフ　pre：第1グループを除いた第2グループが対象
+     fix：文字列（$1等可）または関数 */
+  var RULES = [
+    // 敬語
+    { re: /拝見させていただきま/, lv: 'NG', t: '二重敬語', d: '「拝見」だけで謙譲語です。', fix: '拝見しま' },
+    { re: /(?:お伺いさ|伺わ)せていただきま/, lv: 'NG', t: '二重敬語', d: '「伺います」で足ります。', fix: '伺いま' },
+    { re: /おっしゃられ/, lv: 'NG', t: '二重敬語', d: '「おっしゃった」「おっしゃいました」にします。' },
+    { re: /ご覧になられ/, lv: 'NG', t: '二重敬語', d: '「ご覧になり」「ご覧になった」にします。' },
+    { re: /ご(確認|連絡|検討|対応|報告|回答|返信|指示|協力|参加|出席|記入|提出|用意|準備|了承|理解|査収|一読)して(?:ください|下さい)/, lv: 'NG', t: '敬語の誤り', d: '「ご○○ください」が正しい形です。', fix: 'ご$1ください' },
+    { re: /各位(?:様|殿)/, lv: 'NG', t: '敬称の重複', d: '「各位」自体が敬称です。', fix: '各位' },
+    { re: /(部長|課長|係長|社長|専務|常務|次長|室長|所長|店長|工場長|支店長|本部長|主任|班長)(?:様|殿)/, lv: 'NG', t: '敬称の重複', d: '役職名が敬称を兼ねます。「田中部長」または「部長の田中様」。', fix: '$1' },
+    { re: /よろしかったでしょうか/, lv: 'NG', t: '敬語の誤り', d: '現在の確認は「よろしいでしょうか」。', fix: 'よろしいでしょうか' },
+    { re: /ご苦労(?:様|さま)/, only: UPPER, lv: 'NG', t: '目上に不適切', d: '目上には「お疲れ様」を使います。', fix: 'お疲れ様' },
+    { re: /了解(?:いた|致)?しました/, only: UPPER, lv: 'NG', t: '目上に不適切', d: '「承知しました」にします。', fix: '承知しました' },
+    { re: /了解です/, only: UPPER, lv: 'NG', t: '目上に不適切', d: '「承知しました」にします。', fix: '承知しました' },
+    { re: /お疲れ(?:様|さま)です/, only: ['ext'], lv: 'NG', t: '社外に不適切', d: '社外には「お世話になっております」。', fix: 'お世話になっております' },
+    { re: /御社/, only: ['ext'], lv: '注意', t: '書き言葉', d: '文書では「貴社」が一般的です。', fix: '貴社' },
+    { re: /(?:わか|分か|解)りました/, only: UPPER, lv: '注意', t: '丁寧さ不足', d: '「承知しました」が無難です。', fix: '承知しました' },
+    { re: /どうしますか/, only: UPPER, lv: '注意', t: '丁寧さ不足', d: '「いかがいたしましょうか」。', fix: 'いかがいたしましょうか' },
+    { re: /参考になりました/, only: UPPER, lv: '注意', t: '目上に注意', d: '「勉強になりました」が無難です。', fix: '勉強になりました' },
+    { re: /まだですか/, lv: '注意', t: '催促の表現が強い', d: '「その後いかがでしょうか」にします。', fix: 'その後いかがでしょうか' },
+    { re: /[！!]+/, only: UPPER, lv: '注意', t: '感嘆符', d: '上位者・社外向けでは使わないのが無難です。', fix: '。' },
+    { re: /ご教授/, lv: '注意', t: '語の選択', d: '方法や情報を尋ねる場合は「ご教示」。', fix: 'ご教示' },
+    // 誤り・重複
+    { re: /(見|来|食べ|出|起き|着|受け|考え|決め|調べ|伝え|答え|続け|教え|届け|変え|比べ|確かめ)れ(る|ます|ない|ません|た|て)/, lv: 'NG', t: 'ら抜き言葉', d: '「ら」を入れます。', fix: '$1られ$2' },
+    { re: /すいません/, lv: 'NG', t: '口語表記', d: '「すみません」。上位者・社外には「申し訳ございません」。', fix: 'すみません' },
+    { re: /まず最初に/, lv: 'NG', t: '重複表現', d: '「まず」で足ります。', fix: 'まず' },
+    { re: /一番最初/, lv: 'NG', t: '重複表現', d: '「最初」で足ります。', fix: '最初' },
+    { re: /後で後悔/, lv: 'NG', t: '重複表現', d: '「後悔」で足ります。', fix: '後悔' },
+    { re: /違和感を感じ/, lv: 'NG', t: '重複表現', d: '「違和感を覚え」にします。', fix: '違和感を覚え' },
+    { re: /過半数を超え/, lv: 'NG', t: '重複表現', d: '「過半数を占め」にします。', fix: '過半数を占め' },
+    { re: /製造メーカー/, lv: 'NG', t: '重複表現', d: '「メーカー」で足ります。', fix: 'メーカー' },
+    { re: /第([0-9０-９一二三四五六七八九十]+)回目/, lv: 'NG', t: '重複表現', d: '「第○回」か「○回目」のどちらかにします。', fix: '第$1回' },
+    { re: /必ず必要/, lv: 'NG', t: '重複表現', d: '「必要」か「必須」にします。', fix: '必要' },
+    { re: /あらかじめ予約/, lv: 'NG', t: '重複表現', d: '「予約」で足ります。', fix: '予約' },
+    { re: /今現在/, lv: 'NG', t: '重複表現', d: '「現在」で足ります。', fix: '現在' },
+    { re: /最も最適/, lv: 'NG', t: '重複表現', d: '「最適」で足ります。', fix: '最適' },
+    { re: /お(?:体|身体|からだ)を?ご自愛/, lv: 'NG', t: '重複表現', d: '「ご自愛」に「体」の意味が含まれます。', fix: 'ご自愛' },
+    { re: /被害を被|返事を返|頭痛が痛|犯罪を犯/, lv: 'NG', t: '重複表現', d: '同じ意味の語が重なっています。言い換えます。' },
+    { re: /約[0-9０-９一二三四五六七八九十百千万]+[^\s、。]{0,4}(?:程度|ほど|くらい|ぐらい)/, lv: '注意', t: '重複表現', d: '「約」か「程度」のどちらかにします。' },
+    { re: /(?:ない|なく)(?:ことは|わけでは|とは言え)(?:ない|ありません|言えない)/, lv: '注意', t: '二重否定', d: '肯定の形で言い切ると伝わりやすくなります。' },
+    // 文字
+    { re: /[ｦ-ﾟ]+/, lv: 'NG', t: '半角カナ', d: '文字化けの恐れがあります。全角にします。', fix: toNFKC },
+    { re: /[①-⑳㈱㈲㈹℡№㎜㎝㎞㎏㎡Ⅰ-Ⅹ]/, lv: '注意', t: '機種依存文字', d: '相手の環境で化ける恐れがあります。', fix: fixDep },
+    // 口語
+    { re: /とりあえず/, lv: '注意', t: '口語', d: '「まずは」にします。', fix: 'まずは' },
+    { re: /ちょっと/, lv: '注意', t: '口語', d: '「少し」にします。', fix: '少し' },
+    { re: /やっぱり/, lv: '注意', t: '口語', d: '「やはり」にします。', fix: 'やはり' },
+    { re: /すごく|めっちゃ|超(?=[ぁ-ん一-龠])/, lv: '注意', t: '口語', d: '「非常に」「大変」にします。' },
+    { re: /一応/, lv: '注意', t: '口語', d: '削るか「念のため」にします。' },
+    { re: /(^|[。\n])(なので)/, pre: true, lv: '注意', t: '口語', d: '文頭は「そのため」にします。', fix: 'そのため' },
+    { re: /(^|[。\n])(でも、)/, pre: true, lv: '注意', t: '口語', d: '文頭は「しかし、」にします。', fix: 'しかし、' },
+    { re: /なるはや|なる早|早めに|近日中|なるべく早く|できるだけ早く|そのうち|お手すきの際に?/, lv: '注意', t: '期限があいまい', d: '「○月○日（○）○時まで」と書きます。' },
+    { re: /のほう/, opt: 'chkHou', lv: '注意', t: '不要語の疑い', d: '方向・比較の意味でなければ削ります。' },
+    // 回りくどい表現
+    { re: /することができ/, opt: 'chkRedund', lv: '注意', t: '回りくどい表現', d: '「することができる」は「できる」で足ります。', fix: 'でき' },
+    { re: /ことが可能(?:です|である|だ|となります)/, opt: 'chkRedund', lv: '注意', t: '回りくどい表現', d: '「できます」「できる」にします。' },
+    { re: /(?:という|といった)形で/, opt: 'chkRedund', lv: '注意', t: '回りくどい表現', d: '「で」で足ります。' },
+    { re: /[一-龠]{2,4}を行(?:う|います|った|いました|って|い)/, opt: 'chkRedund', lv: '注意', t: '回りくどい表現', d: '「○○を行う」は「○○する」で足ります。' },
+    { re: /(?:することとする|することとします|することとなります)/, opt: 'chkRedund', lv: '注意', t: '回りくどい表現', d: '「する」「します」で足ります。' },
+    // ひらがなで書く語
+    { re: /下さい/, opt: 'chkKana', lv: '注意', t: 'ひらがなで書く語', d: '「ください」と書きます。', fix: 'ください' },
+    { re: /頂(き|く|け|いた|いて)/, opt: 'chkKana', lv: '注意', t: 'ひらがなで書く語', d: '補助動詞は「いただく」と書きます。', fix: 'いただ$1' },
+    { re: /(^|[^一合招誘拉極風筆送])(致し(?:ます|ました|ません|まして))/, pre: true, opt: 'chkKana', lv: '注意', t: 'ひらがなで書く語', d: '補助動詞は「いたします」と書きます。', fix: function (t) { return t.replace('致し', 'いたし'); } },
+    { re: /出来(る|ます|ない|ません|た|て|れば|ず)/, opt: 'chkKana', lv: '注意', t: 'ひらがなで書く語', d: '「できる」と書きます。', fix: 'でき$1' },
+    { re: /([たるいうだすくつぬぶむぐ])事(?![務業項例件態故情実柄前後])/, opt: 'chkKana', lv: '注意', t: 'ひらがなで書く語', d: '形式名詞は「こと」と書きます。', fix: '$1こと' },
+    { re: /(する|なる|できる|ある|いる|ない|れる)様に/, opt: 'chkKana', lv: '注意', t: 'ひらがなで書く語', d: '「ように」と書きます。', fix: '$1ように' },
+    { re: /(^|[。\n])(尚)/, pre: true, opt: 'chkKana', lv: '注意', t: 'ひらがなで書く語', d: '接続詞は「なお」と書きます。', fix: 'なお' },
+    { re: /但し/, opt: 'chkKana', lv: '注意', t: 'ひらがなで書く語', d: '「ただし」と書きます。', fix: 'ただし' },
+    { re: /予め/, opt: 'chkKana', lv: '注意', t: 'ひらがなで書く語', d: '「あらかじめ」と書きます。', fix: 'あらかじめ' },
+    { re: /殆ど/, opt: 'chkKana', lv: '注意', t: 'ひらがなで書く語', d: '「ほとんど」と書きます。', fix: 'ほとんど' },
+    { re: /敢えて/, opt: 'chkKana', lv: '注意', t: 'ひらがなで書く語', d: '「あえて」と書きます。', fix: 'あえて' },
+    { re: /宜しく/, opt: 'chkKana', lv: '注意', t: 'ひらがなで書く語', d: '「よろしく」と書きます。', fix: 'よろしく' },
+    { re: /有難う/, opt: 'chkKana', lv: '注意', t: 'ひらがなで書く語', d: '「ありがとう」と書きます。', fix: 'ありがとう' },
+    { re: /是非/, opt: 'chkKana', lv: '注意', t: 'ひらがなで書く語', d: '副詞は「ぜひ」と書きます。', fix: 'ぜひ' },
+    { re: /沢山/, opt: 'chkKana', lv: '注意', t: 'ひらがなで書く語', d: '「たくさん」と書きます。', fix: 'たくさん' },
+    { re: /色々/, opt: 'chkKana', lv: '注意', t: 'ひらがなで書く語', d: '「いろいろ」と書きます。', fix: 'いろいろ' },
+    { re: /迄/, opt: 'chkKana', lv: '注意', t: 'ひらがなで書く語', d: '「まで」と書きます。', fix: 'まで' },
+    // 読みやすさ
+    { re: /の[^の。、\n]{1,6}の[^の。、\n]{1,6}の/, lv: '注意', t: '「の」が続く', d: '「の」が3回以上続いています。言い換えるか語順を変えます。' }
+  ];
+  var COUNT_RULES = [
+    { re: /させていただ/g, min: 3, t: '「させていただく」の多用', d: '「いたします」「します」に置き換えます。' },
+    { re: /思います/g, min: 3, opt: 'chkOmou', t: '「思います」の多用', d: '事実と判断は言い切ります。' }
+  ];
+
+  /* ---------- 自分のルール ---------- */
+  function escRe(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+  function parseRules(text) {
+    var out = [];
+    String(text || '').split('\n').forEach(function (line) {
+      line = line.trim();
+      if (line === '' || out.length >= 100) return;
+      var p = line.split(/\s*(?:→|=>|->)\s*/);
+      var w = p[0].trim().slice(0, 50);
+      if (w === '') return;
+      out.push({ w: w, to: p.length > 1 ? p.slice(1).join('').trim().slice(0, 50) : null });
+    });
+    return out;
+  }
+
+  /* ---------- メール挿入用の文面 ---------- */
+  function addrText(to) {
+    if (to === 'ext') return '【会社名】\n【氏名】様';
+    if (to === 'boss') return '【氏名】【役職】';
+    return '【氏名】さん';
+  }
+  function nameText(to) {
+    var co = cfg.company.trim(), dp = cfg.dept.trim(), nm = cfg.name.trim() || '【氏名】';
+    if (to === 'ext') return (co || '【会社名】') + dp + 'の' + nm + 'です。';
+    return (dp || '【所属】') + 'の' + nm + 'です。';
+  }
+  function greetText(to) {
+    if (to === 'ext') return (cfg.greetEx.trim() || DEF.greetEx) + '\n' + nameText(to);
+    return (cfg.greetIn.trim() || DEF.greetIn) + nameText(to);
+  }
+  function closeText(to) {
+    return to === 'ext' ? (cfg.closeEx.trim() || DEF.closeEx) : (cfg.closeIn.trim() || DEF.closeIn);
+  }
+  function hasPhrase(text, phrase) {
+    phrase = String(phrase || '').trim();
+    return phrase.length >= 2 && text.indexOf(phrase.slice(0, 6)) >= 0;
+  }
+  function firstFilled(lines) {
+    for (var i = 0; i < lines.length; i++) if (lines[i].trim() !== '') return i;
+    return 0;
+  }
+  function addrLine(lines) {          // 冒頭2行以内の宛名の位置。なければ -1
+    var seen = 0;
+    for (var i = 0; i < lines.length && seen < 2; i++) {
+      if (lines[i].trim() === '') continue;
+      if (RE_ADDR.test(lines[i])) return i;
+      seen++;
+    }
+    return -1;
+  }
+  function insertLines(body, idx, text) {
+    var ls = body.split('\n');
+    ls.splice(idx, 0, text);
+    return ls.join('\n');
+  }
+  function appendBlock(body, text) {
+    return body.replace(/\s+$/, '') + '\n\n' + text;
+  }
+  function excerpt(body, start, len) {
+    var a = Math.max(0, start - 8), b = Math.min(body.length, start + Math.min(len, 30) + 8);
+    return (a > 0 ? '…' : '') + body.slice(a, b).replace(/\s+/g, ' ') + (b < body.length ? '…' : '');
+  }
+
+  /* ---------- 解析 ---------- */
+  function analyze(subject, body, to, kind, type) {
+    var out = [];
+    var isMail = type === 'mail';
+    function add(lv, t, d, start, len, fix, act, label) {
+      out.push({
+        lv: lv, t: t, d: d, start: start, len: len,
+        fix: fix === undefined ? null : fix, act: act || null, label: label || '',
+        ex: start >= 0 ? excerpt(body, start, len) : ''
+      });
+    }
+
+    // 件名・タイトル
+    var sj = subject.trim();
+    var tag = '【' + kind + '】';
+    if (sj === '') {
+      if (isMail) {
+        add('NG', '件名が空', '用件と期日が分かる件名を入れます。', -1, 0, null,
+          function (s) { return { subject: tag + '【　】', body: s.body }; }, '件名のひな形を入れる');
+      } else {
+        add('注意', 'タイトルが空', '何についての文書かが一目で分かるタイトルを入れます。', -1, 0);
+      }
+    } else {
+      if (sj.indexOf('【　】') >= 0) add('注意', '件名に空欄【　】が残っている', '何の件かを書き入れます。', -1, 0);
+      if (sj.length > cfg.maxSubject) add('注意', (isMail ? '件名' : 'タイトル') + 'が長い（' + sj.length + '字）', cfg.maxSubject + '字以内が目安です。', -1, 0);
+      if (/^(?:お願い|ご連絡|連絡|確認|ご確認|報告|ご報告|報告書|相談|ご相談|お知らせ|提案|ご提案|議事録|お疲れ様です|お疲れさまです)(?:です|します|いたします)?$/.test(sj)) {
+        add('注意', (isMail ? '件名' : 'タイトル') + 'が具体的でない', '「何の件か」が分かる語を入れます。', -1, 0);
+      }
+      if (isMail && cfg.chkTag && sj.charAt(0) !== '【') {
+        add('確認', '件名に用件の表示がない', '先頭に' + tag + 'を付けると、受信側で見分けやすくなります。', -1, 0, null,
+          function (s) { return { subject: tag + s.subject.trim(), body: s.body }; }, '件名に' + tag + 'を付ける');
+      }
+    }
+
+    var lines = body.split('\n');
+    var filled = lines.filter(function (s) { return s.trim() !== ''; });
+
+    if (isMail) {
+      // メールの構成
+      var head = filled.slice(0, 5).join('\n');
+      var tail = filled.slice(-6).join('\n');
+      var hasGreet = RE_GREET.test(head) || hasPhrase(head, cfg.greetIn) || hasPhrase(head, cfg.greetEx);
+      var hasClose = RE_CLOSE.test(tail) || hasPhrase(tail, cfg.closeIn) || hasPhrase(tail, cfg.closeEx);
+      if (addrLine(lines) < 0) {
+        add('注意', '冒頭に宛名がない', '1行目に「○○課長」「○○様」「各位」を入れます。', -1, 0, null,
+          function (s) { return { subject: s.subject, body: insertLines(s.body, firstFilled(s.body.split('\n')), addrText(to)) }; },
+          '宛名のひな形を入れる');
+      }
+      if (!hasGreet) {
+        add('注意', '挨拶・名乗りがない', '「' + greetText(to).split('\n')[0] + '」と名乗りを入れます。', -1, 0, null,
+          function (s) {
+            var ls = s.body.split('\n'), a = addrLine(ls);
+            return { subject: s.subject, body: insertLines(s.body, a >= 0 ? a + 1 : firstFilled(ls), greetText(to)) };
+          }, '挨拶を入れる');
+      } else if (to === 'ext' && !RE_NAME.test(head)) {
+        add('注意', '名乗りがない', '「○○株式会社の△△です。」を入れます。', -1, 0, null,
+          function (s) {
+            var ls = s.body.split('\n'), a = addrLine(ls), at = (a >= 0 ? a : firstFilled(ls)) + 1;
+            for (var i = 0; i < ls.length; i++) {
+              if (RE_GREET.test(ls[i]) || hasPhrase(ls[i], cfg.greetEx)) { at = i + 1; break; }
+            }
+            return { subject: s.subject, body: insertLines(s.body, at, nameText(to)) };
+          }, '名乗りを入れる');
+      }
+      if (!hasClose) {
+        add('注意', '結びがない', '「' + closeText(to) + '」等で締めます。', -1, 0, null,
+          function (s) { return { subject: s.subject, body: appendBlock(s.body, closeText(to)) }; }, '結びを入れる');
+      }
+      // 用件別
+      if ((['依頼', '催促', '相談'].indexOf(kind) >= 0 || /ください|下さい|いただけ(?:ます|ない)か/.test(body)) && !RE_DATE.test(body)) {
+        add('注意', '期限が読み取れない', '「○月○日（○）まで」を書きます。', -1, 0);
+      }
+      if (kind === 'お詫び') {
+        if (!/原因|理由|経緯/.test(body)) add('注意', '原因の記載がない', 'お詫びには「何が・なぜ起きたか」を書きます。', -1, 0);
+        if (!/対策|再発防止|今後は|今後、|改善/.test(body)) add('注意', '再発防止策の記載がない', '「今後どうするか」を書きます。', -1, 0);
+      }
+      if (kind === '催促' && !/先日|前回|お送りした|お願いした|ご依頼した|ご依頼しておりました|[0-9０-９]{1,2}日に|[0-9０-９]{1,2}[\/／][0-9０-９]{1,2}に/.test(body)) {
+        add('注意', 'いつの依頼かが書かれていない', '「○月○日にお願いした○○の件」と書きます。', -1, 0);
+      }
+      if (kind === 'お断り' && !/代わり|代案|改めて|次回|別の|機会|でしたら|であれば/.test(body)) {
+        add('確認', '代案・次の機会を示しているか', '断るだけで終わらせず、代わりの案を添えると角が立ちません。', -1, 0);
+      }
+      if (kind === '報告') add('確認', '結論を最初に書いているか', '冒頭3行で「結果・結論」が分かるか確認します。', -1, 0);
+      if (kind === '相談' && !/案|考えて|したいと|いかがでしょうか/.test(body)) {
+        add('確認', '自分の案を添えているか', '「○○としたいと考えていますが、いかがでしょうか」の形にします。', -1, 0);
+      }
+      if (body.length > cfg.maxBody) add('注意', '本文が長い（' + body.length + '字）', '結論を先頭に置き、詳細は箇条書きにします。', -1, 0);
+    } else {
+      // 文書の構成（足りない見出し）
+      (SECTIONS[type] || []).forEach(function (sec) {
+        if (sec[1].test(body) || body.indexOf('■' + sec[0]) >= 0) return;
+        add('注意', '「' + sec[0] + '」の記載がない', type === 'proposal'
+          ? '提案書は「目的→現状・課題→対策→効果→お願い事項」の順が基本です。'
+          : 'この種類の文書に必要な項目です。', -1, 0, null,
+          function (s) { return { subject: s.subject, body: appendBlock(s.body, '■' + sec[0] + '\n【　】') }; },
+          '見出し「■' + sec[0] + '」を末尾に追加');
+      });
+      if (type === 'report' || type === 'proposal') add('確認', '結論を最初に書いているか', '冒頭で「結論・お願いしたいこと」が分かるか確認します。', -1, 0);
+      if (type === 'minutes') add('確認', '宿題に担当と期限があるか', '「誰が・いつまでに・何を」の3点がそろっているか確認します。', -1, 0);
+      if (type === 'notice' && !/持ち物|服装|締め?切|期限|まで/.test(body)) add('確認', '持ち物・締切など', '参加者が準備することがあれば書きます。', -1, 0);
+    }
+
+    // 文字種
+    if (cfg.chkWidth && /[Ａ-Ｚａ-ｚ０-９]/.test(body) && /[A-Za-z0-9]/.test(body)) {
+      add('注意', '全角・半角の英数字が混在', '半角に統一します。', -1, 0, null,
+        function (s) { return { subject: s.subject, body: toHalf(s.body) }; }, '英数字を半角に統一する');
+    }
+    if (/添付|別紙/.test(body)) add('確認', '添付・別紙', '添付漏れや別紙の付け忘れがないか確認します。', -1, 0);
+
+    // 括弧の対応
+    [['「', '」'], ['（', '）'], ['(', ')'], ['【', '】'], ['『', '』']].forEach(function (p) {
+      var a = body.split(p[0]).length - 1, b = body.split(p[1]).length - 1;
+      if (a !== b) add('注意', '括弧の数が合わない（' + p[0] + a + '個・' + p[1] + b + '個）', '閉じ忘れか、余分な括弧があります。', -1, 0);
+    });
+
+    // 表記ゆれ
+    if (cfg.chkYure) {
+      YURE.forEach(function (grp) {
+        var used = grp.filter(function (v) { return v[1].test(body); }).map(function (v) { return '「' + v[0] + '」'; });
+        if (used.length >= 2) add('注意', '表記ゆれ：' + used.join('と'), 'どちらかに統一します。', -1, 0);
+      });
+    }
+
+    // 段落
+    var run = 0, pos = 0, runStart = 0;
+    lines.concat(['']).forEach(function (s) {
+      if (s.trim() !== '') {
+        if (run === 0) runStart = pos;
+        run++;
+      } else {
+        if (run >= 6 && filled.length > run) add('注意', '段落が長い（' + run + '行）', '3〜4行ごとに空行を入れます。', runStart, 0);
+        run = 0;
+      }
+      pos += s.length + 1;
+    });
+
+    // 一文ごとのチェック（長さ・読点・文体・文末）
+    var sre = /[^。！？!?\n]+[。！？!?]?/g, m, longN = 0, commaN = 0;
+    var polite = [], plain = [], endRun = 0, prevEnd = '';
+    while ((m = sre.exec(body)) !== null) {
+      var lead = m[0].length - m[0].replace(/^[\s　]+/, '').length;
+      var s = m[0].trim(), st = m.index + lead;
+      if (s === '') continue;
+      if (s.length > cfg.maxSentence && !/https?:\/\//.test(s)) {
+        longN++;
+        if (longN <= 5) add('注意', '一文が長い（' + s.length + '字）', cfg.maxSentence + '字以内を目安に、2文に分けます。', st, s.length);
+      }
+      var commas = (s.match(/[、，]/g) || []).length;
+      if (commas >= 4) {
+        commaN++;
+        if (commaN <= 5) add('注意', '読点が多い（' + commas + '個）', '文を分けるか、読点を減らします。', st, s.length);
+      }
+      if (s.slice(-1) === '。' && s.slice(-2, -1) !== '」') {
+        if (RE_POLITE.test(s)) polite.push({ st: st, len: s.length });
+        else if (RE_PLAIN.test(s)) plain.push({ st: st, len: s.length });
+        var end = s.slice(-5, -1);
+        endRun = end.length === 4 && end === prevEnd ? endRun + 1 : 1;
+        prevEnd = end;
+        if (endRun === 3) add('注意', '同じ文末が3回続く（…' + end + '。）', '文末を変えると読みやすくなります。', st, s.length);
+      } else {
+        endRun = 0; prevEnd = '';
+      }
+    }
+    if (longN > 5) add('注意', '長い文が他に' + (longN - 5) + '件', '同様に分けます。', -1, 0);
+    if (commaN > 5) add('注意', '読点が多い文が他に' + (commaN - 5) + '件', '同様に直します。', -1, 0);
+
+    // 文体
+    var target = isMail ? 'desu' : cfg.style;
+    if (target === 'auto') target = plain.length > polite.length ? 'dearu' : 'desu';
+    var off = target === 'desu' ? plain : polite;
+    if (off.length > 0) {
+      var tName = target === 'desu' ? 'です・ます調' : 'だ・である調';
+      off.slice(0, 10).forEach(function (o) {
+        add('注意', '文体の混在（' + tName + 'に統一）', '文末を' + tName + 'にそろえます。', o.st, o.len);
+      });
+      if (off.length > 10) add('注意', '文体の混在が他に' + (off.length - 10) + '件', '同様に直します。', -1, 0);
+    }
+
+    // 表現
+    function scan(re, lv, t, d, fixTpl, pre) {
+      var g = new RegExp(re.source, 'g'), mm, n = 0;
+      while ((mm = g.exec(body)) !== null) {
+        if (mm[0] === '') { g.lastIndex++; continue; }
+        var start = mm.index, text = mm[0];
+        if (pre) { start += mm[1].length; text = mm[2]; }
+        var fix = null;
+        if (typeof fixTpl === 'function') fix = fixTpl(text);
+        else if (typeof fixTpl === 'string') fix = pre ? fixTpl : text.replace(new RegExp(re.source), fixTpl);
+        add(lv, t, d, start, text.length, fix);
+        if (++n >= 20) break;
+      }
+    }
+    RULES.forEach(function (r) {
+      if (r.only && r.only.indexOf(to) < 0) return;
+      if (r.opt && !cfg[r.opt]) return;
+      scan(r.re, r.lv, r.t, r.d, r.fix, r.pre);
+    });
+    userRules.forEach(function (u) {
+      scan(new RegExp(escRe(u.w)), '注意', '自分のルール：「' + u.w + '」',
+        u.to === null ? '使わない語として登録しています。' : (u.to === '' ? '削除します。' : '「' + u.to + '」にします。'),
+        u.to === null ? null : function () { return u.to; }, false);
+    });
+    COUNT_RULES.forEach(function (r) {
+      if (r.opt && !cfg[r.opt]) return;
+      var c = (body.match(r.re) || []).length;
+      if (c >= r.min) add('注意', r.t + '（' + c + '回）', r.d, -1, 0);
+    });
+
+    out.sort(function (a, b) { return (RANK[a.lv] - RANK[b.lv]) || (a.start - b.start); });
+    return out;
+  }
+
+  /* ---------- 表示 ---------- */
+  function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
+  function span(cls, text) {
+    var s = document.createElement('span');
+    s.className = cls; s.textContent = text;
+    return s;
+  }
+
+  function renderSummary(idle) {
+    clear(el.summary);
+    if (idle) {
+      el.summary.className = 'band idle';
+      el.summary.textContent = '本文を入力すると、ここに結果が出ます。';
+      return;
+    }
+    var c = { 'NG': 0, '注意': 0, '確認': 0 };
+    findings.forEach(function (f) { c[f.lv]++; });
+    if (c['NG'] === 0 && c['注意'] === 0) {
+      el.summary.className = 'band ok';
+      el.summary.appendChild(span('big', 'OK'));
+      el.summary.appendChild(document.createTextNode('指摘なし' + (c['確認'] ? '（確認 ' + c['確認'] + '件）' : '')));
+      return;
+    }
+    el.summary.className = 'band ' + (c['NG'] > 0 ? 'ng' : 'warn');
+    ['NG', '注意', '確認'].forEach(function (k) {
+      el.summary.appendChild(document.createTextNode(k));
+      el.summary.appendChild(span('num', String(c[k])));
+      el.summary.appendChild(document.createTextNode('件　'));
+    });
+  }
+
+  function renderFindings() {
+    clear(el.findings);
+    findings.forEach(function (f) {
+      var li = document.createElement('li');
+      li.className = CLS[f.lv];
+      var h = document.createElement('div');
+      h.appendChild(span('lv', f.lv));
+      h.appendChild(span('ft', f.t));
+      li.appendChild(h);
+      var d = document.createElement('div');
+      d.textContent = f.d;
+      li.appendChild(d);
+      if (f.ex && f.len > 0) {
+        var x = document.createElement('div');
+        x.className = 'fx';
+        x.textContent = '該当：「' + f.ex + '」';
+        li.appendChild(x);
+      }
+      if (f.fix !== null || f.act) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'small';
+        b.textContent = f.act ? f.label : (f.fix === '' ? '削除する' : '「' + f.fix + '」に直す');
+        b.addEventListener('click', function () { applyOne(f); });
+        li.appendChild(b);
+      }
+      el.findings.appendChild(li);
+    });
+  }
+
+  function renderPreview(body) {
+    clear(el.preview);
+    var picked = [];
+    findings.forEach(function (f) {          // findings は NG 優先で並んでいる
+      if (f.start < 0 || f.len <= 0) return;
+      var hit = picked.some(function (p) { return f.start < p.start + p.len && p.start < f.start + f.len; });
+      if (!hit) picked.push(f);
+    });
+    picked.sort(function (a, b) { return a.start - b.start; });
+    var pos = 0;
+    picked.forEach(function (f) {
+      if (f.start > pos) el.preview.appendChild(document.createTextNode(body.slice(pos, f.start)));
+      var s = span('hl ' + CLS[f.lv], body.slice(f.start, f.start + f.len));
+      s.title = f.t;
+      el.preview.appendChild(s);
+      el.preview.appendChild(span('tag ' + CLS[f.lv], f.lv));
+      pos = f.start + f.len;
+    });
+    if (pos < body.length) el.preview.appendChild(document.createTextNode(body.slice(pos)));
+  }
+
+  function renderStats(body) {
+    if (body === '') { el.stats.textContent = ''; return; }
+    var max = 0;
+    body.split(/[。！？!?\n]/).forEach(function (s) { max = Math.max(max, s.trim().length); });
+    var chars = body.replace(/\s/g, '').length;
+    el.stats.textContent = '文字数 ' + body.length + '（空白除く ' + chars + '）　／　行数 ' + body.split('\n').length +
+      '　／　最長の一文 ' + max + '字　／　読む時間の目安 約' + Math.max(1, Math.ceil(chars / 500)) + '分';
+  }
+
+  function updateTypeUI() {
+    var isMail = el.docType.value === 'mail';
+    el.kindWrap.className = isMail ? '' : 'hide';
+    el.subjectLabel.textContent = isMail ? '件名' : 'タイトル';
+    el.subject.placeholder = TITLE_PH[el.docType.value] || '';
+  }
+
+  function isFixable(f) { return f.lv !== '確認' && (f.fix !== null || f.act); }
+
+  function run() {
+    var body = el.body.value;
+    last = { subject: el.subject.value, body: body };
+    var idle = body.trim() === '';
+    findings = idle ? [] : analyze(el.subject.value, body, el.to.value, el.kind.value, el.docType.value);
+    renderSummary(idle);
+    renderFindings();
+    renderPreview(body);
+    renderStats(body);
+    el.btnFixAll.disabled = !findings.some(isFixable);
+  }
+
+  /* ---------- 修正 ---------- */
+  function isStale() { return el.body.value !== last.body || el.subject.value !== last.subject; }
+
+  function replaceBatch(body, list) {
+    var limit = Infinity, n = 0;
+    list.filter(function (f) { return f.fix !== null && f.start >= 0; })
+      .sort(function (a, b) { return b.start - a.start; })
+      .forEach(function (f) {
+        if (f.start + f.len > limit) return;             // 重なる修正は次の周回で
+        if (body.slice(f.start, f.start + f.len) !== f.fix) {
+          body = body.slice(0, f.start) + f.fix + body.slice(f.start + f.len);
+          n++;
+        }
+        limit = f.start;
+      });
+    return { body: body, n: n };
+  }
+
+  function pushUndo() {
+    undoStack.push({ subject: el.subject.value, body: el.body.value });
+    if (undoStack.length > UNDO_MAX) undoStack.shift();
+    el.btnUndo.disabled = false;
+  }
+
+  function commit(st, n) {
+    if (n === 0) {
+      undoStack.pop();
+      el.btnUndo.disabled = undoStack.length === 0;
+      run();
+      flash('直せる箇所はありませんでした。');
+      return;
+    }
+    el.subject.value = st.subject.slice(0, 200);
+    el.body.value = st.body.slice(0, BODY_MAX);
+    saveDraft(); run();
+    flash(n + '箇所を直しました。【　】は書き入れてください。');
+  }
+
+  function staleGuard() {
+    if (!isStale()) return false;
+    run();
+    flash('内容が変わったため再チェックしました。もう一度押してください。');
+    return true;
+  }
+
+  function applyOne(f) {
+    if (staleGuard()) return;
+    pushUndo();
+    var st = { subject: last.subject, body: last.body }, n = 0;
+    if (f.act) { st = f.act(st); n = 1; }
+    else { var r = replaceBatch(st.body, [f]); st.body = r.body; n = r.n; }
+    commit(st, n);
+  }
+
+  function fixAll() {
+    if (staleGuard()) return;
+    pushUndo();
+    var st = { subject: last.subject, body: last.body }, n = 0, done = {};
+    var to = el.to.value, kind = el.kind.value, type = el.docType.value;
+    for (var i = 0; i < 20; i++) {
+      var fs = analyze(st.subject, st.body, to, kind, type).filter(isFixable);
+      var r = replaceBatch(st.body, fs);
+      if (r.n > 0) { st.body = r.body; n += r.n; continue; }
+      var a = fs.filter(function (f) { return f.act && !done[f.t]; })[0];
+      if (!a) break;
+      done[a.t] = true;
+      st = a.act(st); n++;
+    }
+    commit(st, n);
+  }
+
+  function undo() {
+    var p = undoStack.pop();
+    if (!p) return;
+    el.subject.value = p.subject; el.body.value = p.body;
+    el.btnUndo.disabled = undoStack.length === 0;
+    saveDraft(); run();
+    flash('元に戻しました。');
+  }
+
+  /* ---------- AI依頼文 ---------- */
+  function buildPrompt() {
+    var to = el.to.value, type = el.docType.value, isMail = type === 'mail';
+    var toName = el.to.options[el.to.selectedIndex].text;
+    var tone = to === 'ext' ? '社外向けの丁寧な敬語' : (to === 'boss' ? '上位者向けの丁寧な表現' : '簡潔で分かりやすい表現');
+    var style = isMail || cfg.style === 'desu' ? 'です・ます調' : (cfg.style === 'dearu' ? 'だ・である調' : '原文で多い方の文体');
+    var p = [
+      'あなたは日本語のビジネス文書の添削者です。次の' + TYPE_NAME[type] + 'を添削してください。',
+      '',
+      '# 条件',
+      '- 文書の種類：' + TYPE_NAME[type] + (isMail ? '（用件：' + el.kind.value + '）' : ''),
+      '- 読み手：' + toName,
+      '- 口調：' + tone + '。文体は' + style + 'に統一する',
+      '- 一文は' + cfg.maxSentence + '字以内。回りくどい言い回しや重複表現は削る',
+      '- 事実・数値・固有名詞・期限は変えない。不明な点は【　】で残す'
+    ];
+    if (isMail) p.push('- 結論・依頼事項・期限が最初の3行で分かる構成にする');
+    if (type === 'report') p.push('- 結論を先に書き、目的・概要→結果・結論→今後の対応の順にする');
+    if (type === 'proposal') p.push('- 目的→現状・課題→対策→効果→お願い事項の順にし、効果はできるだけ数値で示す');
+    if (type === 'minutes') p.push('- 日時・出席者・決定事項・宿題（担当・期限）を見出しで分け、箇条書きにする');
+    if (type === 'notice') p.push('- 日時・場所・対象・問い合わせ先を漏れなく、箇条書きで示す');
+    if (cfg.chkKana) p.push('- 補助動詞・形式名詞はひらがなで書く（ください、いただく、こと、できる 等）');
+    var who = [cfg.company, cfg.dept, cfg.name].map(function (v) { return v.trim(); }).filter(Boolean).join(' ');
+    if (isMail && who) p.push('- 差出人：' + who);
+    if (userRules.length) {
+      p.push('- 次の言い換えルールを守る：' + userRules.slice(0, 30).map(function (u) {
+        return u.to === null ? '「' + u.w + '」は使わない' : '「' + u.w + '」→「' + u.to + '」';
+      }).join('、'));
+    }
+    p.push('', '# 出力', '1. 添削後の全文（' + (isMail ? '件名' : 'タイトル') + 'から）', '2. 変更点と理由（箇条書き、5点以内）', '3. 内容面で足りない点・確認すべき点（あれば）');
+    var note = el.note.value.trim();
+    if (note) p.push('', '# 補足', note);
+    var titles = [];
+    findings.forEach(function (f) { if (f.lv !== '確認' && titles.indexOf(f.t) < 0) titles.push(f.t); });
+    if (titles.length) p.push('', '# 機械チェックで見つかった点（必ず直す）', titles.slice(0, 15).map(function (t) { return '- ' + t; }).join('\n'));
+    p.push('', '# ' + (isMail ? '件名' : 'タイトル'), el.subject.value.trim() || '（未記入。案を付けてください）', '', '# 本文', el.body.value);
+    return p.join('\n');
+  }
+
+  /* ---------- 保存 ---------- */
+  function readJSON(key) {
+    var d = null;
+    try { d = JSON.parse(localStorage.getItem(key)); } catch (e) { d = null; }
+    return d && typeof d === 'object' && !Array.isArray(d) ? d : null;
+  }
+  function writeJSON(key, obj) {
+    try { localStorage.setItem(key, JSON.stringify(obj)); } catch (e) { /* 保存できなくても動作は続ける */ }
+  }
+  function saveDraft() {
+    writeJSON(DKEY, {
+      docType: el.docType.value, to: el.to.value, kind: el.kind.value,
+      subject: el.subject.value, body: el.body.value, note: el.note.value
+    });
+  }
+  function setText(node, v) {
+    if (typeof v === 'string') node.value = node.maxLength > 0 ? v.slice(0, node.maxLength) : v;
+  }
+  function setSelect(node, v) {
+    if (typeof v !== 'string') return;
+    for (var i = 0; i < node.options.length; i++) {
+      if (node.options[i].value === v) node.selectedIndex = i;
+    }
+  }
+  function load() {
+    var d = readJSON(DKEY);
+    if (d) {
+      setText(el.subject, d.subject); setText(el.body, d.body); setText(el.note, d.note);
+      setSelect(el.docType, d.docType); setSelect(el.to, d.to); setSelect(el.kind, d.kind);
+    }
+    cfg = sanitizeCfg(readJSON(SKEY));
+    cfgToUI(cfg);
+  }
+  function applyCfg(c, persist) {
+    cfg = c;
+    userRules = parseRules(cfg.rules);
+    el.rulesInfo.textContent = '登録 ' + userRules.length + '件' + (userRules.length >= 100 ? '（上限100件）' : '');
+    if (persist) writeJSON(SKEY, cfg);
+  }
+
+  /* ---------- 設定の書き出し・読み込み ---------- */
+  function exportCfg() {
+    var d = new Date();
+    var ymd = d.getFullYear() + ('0' + (d.getMonth() + 1)).slice(-2) + ('0' + d.getDate()).slice(-2);
+    var blob = new Blob([JSON.stringify({ app: APP, version: VER, settings: cfg }, null, 2)], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = APP + '_設定_' + ymd + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+    flash('設定を書き出しました。');
+  }
+  function importCfg(file) {
+    if (!file) return;
+    if (file.size > 100000) { flash('ファイルが大きすぎます。書き出した設定ファイルを選んでください。'); return; }
+    var r = new FileReader();
+    r.onload = function () {
+      var d = null;
+      try { d = JSON.parse(String(r.result)); } catch (e) { d = null; }
+      if (!d || typeof d !== 'object' || d.app !== APP || !d.settings || typeof d.settings !== 'object') {
+        flash('読み込めませんでした。このアプリで書き出した設定ファイルを選んでください。');
+        return;
+      }
+      var c = sanitizeCfg(d.settings);
+      cfgToUI(c); applyCfg(c, true); run();
+      flash('設定を読み込みました。');
+    };
+    r.onerror = function () { flash('ファイルを読み込めませんでした。'); };
+    r.readAsText(file, 'utf-8');
+  }
+
+  /* ---------- 共通 ---------- */
+  function flash(text) {
+    el.msg.textContent = text;
+    clearTimeout(msgTimer);
+    msgTimer = setTimeout(function () { el.msg.textContent = ''; }, 5000);
+  }
+
+  function copyText(text, okMsg) {
+    if (text === '') { flash('コピーする内容がありません。'); return; }
+    function fallback() {
+      var t = document.createElement('textarea');
+      t.value = text;
+      t.style.position = 'fixed'; t.style.top = '0'; t.style.left = '-9999px';
+      document.body.appendChild(t);
+      t.select();
+      var ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(t);
+      flash(ok ? okMsg : 'コピーできませんでした。手で選択してコピーしてください。');
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { flash(okMsg); }, fallback);
+    } else {
+      fallback();
+    }
+  }
+
+  function schedule() {
+    clearTimeout(timer);
+    timer = setTimeout(function () { saveDraft(); run(); }, 400);
+  }
+
+  // 2回押しで実行するボタン
+  function armed(btn, label, ref) {
+    if (btn.dataset.armed) {
+      clearTimeout(ref.id);
+      btn.textContent = label;
+      delete btn.dataset.armed;
+      return true;
+    }
+    btn.dataset.armed = '1';
+    btn.textContent = 'もう一度押すと実行';
+    ref.id = setTimeout(function () { btn.textContent = label; delete btn.dataset.armed; }, 4000);
+    return false;
+  }
+  var clearRef = {}, resetRef = {};
+
+  var SAMPLES = {
+    mail: {
+      to: 'boss', kind: '依頼', subject: 'お願い',
+      body: '佐藤部長様\n来週の会議資料を拝見させていただきました。何点か修正が必要と思います。\nなので、とりあえず修正案を添付しますので、なるはやでご確認してください。\nちょっと急ぎです！'
+    },
+    report: {
+      to: 'boss', subject: '報告',
+      body: '今月は作業ミスが３件発生しました。\n原因を調べた結果、手順書の記載が古かった事が分かった。\nまず最初に手順書の改訂を行い、来月から新しい手順で作業することができるようにします。\n今後も、しっかりと、再発防止に、取り組んで、いきたいと思います。'
+    },
+    proposal: {
+      to: 'boss', subject: '受付業務の電子化について',
+      body: '目的\n受付業務の時間を減らす事。\n\n現状・課題\n現在、紙の受付簿に手書きで記入しており、集計に毎日約30分程度かかっている。\n\n対策\nタブレットで受付する事ができる様にします。\n\n効果\n集計作業が無くなります！'
+    },
+    minutes: {
+      to: 'peer', subject: '定例会議',
+      body: '出席者：山田、佐藤、鈴木\n議題：年末の作業計画について\n・年末の作業は12/27までに終える事に決まった\n・作業表を作って共有する'
+    },
+    general: {
+      to: 'peer', subject: '',
+      body: '新しいシステムの打ち合わせを行いました。\nサーバーの入れ替えは来週の予定です。サーバの停止時間は約２時間程度の見込みです。\n詳細は別紙（手順書をご覧下さい。'
+    }
+  };
+
+  /* ---------- イベント ---------- */
+  [el.subject, el.body, el.note].forEach(function (n) { n.addEventListener('input', schedule); });
+  [el.to, el.kind].forEach(function (n) { n.addEventListener('change', schedule); });
+  el.docType.addEventListener('change', function () { updateTypeUI(); schedule(); });
+  FIELDS.forEach(function (f) {
+    el[f[1]].addEventListener(f[2] === 'b' || f[2] === 'sel' ? 'change' : 'input', function () {
+      applyCfg(cfgFromUI(), true);
+      schedule();
+    });
+  });
+  ['cMaxSentence', 'cMaxSubject', 'cMaxBody'].forEach(function (id) {
+    el[id].addEventListener('change', function () { cfgToUI(cfg); });   // 範囲外の値を補正して表示
+  });
+
+  el.btnFixAll.addEventListener('click', fixAll);
+  el.btnUndo.addEventListener('click', undo);
+  el.btnCopyBody.addEventListener('click', function () { copyText(el.body.value, '本文をコピーしました。'); });
+  el.btnSample.addEventListener('click', function () {
+    var sm = SAMPLES[el.docType.value] || SAMPLES.general;
+    pushUndo();
+    setSelect(el.to, sm.to);
+    if (sm.kind) setSelect(el.kind, sm.kind);
+    el.subject.value = sm.subject; el.body.value = sm.body;
+    saveDraft(); run();
+    flash('サンプルを入れました。「直せる所を全部直す」を押してみてください。');
+  });
+  el.btnClear.addEventListener('click', function () {
+    if (!armed(el.btnClear, '消去', clearRef)) return;
+    pushUndo();
+    el.subject.value = ''; el.body.value = ''; el.note.value = ''; el.prompt.value = '';
+    el.btnCopyPrompt.disabled = true;
+    saveDraft(); run();
+    flash('消去しました。「元に戻す」で復元できます。');
+  });
+  el.btnPrompt.addEventListener('click', function () {
+    if (el.body.value.trim() === '') { flash('本文を入力してください。'); return; }
+    clearTimeout(timer);
+    saveDraft(); run();
+    el.prompt.value = buildPrompt();
+    el.btnCopyPrompt.disabled = false;
+    flash('依頼文を作りました。');
+  });
+  el.btnCopyPrompt.addEventListener('click', function () { copyText(el.prompt.value, '依頼文をコピーしました。'); });
+  el.btnExport.addEventListener('click', exportCfg);
+  el.btnImport.addEventListener('click', function () { el.impFile.value = ''; el.impFile.click(); });
+  el.impFile.addEventListener('change', function () { importCfg(el.impFile.files && el.impFile.files[0]); });
+  el.btnResetCfg.addEventListener('click', function () {
+    if (!armed(el.btnResetCfg, '設定を初期値に戻す', resetRef)) return;
+    var c = sanitizeCfg({});
+    cfgToUI(c); applyCfg(c, true); run();
+    flash('設定を初期値に戻しました。');
+  });
+
+  load();
+  applyCfg(cfg, false);
+  updateTypeUI();
+  run();
+})();
+</script>
+</body>
+</html>
