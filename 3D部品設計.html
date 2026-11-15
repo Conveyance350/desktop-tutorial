@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3D部品設計</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:"Meiryo UI",Meiryo,sans-serif;font-size:18px;color:#333333;background:#FFFFFF;line-height:1.4}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:10px 14px;border-bottom:2px solid #7F7F7F}
+h1{font-size:26px;margin:0}
+h2{font-size:20px;margin:0 0 8px 0;padding-bottom:4px;border-bottom:1px solid #7F7F7F}
+.nameBox{display:flex;align-items:center;gap:8px;flex:1 1 240px;min-width:0}
+.nameBox label{white-space:nowrap}
+main{display:grid;grid-template-columns:330px minmax(0,1fr) 350px;gap:14px;padding:14px}
+section{min-width:0}
+.blk{margin-bottom:18px}
+input,select,button{font-family:inherit;font-size:20px;color:#333333}
+input[type=number],input[type=text],select{width:100%;min-width:0;height:48px;padding:4px 8px;border:2px solid #7F7F7F;background:#FFFFFF;border-radius:0}
+button{min-height:52px;padding:6px 6px;font-size:18px;border:2px solid #7F7F7F;background:#FFFFFF;font-weight:bold;cursor:pointer;border-radius:0}
+button:disabled{color:#7F7F7F;cursor:default}
+button.pri{background:#2F5597;border-color:#2F5597;color:#FFFFFF;font-size:24px;min-height:64px;width:100%}
+button.pri:disabled{background:#7F7F7F;border-color:#7F7F7F;color:#FFFFFF}
+button.on{background:#2F5597;border-color:#2F5597;color:#FFFFFF}
+button.del{border-color:#C00000;color:#C00000}
+.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.fld label{display:block;font-size:16px;color:#333333}
+.sub{font-size:16px;font-weight:bold;margin:12px 0 4px 0}
+.note{font-size:15px;color:#7F7F7F;margin:6px 0}
+#partList button{display:block;width:100%;text-align:left;margin-bottom:6px;font-weight:normal}
+#partList button.on{font-weight:bold}
+#viewWrap{position:relative;width:100%;height:60vh;min-height:320px;border:2px solid #7F7F7F;overflow:hidden;background:#FFFFFF}
+#gl{display:block;width:100%;height:100%;touch-action:none}
+#labels{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}
+#labels span{position:absolute;font-size:16px;font-weight:bold;color:#7F7F7F;transform:translate(-50%,-50%)}
+#noGl{position:absolute;left:0;top:0;width:100%;padding:16px;color:#C00000;font-weight:bold;display:none}
+#busy{position:absolute;right:8px;top:6px;font-size:15px;color:#7F7F7F}
+.viewBtns{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin:8px 0}
+.viewBtns button{min-height:48px;font-size:17px;padding:4px 2px}
+#result{background:#F2F2F2;padding:10px 12px;margin:8px 0 14px 0}
+#dims{font-size:18px}
+#dims b{font-size:36px;color:#2F5597}
+#judge{font-size:20px;font-weight:bold;margin-top:4px}
+.ok{color:#548235}
+.ng{color:#C00000}
+#msg{min-height:28px;margin-top:8px;font-weight:bold}
+#editor .empty{color:#7F7F7F}
+#edTitle{font-size:22px;font-weight:bold;margin-bottom:8px}
+@media (max-width:1000px){
+ main{grid-template-columns:minmax(0,1fr);padding:10px}
+ #colC{order:1}#colL{order:2}#colR{order:3}
+ #viewWrap{height:340px}
+ .viewBtns{grid-template-columns:repeat(4,minmax(0,1fr))}
+ #dims b{font-size:30px}
+}
+</style>
+</head>
+<body>
+<header>
+ <h1>3D部品設計</h1>
+ <div class="nameBox"><label for="partName">部品名</label><input type="text" id="partName" maxlength="40"></div>
+</header>
+<main>
+<section id="colL">
+ <div class="blk">
+  <h2>1. 形を追加する</h2>
+  <div class="g3" id="typeBtns"></div>
+  <div class="sub">見本から始める</div>
+  <div class="g2"><select id="presetSel"></select><button type="button" id="btnPreset">見本を開く</button></div>
+ </div>
+ <div class="blk">
+  <h2>部品リスト</h2>
+  <div id="partList"></div>
+  <div class="g2"><button type="button" id="btnUndo">元に戻す</button><button type="button" id="btnClear" class="del">全て消す</button></div>
+ </div>
+ <div class="blk">
+  <h2>設計ファイル</h2>
+  <div class="g2"><button type="button" id="btnSave">ファイルに保存</button><button type="button" id="btnOpen">ファイルを開く</button></div>
+  <input type="file" id="fileIn" accept=".json,application/json" style="display:none">
+  <div class="sub">プリンターの造形サイズ（mm）</div>
+  <div class="g3">
+   <div class="fld"><label for="bedX">幅 X</label><input type="number" id="bedX" inputmode="decimal"></div>
+   <div class="fld"><label for="bedY">奥行 Y</label><input type="number" id="bedY" inputmode="decimal"></div>
+   <div class="fld"><label for="bedZ">高さ Z</label><input type="number" id="bedZ" inputmode="decimal"></div>
+  </div>
+ </div>
+</section>
+<section id="colC">
+ <div id="viewWrap">
+  <canvas id="gl"></canvas>
+  <div id="labels"><span id="lblX">X</span><span id="lblY">Y</span><span id="lblZ">Z</span></div>
+  <div id="noGl">NG：この端末では3D表示ができません。寸法入力とSTL出力は使えます。</div>
+  <div id="busy"></div>
+ </div>
+ <div class="viewBtns">
+  <button type="button" id="vIso">斜め</button>
+  <button type="button" id="vFront">正面</button>
+  <button type="button" id="vSide">横</button>
+  <button type="button" id="vTop">上</button>
+  <button type="button" id="vFit">全体</button>
+  <button type="button" id="vIn">拡大</button>
+  <button type="button" id="vOut">縮小</button>
+ </div>
+ <div class="note">ドラッグ：回す　／　右ドラッグ・Shift＋ドラッグ・2本指：移動　／　ホイール・2本指：拡大縮小</div>
+ <div id="result">
+  <div id="dims"></div>
+  <div id="judge"></div>
+ </div>
+ <div class="blk">
+  <h2>3. STLを出力する</h2>
+  <div class="fld"><label for="resSel">出力の細かさ</label><select id="resSel"></select></div>
+  <div style="margin-top:8px"><button type="button" id="btnStl" class="pri">STLを出力</button></div>
+  <div id="msg"></div>
+ </div>
+</section>
+<section id="colR">
+ <h2>2. 選んだ形の寸法（mm）</h2>
+ <div id="editor"></div>
+</section>
+</main>
+<script>
+(function(){
+'use strict';
+var KEY='3D部品設計_data';
+//CORE-START
+var TYPES={
+ box:{name:'直方体',f:[['w','幅 X',40,0.1,500],['d','奥行 Y',30,0.1,500],['h','高さ Z',10,0.1,500],['r','角の丸み R',0,0,250]],hint:'位置は底面の中心。角の丸みは上から見た四隅に付きます。'},
+ cyl:{name:'円柱',f:[['dia','直径',20,0.1,500],['h','高さ Z',20,0.1,500]],hint:'位置は底面の中心。「削る」にすると丸穴になります。'},
+ pipe:{name:'パイプ',f:[['od','外径',30,0.5,500],['id','内径',24,0.1,499],['h','高さ Z',20,0.1,500]],hint:'位置は底面の中心。'},
+ bend:{name:'曲げ板',f:[['ri','内側の半径',20,0.1,500],['t','板厚',3,0.1,200],['a','角度（度）',90,1,360],['h','幅 Z',20,0.1,500]],hint:'位置は曲げの中心（円弧の中心）。X方向から反時計回りに曲がります。'},
+ ring:{name:'丸棒曲げ',f:[['dc','曲げの中心径',30,0.1,500],['t','丸棒の太さ',6,0.1,200],['a','角度（度）',360,1,360]],hint:'位置は曲げの中心。360度でリング、180度でU字フックになります。'},
+ sphere:{name:'球',f:[['dia','直径',20,0.1,500]],hint:'位置は球の一番下の点。'},
+ cone:{name:'円すい台',f:[['d1','下の直径',20,0,500],['d2','上の直径',10,0,500],['h','高さ Z',15,0.1,500]],hint:'位置は底面の中心。上の直径を0にすると円すいになります。'},
+ hex:{name:'六角柱',f:[['s','二面幅',10,0.1,500],['h','高さ Z',5,0.1,500]],hint:'位置は底面の中心。「削る」でナットの入る穴になります。'},
+ wedge:{name:'くさび',f:[['w','幅 X',20,0.1,500],['d','奥行 Y',5,0.1,500],['h','高さ Z',20,0.1,500]],hint:'位置は底面の中心。X方向に向かって低くなる三角形（補強リブ用）。'}
+};
+var ORDER=['box','cyl','pipe','bend','ring','sphere','cone','hex','wedge'];
+var MAXPARTS=60;
+var EDGES=[[0,1],[2,3],[4,5],[6,7],[0,2],[1,3],[4,6],[5,7],[0,4],[1,5],[2,6],[3,7]];
+
+function num(v,def,min,max){
+ if(v===null||v===''||typeof v==='boolean'||typeof v==='object'||typeof v==='undefined') return def;
+ v=Number(v);
+ if(!isFinite(v)) return def;
+ if(v<min) v=min;
+ if(v>max) v=max;
+ return Math.round(v*1000)/1000;
+}
+function newPart(type){
+ var T=TYPES[type],p={},i;
+ for(i=0;i<T.f.length;i++) p[T.f[i][0]]=T.f[i][2];
+ return {type:type,sub:false,p:p,x:0,y:0,z:0,rx:0,ry:0,rz:0,cut:0,cutPos:0,shell:0};
+}
+function sanitizePart(o){
+ if(!o||typeof o!=='object'||!Object.prototype.hasOwnProperty.call(TYPES,o.type)) return null;
+ var T=TYPES[o.type],src=(o.p&&typeof o.p==='object')?o.p:{},p={},i,f;
+ for(i=0;i<T.f.length;i++){f=T.f[i];p[f[0]]=num(src[f[0]],f[2],f[3],f[4]);}
+ if(o.type==='pipe'&&p.id>p.od-0.4) p.id=Math.max(0.1,Math.round((p.od-0.4)*1000)/1000);
+ var ct=Math.round(Number(o.cut));
+ if(!isFinite(ct)||ct<-3||ct>3||typeof o.cut==='boolean'||o.cut===null) ct=0;
+ return {type:o.type,sub:o.sub===true,p:p,cut:ct,cutPos:num(o.cutPos,0,-500,500),shell:num(o.shell,0,0,100),
+  x:num(o.x,0,-500,500),y:num(o.y,0,-500,500),z:num(o.z,0,-500,500),
+  rx:num(o.rx,0,-360,360),ry:num(o.ry,0,-360,360),rz:num(o.rz,0,-360,360)};
+}
+function sanitizeParts(a){
+ var out=[],i,p;
+ if(!Array.isArray(a)) return out;
+ for(i=0;i<a.length&&out.length<MAXPARTS;i++){p=sanitizePart(a[i]);if(p)out.push(p);}
+ return out;
+}
+function ext(d2,z,H){
+ var dz=Math.abs(z-H/2)-H/2,a=d2>0?d2:0,b=dz>0?dz:0;
+ return Math.min(Math.max(d2,dz),0)+Math.sqrt(a*a+b*b);
+}
+function sector(x,y,A){
+ if(A>=360) return -1e9;
+ var hf=A*Math.PI/360,c=Math.cos(hf),s=Math.sin(hf);
+ var px=x*c+y*s,py=Math.abs(-x*s+y*c);
+ return -px*s+py*c;
+}
+function makeFn(type,p){
+ var a,b,c,e;
+ switch(type){
+ case 'box':
+  a=p.w/2;b=p.d/2;c=Math.min(p.r,a,b);
+  return {box:[-a,a,-b,b,0,p.h],f:function(x,y,z){
+   var qx=Math.abs(x)-a+c,qy=Math.abs(y)-b+c,mx=qx>0?qx:0,my=qy>0?qy:0;
+   return ext(Math.sqrt(mx*mx+my*my)+Math.min(Math.max(qx,qy),0)-c,z,p.h);}};
+ case 'cyl':
+  a=p.dia/2;
+  return {box:[-a,a,-a,a,0,p.h],f:function(x,y,z){return ext(Math.sqrt(x*x+y*y)-a,z,p.h);}};
+ case 'pipe':
+  a=p.od/2;b=Math.min(p.id/2,a-0.2);if(b<0)b=0;
+  return {box:[-a,a,-a,a,0,p.h],f:function(x,y,z){var r=Math.sqrt(x*x+y*y);return ext(Math.max(r-a,b-r),z,p.h);}};
+ case 'bend':
+  a=p.ri+p.t/2;b=p.t/2;c=p.ri+p.t;
+  return {box:[-c,c,-c,c,0,p.h],f:function(x,y,z){
+   var r=Math.sqrt(x*x+y*y);
+   return ext(Math.max(Math.abs(r-a)-b,sector(x,y,p.a)),z,p.h);}};
+ case 'ring':
+  a=p.dc/2;b=p.t/2;c=a+b;
+  return {box:[-c,c,-c,c,0,p.t],f:function(x,y,z){
+   var q=Math.sqrt(x*x+y*y)-a,zz=z-b;
+   return Math.max(Math.sqrt(q*q+zz*zz)-b,sector(x,y,p.a));}};
+ case 'sphere':
+  a=p.dia/2;
+  return {box:[-a,a,-a,a,0,p.dia],f:function(x,y,z){var zz=z-a;return Math.sqrt(x*x+y*y+zz*zz)-a;}};
+ case 'cone':
+  a=p.d1/2;b=p.d2/2;c=p.h/2;e=Math.max(a,b);
+  return {box:[-e,e,-e,e,0,p.h],f:function(x,y,z){
+   var qx=Math.sqrt(x*x+y*y),qy=z-c;
+   var k2x=b-a,k2y=2*c;
+   var cax=qx-Math.min(qx,qy<0?a:b),cay=Math.abs(qy)-c;
+   var t=((b-qx)*k2x+(c-qy)*k2y)/(k2x*k2x+k2y*k2y);
+   if(t<0)t=0;if(t>1)t=1;
+   var cbx=qx-b+k2x*t,cby=qy-c+k2y*t;
+   var s=(cbx<0&&cay<0)?-1:1;
+   return s*Math.sqrt(Math.min(cax*cax+cay*cay,cbx*cbx+cby*cby));}};
+ case 'hex':
+  a=p.s/2;b=a/0.8660254;
+  return {box:[-b,b,-a,a,0,p.h],f:function(x,y,z){
+   var ax=Math.abs(x),ay=Math.abs(y);
+   return ext(Math.max(ax*0.8660254+ay*0.5,ay)-a,z,p.h);}};
+ default:
+  a=p.w/2;b=p.d/2;c=Math.sqrt(p.h*p.h+p.w*p.w);
+  return {box:[-a,a,-b,b,0,p.h],f:function(x,y,z){
+   var sl=((x+a)*p.h+(z-p.h)*p.w)/c;
+   return Math.max(Math.abs(y)-b,-z,-(x+a),sl);}};
+ }
+}
+function applyWork(m,part){
+ var f0=m.f,bx=m.box.slice(),t=part.shell,ct=part.cut,f1=f0;
+ if(t>0) f1=function(x,y,z){var v=f0(x,y,z);return Math.max(v,-(v+t));};
+ if(!ct) return {f:f1,box:bx};
+ var ax=Math.abs(ct)-1,sg=ct>0?1:-1,lo=bx[ax*2],hi=bx[ax*2+1],at=(lo+hi)/2+part.cutPos;
+ if(at<lo)at=lo;if(at>hi)at=hi;
+ if(sg>0)bx[ax*2]=at;else bx[ax*2+1]=at;
+ return {box:bx,f:function(x,y,z){
+  var v=f1(x,y,z),c=(ax===0?x:(ax===1?y:z)),pl=-sg*(c-at);
+  return v>pl?v:pl;}};
+}
+function compileOne(part){
+ var m=applyWork(makeFn(part.type,part.p),part),D=Math.PI/180;
+ var cx=Math.cos(part.rx*D),sx=Math.sin(part.rx*D),cy=Math.cos(part.ry*D),sy=Math.sin(part.ry*D),cz=Math.cos(part.rz*D),sz=Math.sin(part.rz*D);
+ var R=[cz*cy,cz*sy*sx-sz*cx,cz*sy*cx+sz*sx, sz*cy,sz*sy*sx+cz*cx,sz*sy*cx-cz*sx, -sy,cy*sx,cy*cx];
+ var bx=m.box,corners=[],n,lx,ly,lz;
+ for(n=0;n<8;n++){
+  lx=bx[n&1];ly=bx[2+((n>>1)&1)];lz=bx[4+((n>>2)&1)];
+  corners.push([R[0]*lx+R[1]*ly+R[2]*lz+part.x,R[3]*lx+R[4]*ly+R[5]*lz+part.y,R[6]*lx+R[7]*ly+R[8]*lz+part.z]);
+ }
+ var mx=(bx[0]+bx[1])/2,my=(bx[2]+bx[3])/2,mz=(bx[4]+bx[5])/2;
+ var hx=(bx[1]-bx[0])/2,hy=(bx[3]-bx[2])/2,hz=(bx[5]-bx[4])/2;
+ return {sub:part.sub,f:m.f,R:R,tx:part.x,ty:part.y,tz:part.z,corners:corners,
+  cx:R[0]*mx+R[1]*my+R[2]*mz+part.x,cy:R[3]*mx+R[4]*my+R[5]*mz+part.y,cz:R[6]*mx+R[7]*my+R[8]*mz+part.z,
+  br:Math.sqrt(hx*hx+hy*hy+hz*hz)};
+}
+function compile(parts){
+ var add=[],sub=[],i,c;
+ for(i=0;i<parts.length;i++){c=compileOne(parts[i]);(c.sub?sub:add).push(c);}
+ return {add:add,sub:sub};
+}
+function makeGrid(cp,h,cap){
+ if(!cp.add.length) return null;
+ var mn=[1e9,1e9,1e9],mx=[-1e9,-1e9,-1e9],i,n,a,c;
+ for(i=0;i<cp.add.length;i++){
+  for(n=0;n<8;n++){c=cp.add[i].corners[n];for(a=0;a<3;a++){if(c[a]<mn[a])mn[a]=c[a];if(c[a]>mx[a])mx[a]=c[a];}}
+ }
+ var nx,ny,nz,tot,guard=0;
+ for(;;){
+  nx=Math.ceil((mx[0]-mn[0])/h)+5;ny=Math.ceil((mx[1]-mn[1])/h)+5;nz=Math.ceil((mx[2]-mn[2])/h)+5;
+  tot=nx*ny*nz;
+  if(tot<=cap||guard++>40) break;
+  h*=Math.max(1.03,Math.pow(tot/cap,1/3));
+ }
+ return {h:h,nx:nx,ny:ny,nz:nz,ox:mn[0]-2*h,oy:mn[1]-2*h,oz:mn[2]-2*h,data:new Float32Array(tot)};
+}
+function fillSlab(g,cp,k){
+ var h=g.h,h2=h*2,nx=g.nx,ny=g.ny,data=g.data,add=cp.add,sub=cp.sub,na=add.length,ns=sub.length;
+ var z=g.oz+k*h,idx=k*nx*ny,i,j,a,c,x,y,d,dx,dy,dz,bd,v,R;
+ for(j=0;j<ny;j++){
+  y=g.oy+j*h;
+  for(i=0;i<nx;i++){
+   x=g.ox+i*h;d=1e9;
+   for(a=0;a<na;a++){
+    c=add[a];dx=x-c.cx;dy=y-c.cy;dz=z-c.cz;
+    bd=Math.sqrt(dx*dx+dy*dy+dz*dz)-c.br;
+    if(bd>h2){if(bd<d)d=bd;continue;}
+    R=c.R;dx=x-c.tx;dy=y-c.ty;dz=z-c.tz;
+    v=c.f(R[0]*dx+R[3]*dy+R[6]*dz,R[1]*dx+R[4]*dy+R[7]*dz,R[2]*dx+R[5]*dy+R[8]*dz);
+    if(v<d)d=v;
+   }
+   if(d<=h2){
+    for(a=0;a<ns;a++){
+     c=sub[a];dx=x-c.cx;dy=y-c.cy;dz=z-c.cz;
+     bd=Math.sqrt(dx*dx+dy*dy+dz*dz)-c.br;
+     if(bd>h2)continue;
+     R=c.R;dx=x-c.tx;dy=y-c.ty;dz=z-c.tz;
+     v=-c.f(R[0]*dx+R[3]*dy+R[6]*dz,R[1]*dx+R[4]*dy+R[7]*dz,R[2]*dx+R[5]*dy+R[8]*dz);
+     if(v>d)d=v;
+    }
+   }
+   data[idx++]=d;
+  }
+ }
+}
+function surfaceNets(g){
+ var nx=g.nx,ny=g.ny,nz=g.nz,h=g.h,data=g.data,cx=nx-1,cy=ny-1,cz=nz-1,sl=nx*ny;
+ var vi=new Int32Array(cx*cy*cz),pos=[],tri=[],cnt=0;
+ var off=[0,1,nx,nx+1,sl,sl+1,sl+nx,sl+nx+1],cv=[0,0,0,0,0,0,0,0];
+ var i,j,k,n,e,p,mask,sx,sy,sz,ne,a,b,t,ci;
+ for(k=0;k<cz;k++)for(j=0;j<cy;j++)for(i=0;i<cx;i++){
+  p=i+j*nx+k*sl;mask=0;
+  for(n=0;n<8;n++){cv[n]=data[p+off[n]];if(cv[n]<0)mask|=(1<<n);}
+  ci=i+j*cx+k*cx*cy;
+  if(mask===0||mask===255){vi[ci]=-1;continue;}
+  sx=0;sy=0;sz=0;ne=0;
+  for(e=0;e<12;e++){
+   a=EDGES[e][0];b=EDGES[e][1];
+   if(((mask>>a)&1)===((mask>>b)&1))continue;
+   t=cv[a]/(cv[a]-cv[b]);
+   sx+=(a&1)+((b&1)-(a&1))*t;
+   sy+=((a>>1)&1)+(((b>>1)&1)-((a>>1)&1))*t;
+   sz+=((a>>2)&1)+(((b>>2)&1)-((a>>2)&1))*t;
+   ne++;
+  }
+  pos.push(g.ox+(i+sx/ne)*h,g.oy+(j+sy/ne)*h,g.oz+(k+sz/ne)*h);
+  vi[ci]=cnt++;
+ }
+ function quad(A,B,C,D,flip){
+  if(A<0||B<0||C<0||D<0)return;
+  if(flip)tri.push(A,C,B,A,D,C);else tri.push(A,B,C,A,C,D);
+ }
+ var d0,d1,cs=cx*cy;
+ for(k=0;k<nz;k++)for(j=0;j<ny;j++)for(i=0;i<nx;i++){
+  p=i+j*nx+k*sl;d0=data[p];
+  if(i<cx&&j>0&&j<cy&&k>0&&k<cz){
+   d1=data[p+1];
+   if((d0<0)!==(d1<0)) quad(vi[i+(j-1)*cx+(k-1)*cs],vi[i+j*cx+(k-1)*cs],vi[i+j*cx+k*cs],vi[i+(j-1)*cx+k*cs],!(d0<0));
+  }
+  if(j<cy&&i>0&&i<cx&&k>0&&k<cz){
+   d1=data[p+nx];
+   if((d0<0)!==(d1<0)) quad(vi[i-1+j*cx+(k-1)*cs],vi[i-1+j*cx+k*cs],vi[i+j*cx+k*cs],vi[i+j*cx+(k-1)*cs],!(d0<0));
+  }
+  if(k<cz&&i>0&&i<cx&&j>0&&j<cy){
+   d1=data[p+sl];
+   if((d0<0)!==(d1<0)) quad(vi[i-1+(j-1)*cx+k*cs],vi[i+(j-1)*cx+k*cs],vi[i+j*cx+k*cs],vi[i-1+j*cx+k*cs],!(d0<0));
+  }
+ }
+ return {pos:pos,tri:tri};
+}
+function meshStats(m){
+ var p=m.pos,t=m.tri,mn=[1e9,1e9,1e9],mx=[-1e9,-1e9,-1e9],i,a,b,c,vol=0;
+ for(i=0;i<p.length;i+=3){
+  if(p[i]<mn[0])mn[0]=p[i];if(p[i]>mx[0])mx[0]=p[i];
+  if(p[i+1]<mn[1])mn[1]=p[i+1];if(p[i+1]>mx[1])mx[1]=p[i+1];
+  if(p[i+2]<mn[2])mn[2]=p[i+2];if(p[i+2]>mx[2])mx[2]=p[i+2];
+ }
+ for(i=0;i<t.length;i+=3){
+  a=t[i]*3;b=t[i+1]*3;c=t[i+2]*3;
+  vol+=p[a]*(p[b+1]*p[c+2]-p[b+2]*p[c+1])-p[a+1]*(p[b]*p[c+2]-p[b+2]*p[c])+p[a+2]*(p[b]*p[c+1]-p[b+1]*p[c]);
+ }
+ return {min:mn,max:mx,vol:vol/6,ntri:t.length/3};
+}
+function buildSTL(m){
+ var p=m.pos,t=m.tri,n=t.length/3,buf=new ArrayBuffer(84+50*n),dv=new DataView(buf),o=84,i,q,a,b,c,ux,uy,uz,vx,vy,vz,nx,ny,nz,l;
+ dv.setUint32(80,n,true);
+ for(i=0;i<t.length;i+=3){
+  a=t[i]*3;b=t[i+1]*3;c=t[i+2]*3;
+  ux=p[b]-p[a];uy=p[b+1]-p[a+1];uz=p[b+2]-p[a+2];
+  vx=p[c]-p[a];vy=p[c+1]-p[a+1];vz=p[c+2]-p[a+2];
+  nx=uy*vz-uz*vy;ny=uz*vx-ux*vz;nz=ux*vy-uy*vx;
+  l=Math.sqrt(nx*nx+ny*ny+nz*nz);if(l>0){nx/=l;ny/=l;nz/=l;}
+  dv.setFloat32(o,nx,true);dv.setFloat32(o+4,ny,true);dv.setFloat32(o+8,nz,true);
+  for(q=0;q<3;q++){
+   l=t[i+q]*3;
+   dv.setFloat32(o+12+q*12,p[l],true);dv.setFloat32(o+16+q*12,p[l+1],true);dv.setFloat32(o+20+q*12,p[l+2],true);
+  }
+  o+=50;
+ }
+ return buf;
+}
+function P(type,sub,p,x,y,z,rx,ry,rz){return {type:type,sub:sub,p:p,x:x||0,y:y||0,z:z||0,rx:rx||0,ry:ry||0,rz:rz||0};}
+var PRESETS=[
+ {name:'穴あきプレート',parts:[
+  P('box',false,{w:60,d:40,h:5,r:5}),
+  P('cyl',true,{dia:5,h:7},22,12,-1),P('cyl',true,{dia:5,h:7},-22,12,-1),
+  P('cyl',true,{dia:5,h:7},22,-12,-1),P('cyl',true,{dia:5,h:7},-22,-12,-1)]},
+ {name:'パイプクランプ（半割り）',parts:[
+  P('bend',false,{ri:14,t:4,a:180,h:20}),
+  P('box',false,{w:14,d:4,h:20,r:0},23,2,0),P('box',false,{w:14,d:4,h:20,r:0},-23,2,0),
+  P('cyl',true,{dia:5,h:8},24,6,10,90,0,0),P('cyl',true,{dia:5,h:8},-24,6,10,90,0,0)]},
+ {name:'R付きL字ブラケット',parts:[
+  P('box',false,{w:40,d:30,h:4,r:0}),
+  P('box',false,{w:4,d:30,h:40,r:0},-18,0,0),
+  P('box',false,{w:8,d:30,h:8,r:0},-12,0,4),
+  P('cyl',true,{dia:16,h:32},-8,16,12,90,0,0),
+  P('cyl',true,{dia:5,h:6},8,0,-1),
+  P('cyl',true,{dia:5,h:6},-21,0,28,0,90,0)]},
+ {name:'U字フック',parts:[
+  P('box',false,{w:30,d:5,h:60,r:4},0,0,0),
+  P('ring',false,{dc:30,t:8,a:180},4,-19,30,-90,0,90),
+  P('sphere',false,{dia:8},0,-34,26),
+  P('cyl',true,{dia:5,h:8},0,4,52,90,0,0),P('cyl',true,{dia:5,h:8},0,4,8,90,0,0)]},
+ {name:'L字＋丸棒フック',parts:[
+  P('box',false,{w:40,d:5,h:60,r:0},0,0,0),
+  P('box',false,{w:40,d:42,h:5,r:0},0,-21.5,0),
+  P('cyl',false,{dia:10,h:25},0,-36,4),
+  P('sphere',false,{dia:10},0,-36,24),
+  P('wedge',false,{w:15,d:5,h:15},17.5,-10,5,0,0,-90),
+  P('wedge',false,{w:15,d:5,h:15},-17.5,-10,5,0,0,-90),
+  P('cyl',true,{dia:5,h:8},0,4,48,90,0,0),P('cyl',true,{dia:5,h:8},0,4,25,90,0,0)]}
+];
+//CORE-END
+
+/* ---------- 状態 ---------- */
+var RES=[[1,'粗い（1.0mm）'],[0.5,'標準（0.5mm）'],[0.3,'細かい（0.3mm）'],[0.2,'最も細かい（0.2mm）']];
+var state={name:'部品',res:0.5,bed:{x:220,y:220,z:250},parts:[],sel:0};
+var undo=[],lastSnap='[]';
+function $(id){return document.getElementById(id);}
+var elName=$('partName'),elTypeBtns=$('typeBtns'),elPresetSel=$('presetSel'),elList=$('partList'),elEditor=$('editor');
+var elDims=$('dims'),elJudge=$('judge'),elMsg=$('msg'),elBusy=$('busy'),elRes=$('resSel'),elStl=$('btnStl'),elUndo=$('btnUndo'),elClear=$('btnClear');
+var elBed={x:$('bedX'),y:$('bedY'),z:$('bedZ')};
+var cv=$('gl'),elWrap=$('viewWrap');
+var lastStats=null;
+
+function sanitizeState(o){
+ var s={name:'部品',res:0.5,bed:{x:220,y:220,z:250},parts:[],sel:0},i,ok=false;
+ if(!o||typeof o!=='object') return s;
+ if(typeof o.name==='string') s.name=o.name.slice(0,40);
+ for(i=0;i<RES.length;i++) if(RES[i][0]===Number(o.res)) ok=true;
+ if(ok) s.res=Number(o.res);
+ if(o.bed&&typeof o.bed==='object'){
+  s.bed.x=num(o.bed.x,220,10,1000);s.bed.y=num(o.bed.y,220,10,1000);s.bed.z=num(o.bed.z,250,10,1000);
+ }
+ s.parts=sanitizeParts(o.parts);
+ s.sel=Math.floor(num(o.sel,0,0,Math.max(0,s.parts.length-1)));
+ return s;
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}}
+function load(){
+ var raw=null,o=null;
+ try{raw=localStorage.getItem(KEY);}catch(e){raw=null;}
+ if(raw){try{o=JSON.parse(raw);}catch(e2){o=null;}}
+ if(o&&typeof o==='object'){state=sanitizeState(o);}
+ else{state=sanitizeState({name:'穴あきプレート',parts:PRESETS[0].parts});}
+ lastSnap=JSON.stringify(state.parts);
+}
+function commit(){
+ var s=JSON.stringify(state.parts);
+ if(s!==lastSnap){undo.push(lastSnap);if(undo.length>50)undo.shift();lastSnap=s;}
+ save();
+ elUndo.disabled=!undo.length;
+}
+function setMsg(text,cls){elMsg.textContent=text;elMsg.className=cls||'';}
+function fmt(v){return (Math.round(v*10)/10).toFixed(1);}
+function selPart(){return state.parts[state.sel]||null;}
+
+/* ---------- 画面：リストと寸法入力 ---------- */
+function mk(tag,cls,text){var e=document.createElement(tag);if(cls)e.className=cls;if(typeof text==='string')e.textContent=text;return e;}
+function renderList(){
+ elList.textContent='';
+ if(!state.parts.length){elList.appendChild(mk('div','note','形がありません。上のボタンで追加してください。'));return;}
+ state.parts.forEach(function(p,i){
+  var b=mk('button',i===state.sel?'on':'',(i+1)+'　'+TYPES[p.type].name+(p.sub?'　［削る］':'　［足す］')+((p.cut||p.shell>0)?'　加工あり':''));
+  b.type='button';
+  b.addEventListener('click',function(){state.sel=i;save();renderList();renderEditor();updateSelLines();requestDraw();});
+  elList.appendChild(b);
+ });
+}
+function addField(grid,label,get,set,def,min,max,list){
+ var w=mk('div','fld'),l=mk('label','',label),inp=document.createElement('input');
+ inp.type='number';inp.step='any';inp.inputMode='decimal';inp.value=String(get());
+ l.appendChild(inp);w.appendChild(l);grid.appendChild(w);
+ inp.addEventListener('input',function(){
+  if(inp.value===''||!isFinite(Number(inp.value)))return;
+  set(num(inp.value,def,min,max));
+  schedulePreview(150);
+ });
+ inp.addEventListener('change',function(){
+  if(inp.value!==''&&isFinite(Number(inp.value))) set(num(inp.value,def,min,max));
+  var pt=selPart(),idx=state.sel,fixed;
+  if(pt){fixed=sanitizePart(pt);if(fixed)state.parts[idx]=fixed;}
+  list.forEach(function(r){r();});
+  commit();schedulePreview(0);
+ });
+ list.push(function(){var p=selPart();if(p)inp.value=String(get());});
+}
+function renderEditor(){
+ elEditor.textContent='';
+ var part=selPart();
+ if(!part){elEditor.appendChild(mk('div','empty','形を追加するか、部品リストから選んでください。'));return;}
+ var T=TYPES[part.type],refresh=[],cur=function(){return state.parts[state.sel];};
+ var t=mk('div','',(state.sel+1)+'　'+T.name);t.id='edTitle';elEditor.appendChild(t);
+ var role=mk('div','g2'),bA=mk('button',part.sub?'':'on','足す'),bS=mk('button',part.sub?'on':'','削る（穴）');
+ bA.type='button';bS.type='button';
+ function setRole(v){var p=cur();if(!p||p.sub===v)return;p.sub=v;commit();renderList();renderEditor();schedulePreview(0);}
+ bA.addEventListener('click',function(){setRole(false);});
+ bS.addEventListener('click',function(){setRole(true);});
+ role.appendChild(bA);role.appendChild(bS);elEditor.appendChild(role);
+ elEditor.appendChild(mk('div','sub','寸法'));
+ var g=mk('div','g2');
+ T.f.forEach(function(f){
+  addField(g,f[1],function(){return cur().p[f[0]];},function(v){cur().p[f[0]]=v;},f[2],f[3],f[4],refresh);
+ });
+ elEditor.appendChild(g);
+ elEditor.appendChild(mk('div','note',T.hint));
+ elEditor.appendChild(mk('div','sub','加工'));
+ var gw=mk('div','g3'),AX=['X','Y','Z'];
+ AX.forEach(function(nm,ai){
+  var b=mk('button',Math.abs(part.cut)===ai+1?'on':'','半分（'+nm+'）');b.type='button';
+  b.addEventListener('click',function(){
+   var p=cur();if(!p)return;
+   p.cut=(Math.abs(p.cut)===ai+1)?-p.cut:-(ai+1);
+   commit();renderList();renderEditor();schedulePreview(0);
+  });
+  gw.appendChild(b);
+ });
+ elEditor.appendChild(gw);
+ elEditor.appendChild(mk('div','note',part.cut?('残す側：'+AX[Math.abs(part.cut)-1]+(part.cut>0?'＋':'－')+'側。同じボタンをもう一度押すと反対側が残ります。'):'押した方向で半分に切ります。向きは回転前の形が基準です。'));
+ var gk=mk('div','g2');
+ addField(gk,'切る位置（中心から）',function(){return cur().cutPos;},function(v){cur().cutPos=v;},0,-500,500,refresh);
+ addField(gk,'中空の肉厚（0=なし）',function(){return cur().shell;},function(v){cur().shell=v;},0,0,100,refresh);
+ elEditor.appendChild(gk);
+ var gb=mk('div','g2'),bH=mk('button',part.shell>0?'on':'','中空にする'),bN=mk('button','','加工を戻す');
+ bH.type='button';bN.type='button';gb.style.marginTop='8px';
+ bH.addEventListener('click',function(){
+  var p=cur();if(!p)return;
+  p.shell=p.shell>0?0:2;commit();renderList();renderEditor();schedulePreview(0);
+ });
+ bN.addEventListener('click',function(){
+  var p=cur();if(!p||(!p.cut&&!p.cutPos&&!p.shell))return;
+  p.cut=0;p.cutPos=0;p.shell=0;commit();renderList();renderEditor();schedulePreview(0);
+ });
+ gb.appendChild(bH);gb.appendChild(bN);elEditor.appendChild(gb);
+ elEditor.appendChild(mk('div','note','中空＋半分で、おわん・トレー・半割りパイプが作れます。'));
+ elEditor.appendChild(mk('div','sub','位置'));
+ var gp=mk('div','g3');
+ [['x','X'],['y','Y'],['z','Z']].forEach(function(a){
+  addField(gp,a[1],function(){return cur()[a[0]];},function(v){cur()[a[0]]=v;},0,-500,500,refresh);
+ });
+ elEditor.appendChild(gp);
+ elEditor.appendChild(mk('div','sub','回転（度）'));
+ var gr=mk('div','g3');
+ [['rx','X軸'],['ry','Y軸'],['rz','Z軸']].forEach(function(a){
+  addField(gr,a[1],function(){return cur()[a[0]];},function(v){cur()[a[0]]=v;},0,-360,360,refresh);
+ });
+ elEditor.appendChild(gr);
+ elEditor.appendChild(mk('div','note','穴を貫通させるときは、削る形を相手より少し長くしてください。'));
+ var act=mk('div','g2'),bC=mk('button','','複製'),bD=mk('button','del','削除');
+ bC.type='button';bD.type='button';act.style.marginTop='12px';
+ bC.addEventListener('click',function(){
+  var p=cur();if(!p)return;
+  if(state.parts.length>=MAXPARTS){setMsg('NG：形は'+MAXPARTS+'個までです。','ng');return;}
+  var c=sanitizePart(JSON.parse(JSON.stringify(p)));
+  state.parts.splice(state.sel+1,0,c);state.sel=state.sel+1;commit();refreshAll();
+ });
+ bD.addEventListener('click',function(){
+  if(!cur())return;
+  state.parts.splice(state.sel,1);
+  if(state.sel>=state.parts.length)state.sel=Math.max(0,state.parts.length-1);
+  commit();refreshAll();
+ });
+ act.appendChild(bC);act.appendChild(bD);elEditor.appendChild(act);
+}
+function refreshAll(){renderList();renderEditor();elUndo.disabled=!undo.length;schedulePreview(0);}
+function showDims(st){
+ lastStats=st;
+ elDims.textContent='';
+ if(!st){elDims.textContent='足す形がありません。';elJudge.textContent='';return;}
+ var w=st.max[0]-st.min[0],d=st.max[1]-st.min[1],h=st.max[2]-st.min[2];
+ [['幅 ',w],['　奥行 ',d],['　高さ ',h]].forEach(function(a){
+  elDims.appendChild(document.createTextNode(a[0]));elDims.appendChild(mk('b','',fmt(a[1])));
+ });
+ elDims.appendChild(document.createTextNode(' mm　／　体積 約 '+fmt(Math.abs(st.vol)/1000)+' cm³'));
+ var ok=(w<=state.bed.x+0.05&&d<=state.bed.y+0.05&&h<=state.bed.z+0.05);
+ elJudge.textContent=ok?'OK：造形サイズに収まります':'NG：造形サイズを超えています';
+ elJudge.className=ok?'ok':'ng';
+}
+
+/* ---------- 計算（プレビュー・出力） ---------- */
+var pvTimer=null,pvJob=0,exporting=false;
+function runJob(g,cp,alive,onProg,onDone){
+ var k=0;
+ (function step(){
+  if(!alive())return;
+  var t=Date.now();
+  while(k<g.nz&&Date.now()-t<40){fillSlab(g,cp,k);k++;}
+  if(k<g.nz){onProg(k/g.nz);setTimeout(step,0);}else onDone();
+ })();
+}
+function schedulePreview(ms){
+ if(pvTimer)clearTimeout(pvTimer);
+ pvTimer=setTimeout(runPreview,ms);
+}
+function runPreview(){
+ pvTimer=null;
+ var job=++pvJob,cp=compile(state.parts),g=makeGrid(cp,0.2,450000);
+ updateSelLines();
+ if(!g){setMesh(null);showDims(null);elBusy.textContent='';requestDraw();return;}
+ elBusy.textContent='表示を更新中';
+ runJob(g,cp,function(){return job===pvJob;},function(){},function(){
+  var m=surfaceNets(g);
+  if(!m.tri.length){setMesh(null);showDims(null);}
+  else{setMesh(m);showDims(meshStats(m));}
+  elBusy.textContent='';
+  if(needFit){needFit=false;fitView();}
+  requestDraw();
+ });
+}
+function safeName(){
+ var n=(state.name||'').replace(/[\\\/:*?"<>|\u0000-\u001f]/g,'_').replace(/^\s+|\s+$/g,'');
+ return n?n:'部品';
+}
+function download(blob,fname){
+ var url=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=url;a.download=fname;document.body.appendChild(a);a.click();
+ setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url);},1000);
+}
+function exportSTL(){
+ if(exporting)return;
+ var cp=compile(state.parts),want=state.res,g;
+ try{g=makeGrid(cp,want,6000000);}catch(e){g=null;setMsg('NG：メモリ不足です。細かさを粗くしてください。','ng');return;}
+ if(!g){setMsg('NG：足す形がありません。','ng');return;}
+ exporting=true;elStl.disabled=true;setMsg('計算中 0%','');
+ runJob(g,cp,function(){return true;},function(r){setMsg('計算中 '+Math.round(r*100)+'%','');},function(){
+  try{
+   var m=surfaceNets(g);
+   if(!m.tri.length){setMsg('NG：出力する形がありません（全て削られています）。','ng');}
+   else{
+    download(new Blob([buildSTL(m)],{type:'application/octet-stream'}),safeName()+'.stl');
+    var t='OK：STLを出力しました（三角形 '+(m.tri.length/3)+' 枚、細かさ '+(Math.round(g.h*100)/100)+'mm）';
+    if(g.h>want*1.01){setMsg(t+'　※形が大きいため細かさを自動で粗くしました。','ng');}
+    else setMsg(t,'ok');
+   }
+  }catch(e){setMsg('NG：出力に失敗しました。細かさを粗くしてください。','ng');}
+  exporting=false;elStl.disabled=false;
+ });
+}
+
+/* ---------- 3D表示 ---------- */
+var gl=null,prog=null,loc={},bufMesh=null,bufBed=null,bufAxis=null,bufSel=null,nMesh=0,nBed=0,nBedOut=0,nSel=0;
+var view={yaw:-0.6,el:0.5,zoom:3,panx:0,pany:0,c:[0,0,10]},needFit=true,drawQueued=false,meshBox=null;
+function initGL(){
+ try{gl=cv.getContext('webgl',{antialias:true})||cv.getContext('experimental-webgl');}catch(e){gl=null;}
+ if(!gl){$('noGl').style.display='block';return;}
+ function sh(type,src){var s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);return s;}
+ var vs=sh(gl.VERTEX_SHADER,'attribute vec3 aPos;attribute vec3 aNor;uniform mat4 uM;uniform mat3 uR;varying vec3 vN;void main(){vN=uR*aNor;gl_Position=uM*vec4(aPos,1.0);}');
+ var fs=sh(gl.FRAGMENT_SHADER,'precision mediump float;varying vec3 vN;uniform vec3 uColor;uniform float uLit;void main(){float s=1.0;if(uLit>0.5){vec3 n=normalize(vN);s=0.42+0.62*max(dot(n,vec3(0.33,0.46,0.82)),0.0);}gl_FragColor=vec4(uColor*s,1.0);}');
+ prog=gl.createProgram();gl.attachShader(prog,vs);gl.attachShader(prog,fs);gl.linkProgram(prog);
+ if(!gl.getProgramParameter(prog,gl.LINK_STATUS)){gl=null;$('noGl').style.display='block';return;}
+ gl.useProgram(prog);
+ loc.aPos=gl.getAttribLocation(prog,'aPos');loc.aNor=gl.getAttribLocation(prog,'aNor');
+ loc.uM=gl.getUniformLocation(prog,'uM');loc.uR=gl.getUniformLocation(prog,'uR');
+ loc.uColor=gl.getUniformLocation(prog,'uColor');loc.uLit=gl.getUniformLocation(prog,'uLit');
+ bufMesh=gl.createBuffer();bufBed=gl.createBuffer();bufAxis=gl.createBuffer();bufSel=gl.createBuffer();
+ gl.enable(gl.DEPTH_TEST);
+ cv.addEventListener('webglcontextlost',function(e){e.preventDefault();});
+ cv.addEventListener('webglcontextrestored',function(){gl=null;initGL();setBed();schedulePreview(0);});
+}
+function setMesh(m){
+ if(!m){nMesh=0;meshBox=null;return;}
+ var p=m.pos,t=m.tri,n=t.length,arr=new Float32Array(n*6),o=0,i,q,a,b,c,ux,uy,uz,vx,vy,vz,nx,ny,nz,l;
+ for(i=0;i<n;i+=3){
+  a=t[i]*3;b=t[i+1]*3;c=t[i+2]*3;
+  ux=p[b]-p[a];uy=p[b+1]-p[a+1];uz=p[b+2]-p[a+2];vx=p[c]-p[a];vy=p[c+1]-p[a+1];vz=p[c+2]-p[a+2];
+  nx=uy*vz-uz*vy;ny=uz*vx-ux*vz;nz=ux*vy-uy*vx;l=Math.sqrt(nx*nx+ny*ny+nz*nz)||1;nx/=l;ny/=l;nz/=l;
+  for(q=0;q<3;q++){l=t[i+q]*3;arr[o++]=p[l];arr[o++]=p[l+1];arr[o++]=p[l+2];arr[o++]=nx;arr[o++]=ny;arr[o++]=nz;}
+ }
+ var st=meshStats(m);meshBox={min:st.min,max:st.max};
+ nMesh=n;
+ if(gl){gl.bindBuffer(gl.ARRAY_BUFFER,bufMesh);gl.bufferData(gl.ARRAY_BUFFER,arr,gl.DYNAMIC_DRAW);}
+}
+function setBed(){
+ if(!gl)return;
+ var bx=state.bed.x/2,by=state.bed.y/2,a=[],v;
+ for(v=Math.ceil(-bx/10)*10;v<=bx;v+=10)a.push(v,-by,0,v,by,0);
+ for(v=Math.ceil(-by/10)*10;v<=by;v+=10)a.push(-bx,v,0,bx,v,0);
+ nBed=a.length/3;
+ a.push(-bx,-by,0,bx,-by,0, bx,-by,0,bx,by,0, bx,by,0,-bx,by,0, -bx,by,0,-bx,-by,0);
+ nBedOut=8;
+ gl.bindBuffer(gl.ARRAY_BUFFER,bufBed);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(a),gl.STATIC_DRAW);
+ var L=30;
+ gl.bindBuffer(gl.ARRAY_BUFFER,bufAxis);
+ gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-bx,-by,0,-bx+L,-by,0,-bx,-by,0,-bx,-by+L,0,-bx,-by,0,-bx,-by,L]),gl.STATIC_DRAW);
+}
+function updateSelLines(){
+ nSel=0;
+ var p=selPart();
+ if(!gl||!p)return;
+ var c=compileOne(p).corners,a=[],e;
+ for(e=0;e<12;e++){a.push(c[EDGES[e][0]][0],c[EDGES[e][0]][1],c[EDGES[e][0]][2],c[EDGES[e][1]][0],c[EDGES[e][1]][1],c[EDGES[e][1]][2]);}
+ gl.bindBuffer(gl.ARRAY_BUFFER,bufSel);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(a),gl.DYNAMIC_DRAW);
+ nSel=24;
+}
+function rot(){
+ var cy=Math.cos(view.yaw),sy=Math.sin(view.yaw),se=Math.sin(view.el),ce=Math.cos(view.el);
+ return [cy,-sy,0, sy*se,cy*se,ce, -sy*ce,-cy*ce,se];
+}
+function fitView(){
+ var W=elWrap.clientWidth||300,H=elWrap.clientHeight||300,mn,mx;
+ if(meshBox){mn=meshBox.min;mx=meshBox.max;}
+ else{mn=[-state.bed.x/2,-state.bed.y/2,0];mx=[state.bed.x/2,state.bed.y/2,20];}
+ var dx=mx[0]-mn[0],dy=mx[1]-mn[1],dz=mx[2]-mn[2],dg=Math.sqrt(dx*dx+dy*dy+dz*dz)||10;
+ view.c=[(mn[0]+mx[0])/2,(mn[1]+mx[1])/2,(mn[2]+mx[2])/2];
+ view.zoom=Math.min(W,H)/(dg*1.25);view.panx=0;view.pany=0;
+}
+function requestDraw(){
+ if(drawQueued)return;drawQueued=true;
+ (window.requestAnimationFrame||function(f){return setTimeout(f,16);})(draw);
+}
+function draw(){
+ drawQueued=false;
+ var W=elWrap.clientWidth,H=elWrap.clientHeight;
+ if(!W||!H)return;
+ var R=rot(),c=view.c,bx=state.bed.x/2,by=state.bed.y/2;
+ function lab(el,p){
+  var dx=p[0]-c[0],dy=p[1]-c[1],dz=p[2]-c[2];
+  var X=W/2+(R[0]*dx+R[1]*dy+R[2]*dz)*view.zoom+view.panx,Y=H/2-(R[3]*dx+R[4]*dy+R[5]*dz)*view.zoom+view.pany;
+  if(X<8||Y<8||X>W-8||Y>H-8){el.style.display='none';}
+  else{el.style.display='block';el.style.left=X+'px';el.style.top=Y+'px';}
+ }
+ lab($('lblX'),[-bx+38,-by,0]);lab($('lblY'),[-bx,-by+38,0]);lab($('lblZ'),[-bx,-by,38]);
+ if(!gl)return;
+ var dpr=Math.min(window.devicePixelRatio||1,2),pw=Math.round(W*dpr),ph=Math.round(H*dpr);
+ if(cv.width!==pw||cv.height!==ph){cv.width=pw;cv.height=ph;}
+ gl.viewport(0,0,pw,ph);
+ gl.clearColor(1,1,1,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+ var kx=view.zoom*2/W,ky=view.zoom*2/H,D=3000;
+ var r0c=R[0]*c[0]+R[1]*c[1]+R[2]*c[2],r1c=R[3]*c[0]+R[4]*c[1]+R[5]*c[2],r2c=R[6]*c[0]+R[7]*c[1]+R[8]*c[2];
+ gl.uniformMatrix4fv(loc.uM,false,new Float32Array([
+  R[0]*kx,R[3]*ky,-R[6]/D,0, R[1]*kx,R[4]*ky,-R[7]/D,0, R[2]*kx,R[5]*ky,-R[8]/D,0,
+  -r0c*kx+2*view.panx/W,-r1c*ky-2*view.pany/H,r2c/D,1]));
+ gl.uniformMatrix3fv(loc.uR,false,new Float32Array([R[0],R[3],R[6],R[1],R[4],R[7],R[2],R[5],R[8]]));
+ gl.enableVertexAttribArray(loc.aPos);
+ function lines(buf,first,count,col){
+  if(!count)return;
+  gl.bindBuffer(gl.ARRAY_BUFFER,buf);
+  gl.vertexAttribPointer(loc.aPos,3,gl.FLOAT,false,12,0);
+  gl.uniform3f(loc.uColor,col[0],col[1],col[2]);
+  gl.drawArrays(gl.LINES,first,count);
+ }
+ if(loc.aNor>=0){gl.disableVertexAttribArray(loc.aNor);gl.vertexAttrib3f(loc.aNor,0,0,1);}
+ gl.uniform1f(loc.uLit,0);
+ lines(bufBed,0,nBed,[0.86,0.86,0.86]);
+ lines(bufBed,nBed,nBedOut,[0.5,0.5,0.5]);
+ lines(bufAxis,0,6,[0.2,0.2,0.2]);
+ if(nMesh){
+  gl.bindBuffer(gl.ARRAY_BUFFER,bufMesh);
+  gl.vertexAttribPointer(loc.aPos,3,gl.FLOAT,false,24,0);
+  if(loc.aNor>=0){gl.enableVertexAttribArray(loc.aNor);gl.vertexAttribPointer(loc.aNor,3,gl.FLOAT,false,24,12);}
+  gl.uniform1f(loc.uLit,1);gl.uniform3f(loc.uColor,0.80,0.82,0.86);
+  gl.drawArrays(gl.TRIANGLES,0,nMesh);
+  if(loc.aNor>=0){gl.disableVertexAttribArray(loc.aNor);gl.vertexAttrib3f(loc.aNor,0,0,1);}
+  gl.uniform1f(loc.uLit,0);
+ }
+ gl.disable(gl.DEPTH_TEST);
+ lines(bufSel,0,nSel,[0.184,0.333,0.592]);
+ gl.enable(gl.DEPTH_TEST);
+}
+function zoomBy(f){
+ var z=Math.max(0.05,Math.min(400,view.zoom*f));f=z/view.zoom;
+ view.zoom=z;view.panx*=f;view.pany*=f;requestDraw();
+}
+function setView(yaw,el){view.yaw=yaw;view.el=el;requestDraw();}
+var ptrs={},ptrN=0,pinch=null;
+function ptrList(){var a=[],k;for(k in ptrs)if(Object.prototype.hasOwnProperty.call(ptrs,k))a.push(ptrs[k]);return a;}
+function pinchInfo(){var a=ptrList();return {d:Math.sqrt(Math.pow(a[0].x-a[1].x,2)+Math.pow(a[0].y-a[1].y,2))||1,mx:(a[0].x+a[1].x)/2,my:(a[0].y+a[1].y)/2};}
+function initPointer(){
+ cv.addEventListener('pointerdown',function(e){
+  e.preventDefault();
+  try{cv.setPointerCapture(e.pointerId);}catch(er){}
+  ptrs[e.pointerId]={x:e.clientX,y:e.clientY,pan:(e.button===2||e.button===1||e.shiftKey)};
+  ptrN=ptrList().length;
+  pinch=(ptrN===2)?pinchInfo():null;
+ });
+ cv.addEventListener('pointermove',function(e){
+  var p=ptrs[e.pointerId];if(!p)return;
+  var dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;
+  if(ptrN===1){
+   if(p.pan){view.panx+=dx;view.pany+=dy;}
+   else{view.yaw+=dx*0.01;view.el=Math.max(-Math.PI/2,Math.min(Math.PI/2,view.el+dy*0.01));}
+   requestDraw();
+  }else if(ptrN===2&&pinch){
+   var n=pinchInfo();
+   view.panx+=n.mx-pinch.mx;view.pany+=n.my-pinch.my;
+   zoomBy(Math.pow(n.d/pinch.d,0.6));pinch=n;
+  }
+ });
+ function up(e){
+  if(!ptrs[e.pointerId])return;
+  delete ptrs[e.pointerId];ptrN=ptrList().length;pinch=(ptrN===2)?pinchInfo():null;
+ }
+ cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
+ cv.addEventListener('wheel',function(e){
+  e.preventDefault();
+  var d=e.deltaY*(e.deltaMode===1?33:(e.deltaMode===2?300:1));
+  if(!isFinite(d))return;
+  d=Math.max(-120,Math.min(120,d));
+  zoomBy(Math.exp(-d*(e.ctrlKey?0.004:0.0005)));
+ },{passive:false});
+ cv.addEventListener('contextmenu',function(e){e.preventDefault();});
+}
+
+/* ---------- 初期化とボタン ---------- */
+function init(){
+ load();
+ ORDER.forEach(function(t){
+  var b=mk('button','',TYPES[t].name);b.type='button';
+  b.addEventListener('click',function(){
+   if(state.parts.length>=MAXPARTS){setMsg('NG：形は'+MAXPARTS+'個までです。','ng');return;}
+   state.parts.push(newPart(t));state.sel=state.parts.length-1;commit();refreshAll();
+  });
+  elTypeBtns.appendChild(b);
+ });
+ PRESETS.forEach(function(p,i){var o=mk('option','',p.name);o.value=String(i);elPresetSel.appendChild(o);});
+ RES.forEach(function(r){var o=mk('option','',r[1]);o.value=String(r[0]);elRes.appendChild(o);});
+ elRes.value=String(state.res);
+ elRes.addEventListener('change',function(){state.res=sanitizeState({res:elRes.value}).res;elRes.value=String(state.res);save();});
+ elName.value=state.name;
+ elName.addEventListener('input',function(){state.name=elName.value.slice(0,40);save();});
+ ['x','y','z'].forEach(function(a){
+  var el=elBed[a],def=(a==='z')?250:220;
+  el.value=String(state.bed[a]);
+  el.addEventListener('change',function(){
+   state.bed[a]=num(el.value,state.bed[a]||def,10,1000);el.value=String(state.bed[a]);
+   save();setBed();showDims(lastStats);requestDraw();
+  });
+ });
+ $('btnPreset').addEventListener('click',function(){
+  var p=PRESETS[Number(elPresetSel.value)]||PRESETS[0];
+  state.parts=sanitizeParts(p.parts);state.sel=0;state.name=p.name;elName.value=p.name;
+  commit();needFit=true;refreshAll();setMsg('見本を開きました（「元に戻す」で戻せます）。','');
+ });
+ elUndo.addEventListener('click',function(){
+  if(!undo.length)return;
+  var s=undo.pop(),a=[];
+  try{a=JSON.parse(s);}catch(e){a=[];}
+  state.parts=sanitizeParts(a);lastSnap=JSON.stringify(state.parts);
+  if(state.sel>=state.parts.length)state.sel=Math.max(0,state.parts.length-1);
+  save();refreshAll();
+ });
+ var clearArmed=false,clearTimer=null;
+ elClear.addEventListener('click',function(){
+  if(!clearArmed){
+   clearArmed=true;elClear.textContent='もう一度押す';
+   clearTimer=setTimeout(function(){clearArmed=false;elClear.textContent='全て消す';},3000);
+   return;
+  }
+  clearTimeout(clearTimer);clearArmed=false;elClear.textContent='全て消す';
+  state.parts=[];state.sel=0;commit();refreshAll();
+ });
+ $('btnSave').addEventListener('click',function(){
+  download(new Blob([JSON.stringify(state)],{type:'application/json'}),safeName()+'.json');
+  setMsg('OK：設計ファイルを保存しました。','ok');
+ });
+ var fileIn=$('fileIn');
+ $('btnOpen').addEventListener('click',function(){fileIn.value='';fileIn.click();});
+ fileIn.addEventListener('change',function(){
+  var f=fileIn.files&&fileIn.files[0];if(!f)return;
+  if(f.size>2000000){setMsg('NG：ファイルが大きすぎます。','ng');return;}
+  var rd=new FileReader();
+  rd.onerror=function(){setMsg('NG：ファイルを読めませんでした。','ng');};
+  rd.onload=function(){
+   var o=null;
+   try{o=JSON.parse(String(rd.result));}catch(e){o=null;}
+   if(!o||typeof o!=='object'||!Array.isArray(o.parts)){setMsg('NG：このアプリの設計ファイルではありません。','ng');return;}
+   var s=sanitizeState(o);
+   state.parts=s.parts;state.sel=s.sel;state.name=s.name;elName.value=s.name;
+   commit();needFit=true;refreshAll();setMsg('OK：設計ファイルを開きました。','ok');
+  };
+  rd.readAsText(f);
+ });
+ elStl.addEventListener('click',exportSTL);
+ $('vIso').addEventListener('click',function(){setView(-0.6,0.5);});
+ $('vFront').addEventListener('click',function(){setView(0,0);});
+ $('vSide').addEventListener('click',function(){setView(-Math.PI/2,0);});
+ $('vTop').addEventListener('click',function(){setView(0,Math.PI/2);});
+ $('vFit').addEventListener('click',function(){fitView();requestDraw();});
+ $('vIn').addEventListener('click',function(){zoomBy(1.1);});
+ $('vOut').addEventListener('click',function(){zoomBy(1/1.1);});
+ window.addEventListener('resize',requestDraw);
+ initGL();initPointer();setBed();
+ elUndo.disabled=true;
+ renderList();renderEditor();schedulePreview(0);
+}
+init();
+})();
+</script>
+</body>
+</html>
