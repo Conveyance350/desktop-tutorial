@@ -1,0 +1,4 @@
+@echo off
+cd /d "%~dp0"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "iex ([IO.File]::ReadAllText((Join-Path (Get-Location).Path 'server_zangyo.txt'), [Text.Encoding]::UTF8))"
+pause

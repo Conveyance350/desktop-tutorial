@@ -1,0 +1,444 @@
+﻿$PORT = 18020       # 他の部署で使う時は変える（例：18021）。他のアプリと重ならない番号にしてある。部署ごとに別のフォルダに置く
+$HTML_FILE = ''     # 空欄＝フォルダの中でいちばん新しい .html を出す。決める時は '残業管理v5_22.html' のように書く
+$KEEP_BACKUP = 30   # バックアップ（1日1つ）を残す数
+
+# ============================================================
+# 残業管理アプリ 共有サーバー（PowerShell版・Python不要）　2026.11.16
+# ・このファイル（server_zangyo.txt）、残業管理アプリの .html、サーバー起動.bat を同じフォルダに置く
+# ・サーバー起動.bat はメモ帳で次の4行を貼り付けて作る（ファイルの種類「すべてのファイル」で保存）
+#     @echo off
+#     cd /d "%~dp0"
+#     powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "iex ([IO.File]::ReadAllText((Join-Path (Get-Location).Path 'server_zangyo.txt'), [Text.Encoding]::UTF8))"
+#     pause
+# ・データはこのフォルダの zangyo_data.json（1日1回「バックアップ」フォルダに控えを残す）
+# ・前の版の「zangyo_～.json」をこのフォルダに置くと、zangyo_data.json が無い時（初回起動）だけ取り込む
+# ============================================================
+
+$ErrorActionPreference = 'Stop'
+$BASE = (Get-Location).Path
+$DATA = Join-Path $BASE 'zangyo_data.json'
+$TMPF = $DATA + '.tmp'
+$BKDIR = Join-Path $BASE 'バックアップ'
+$UTF8N = [System.Text.UTF8Encoding]::new($false)
+$LATIN1 = [System.Text.Encoding]::GetEncoding(28591)
+$MAX_BODY = 200MB
+$BOOK_EXT = @('.xlsb', '.xlsx', '.xlsm')
+
+# データ：ENT＝{キー: [値, 時刻, 端末ID]}（アプリと同じ形）　REVS＝{キー: 変わった時の通し番号}
+$ENT = [System.Collections.Generic.Dictionary[string,object]]::new()
+$REVS = [System.Collections.Generic.Dictionary[string,long]]::new()
+$DEVS = [System.Collections.Generic.Dictionary[string,object]]::new()
+$LOGK = [System.Collections.Generic.List[string]]::new()     # 変更の順番（同期で差分を返すため）
+$LOGR = [System.Collections.Generic.List[long]]::new()
+$global:SID = ''
+$global:REV = [long]0
+$global:DIRTY = $false
+
+# ===== JSON（Windows PowerShell 5.1 は JavaScriptSerializer、PowerShell 7 は ConvertFrom-Json） =====
+$global:JSS = $null
+try {
+    Add-Type -AssemblyName System.Web.Extensions
+    $global:JSS = [System.Web.Script.Serialization.JavaScriptSerializer]::new()
+    $global:JSS.MaxJsonLength = [int]::MaxValue
+    $global:JSS.RecursionLimit = 1000
+} catch { $global:JSS = $null }
+
+function JParse([string]$t) {
+    if ($global:JSS) { $o = $global:JSS.DeserializeObject($t) }
+    else { $o = ConvertFrom-Json -InputObject $t -AsHashtable -Depth 1000 }
+    return ,$o
+}
+function JStr($o) {
+    if ($global:JSS) { return $global:JSS.Serialize($o) }
+    return (ConvertTo-Json -InputObject $o -Depth 100 -Compress)
+}
+function NewDict { return ,([System.Collections.Generic.Dictionary[string,object]]::new()) }
+
+function Log([string]$m) { Write-Host ((Get-Date).ToString('MM/dd HH:mm:ss') + '  ' + $m) }
+function NowMs { return [long]([DateTime]::UtcNow - [DateTime]::new(1970, 1, 1, 0, 0, 0, [DateTimeKind]::Utc)).TotalMilliseconds }
+function NewId { return 'S' + [Guid]::NewGuid().ToString('N').Substring(0, 12) }
+function IsDict($o) { return ($o -is [System.Collections.IDictionary]) }
+function IsNum($o) {
+    return ($o -is [int] -or $o -is [long] -or $o -is [double] -or $o -is [decimal] -or $o -is [single] -or
+            $o -is [int16] -or $o -is [uint16] -or $o -is [uint32] -or $o -is [uint64] -or $o -is [byte] -or $o -is [sbyte])
+}
+function IsEntry($a) { return (($a -is [System.Collections.IList]) -and $a.Count -ge 3 -and (IsNum $a[1])) }
+
+# アプリと同じ判定：時刻が新しい方を残す。同じ時刻なら端末IDの大きい方
+function Newer($a, $b) {
+    if ($null -eq $b) { return $true }
+    $x1 = [double]$a[1]; $y1 = [double]$b[1]
+    if ($x1 -ne $y1) { return ($x1 -gt $y1) }
+    return ([string]::CompareOrdinal([string]$a[2], [string]$b[2]) -gt 0)
+}
+
+# 送られた値を統合して、変わった件数を返す
+function Merge($src) {
+    if (-not (IsDict $src)) { return 0 }
+    $chg = [System.Collections.Generic.List[string]]::new()
+    foreach ($k in @($src.Keys)) {
+        $a = $src[$k]
+        if (-not ($k -is [string]) -or -not (IsEntry $a)) { continue }
+        $old = $null; if ($ENT.ContainsKey($k)) { $old = $ENT[$k] }
+        if (Newer $a $old) {
+            $n = [object[]]::new(3); $n[0] = $a[0]; $n[1] = $a[1]; $n[2] = $a[2]
+            $ENT[$k] = $n; $chg.Add($k)
+        }
+    }
+    if ($chg.Count -gt 0) {
+        $global:REV = $global:REV + 1
+        foreach ($k in $chg) { $REVS[$k] = $global:REV; $LOGK.Add($k); $LOGR.Add($global:REV) }
+    }
+    return $chg.Count
+}
+
+# ===== 保存・読込 =====
+function BackupDaily {
+    try {
+        if (-not [IO.File]::Exists($DATA)) { return }
+        if (-not [IO.Directory]::Exists($BKDIR)) { [void][IO.Directory]::CreateDirectory($BKDIR) }
+        $dst = Join-Path $BKDIR ('zangyo_data_' + (Get-Date).ToString('yyyyMMdd') + '.json')
+        if (-not [IO.File]::Exists($dst)) { [IO.File]::Copy($DATA, $dst) }
+        $fs = @([IO.Directory]::GetFiles($BKDIR, 'zangyo_data_*.json') | Sort-Object)
+        if ($KEEP_BACKUP -gt 0 -and $fs.Count -gt $KEEP_BACKUP) {
+            foreach ($f in $fs[0..($fs.Count - $KEEP_BACKUP - 1)]) { [IO.File]::Delete($f) }
+        }
+    } catch { Log ('注意　バックアップを作れませんでした（' + $_.Exception.Message + '）') }
+}
+
+function Save {
+    $d = NewDict
+    $d['app'] = 'zangyo_server'; $d['id'] = $global:SID; $d['rev'] = [long]$global:REV
+    $d['e'] = $ENT; $d['r'] = $REVS; $d['devs'] = $DEVS
+    [IO.File]::WriteAllText($TMPF, (JStr $d), $UTF8N)
+    for ($i = 0; ; $i++) {     # ウイルス対策ソフト等が一瞬つかんでいる時は待ってやり直す
+        try {
+            if ([IO.File]::Exists($DATA)) { [IO.File]::Replace($TMPF, $DATA, [NullString]::Value) } else { [IO.File]::Move($TMPF, $DATA) }
+            break
+        } catch { if ($i -ge 19) { throw }; Start-Sleep -Milliseconds 250 }
+    }
+    BackupDaily
+}
+function SaveSafe {
+    try { Save; $global:DIRTY = $false }
+    catch {
+        $global:DIRTY = $true
+        Log ('NG　zangyo_data.json に保存できません（' + $_.Exception.Message + '）。次の変更の時にもう一度保存します')
+    }
+}
+
+# 前のサーバー（前のPowerShell版・Python版）のファイルも読めるように、キーの入っている場所を探す
+function PickEntries($d) {
+    if (-not (IsDict $d)) { return $null }
+    foreach ($k in @('e', 'entries', 'data')) { if ($d.ContainsKey($k) -and (IsDict $d[$k])) { return ,($d[$k]) } }
+    if ($d.Count -eq 0) { return $null }
+    foreach ($k in @($d.Keys)) { if (-not (IsEntry $d[$k])) { return $null } }
+    return ,$d
+}
+
+function ImportOld {
+    foreach ($f in @(Get-ChildItem -LiteralPath $BASE -File -Filter 'zangyo_*.json' | Sort-Object Name)) {
+        if ($f.Name -eq 'zangyo_data.json') { continue }
+        try {
+            $d = JParse ([IO.File]::ReadAllText($f.FullName, [Text.Encoding]::UTF8))
+            if ((IsDict $d) -and $d.ContainsKey('app') -and [string]$d['app'] -eq 'zangyo' -and $d.ContainsKey('e') -and (IsDict $d['e'])) {
+                $c = Merge $d['e']
+                Log ('取り込み　' + $f.Name + '（' + $c + '件）')
+            }
+        } catch { Log ('注意　' + $f.Name + ' を読めませんでした（' + $_.Exception.Message + '）') }
+    }
+}
+
+function AddDev($k, $v) {
+    if (-not (IsDict $v)) { return }
+    $dd = NewDict
+    $dd['name'] = ''; if ($v.ContainsKey('name') -and $null -ne $v['name']) { $dd['name'] = [string]$v['name'] }
+    $dd['t'] = [long]0; if ($v.ContainsKey('t') -and (IsNum $v['t'])) { $dd['t'] = [long]$v['t'] }
+    $DEVS[[string]$k] = $dd
+}
+
+function Load {
+    if (-not [IO.File]::Exists($DATA)) {
+        $global:SID = NewId
+        ImportOld
+        SaveSafe
+        return
+    }
+    $d = $null; $ents = $null
+    try {
+        $d = JParse ([IO.File]::ReadAllText($DATA, [Text.Encoding]::UTF8))
+        $ents = PickEntries $d
+        if ($null -eq $ents) { throw '中身の形式が違います' }
+    } catch {
+        $bad = Join-Path $BASE ('zangyo_data_読めない_' + (Get-Date).ToString('yyyyMMdd_HHmmss') + '.json')
+        [IO.File]::Move($DATA, $bad)
+        Log ('NG　zangyo_data.json を読めません（' + $_.Exception.Message + '）')
+        Log ('　　 ' + [IO.Path]::GetFileName($bad) + ' に名前を変えて、空のデータで始めます')
+        Log '　　 各端末をつなぐと、端末に残っているデータが送られて元に戻ります'
+        $global:SID = NewId
+        SaveSafe
+        return
+    }
+    $rr = $null
+    if ($d.ContainsKey('r') -and (IsDict $d['r'])) { $rr = $d['r'] }
+    foreach ($k in @($ents.Keys)) {
+        $a = $ents[$k]
+        if (-not ($k -is [string]) -or -not (IsEntry $a)) { continue }
+        $n = [object[]]::new(3); $n[0] = $a[0]; $n[1] = $a[1]; $n[2] = $a[2]
+        $ENT[$k] = $n
+        $rv = $null
+        if ($null -ne $rr -and $rr.ContainsKey($k)) { $rv = $rr[$k] }
+        if (-not (IsNum $rv) -and $a.Count -ge 4 -and (IsNum $a[3])) { $rv = $a[3] }
+        if (IsNum $rv) { $REVS[$k] = [long]$rv } else { $REVS[$k] = [long]0 }
+    }
+    $mx = [long]0
+    if ($d.ContainsKey('rev') -and (IsNum $d['rev'])) { $mx = [long]$d['rev'] }
+    foreach ($kv in ($REVS.GetEnumerator() | Sort-Object Value)) {
+        $LOGK.Add($kv.Key); $LOGR.Add($kv.Value)
+        if ($kv.Value -gt $mx) { $mx = $kv.Value }
+    }
+    $global:REV = $mx
+    $global:SID = ''
+    if ($d.ContainsKey('id') -and $null -ne $d['id']) { $global:SID = [string]$d['id'] }
+    if (-not $global:SID) { $global:SID = NewId }   # 番号が無いファイル：各端末が1回だけ全部送り直す（データは消えない）
+    if ($d.ContainsKey('devs')) {
+        $dv = $d['devs']
+        if (IsDict $dv) { foreach ($k in @($dv.Keys)) { AddDev $k $dv[$k] } }
+        elseif ($dv -is [System.Collections.IList]) { foreach ($v in $dv) { if ((IsDict $v) -and $v.ContainsKey('dev')) { AddDev $v['dev'] $v } } }
+    }
+}
+
+# ===== 同期（アプリの /api/sync） =====
+function Sync($j) {
+    $dev = ''; if ($j.ContainsKey('dev') -and $null -ne $j['dev']) { $dev = [string]$j['dev'] }
+    $name = ''; if ($j.ContainsKey('name') -and $null -ne $j['name']) { $name = [string]$j['name'] }
+    if ($dev.Length -gt 80) { $dev = $dev.Substring(0, 80) }
+    if ($name.Length -gt 80) { $name = $name.Substring(0, 80) }
+    $since = [long]0; if ($j.ContainsKey('since') -and (IsNum $j['since'])) { $since = [long]$j['since'] }
+    $sent = $null; if ($j.ContainsKey('e') -and (IsDict $j['e'])) { $sent = $j['e'] }
+    $chg = Merge $sent
+    $out = NewDict
+    if ($since -le 0 -or $since -gt $global:REV) {      # 初回・データを戻した時など：全部返す
+        foreach ($kv in $ENT.GetEnumerator()) { $out[$kv.Key] = $kv.Value }
+    } else {
+        for ($i = $LOGR.Count - 1; $i -ge 0 -and $LOGR[$i] -gt $since; $i--) {
+            $k = $LOGK[$i]; if (-not $out.ContainsKey($k)) { $out[$k] = $ENT[$k] }
+        }
+    }
+    if ($null -ne $sent) {      # 送られた値よりサーバーの方が新しい時は、サーバーの値を返す
+        foreach ($k in @($sent.Keys)) {
+            if (-not ($k -is [string]) -or -not $ENT.ContainsKey($k) -or $out.ContainsKey($k)) { continue }
+            $c = $ENT[$k]; $s = $sent[$k]
+            if (-not (IsEntry $s) -or [double]$c[1] -ne [double]$s[1] -or [string]$c[2] -cne [string]$s[2]) { $out[$k] = $c }
+        }
+    }
+    if ($dev) { $dd = NewDict; $dd['name'] = $name; $dd['t'] = (NowMs); $DEVS[$dev] = $dd }
+    if ($chg -gt 0 -or $global:DIRTY) { SaveSafe }
+    if ($chg -gt 0) { $who = $name; if (-not $who) { $who = '名前なしの端末' }; Log ($who + ' から ' + $chg + '件') }
+    $da = [object[]]::new($DEVS.Count); $i = 0
+    foreach ($kv in $DEVS.GetEnumerator()) {
+        $o = NewDict; $o['dev'] = $kv.Key; $o['name'] = $kv.Value['name']; $o['t'] = $kv.Value['t']; $da[$i] = $o; $i++
+    }
+    $res = NewDict
+    $res['id'] = $global:SID; $res['rev'] = [long]$global:REV; $res['e'] = $out; $res['devs'] = $da
+    return ,$res
+}
+
+# ===== ファイル =====
+function FindHtml {
+    if ($HTML_FILE) { $f = Join-Path $BASE $HTML_FILE; if ([IO.File]::Exists($f)) { return $f }; return $null }
+    $c = Get-ChildItem -LiteralPath $BASE -File | Where-Object { $_.Extension -eq '.html' -or $_.Extension -eq '.htm' } |
+         Sort-Object LastWriteTime -Descending | Select-Object -First 1
+    if ($c) { return $c.FullName }
+    return $null
+}
+function BookFiles {
+    Get-ChildItem -LiteralPath $BASE -File | Where-Object { -not $_.Name.StartsWith('~$') -and ($BOOK_EXT -contains $_.Extension.ToLowerInvariant()) }
+}
+
+$NO_HTML = '<!DOCTYPE html><meta charset="UTF-8"><title>残業管理</title>' +
+    '<body style="font-family:Meiryo UI,メイリオ,sans-serif;font-size:24px;color:#333;padding:24px">' +
+    '<b style="color:#C00000">NG</b>　サーバーのフォルダに残業管理アプリの .html がありません。<br>' +
+    'server_zangyo.txt と同じフォルダに .html を置いて、このページを開き直してください。</body>'
+
+# ===== HTTP（Windows標準の TcpListener。管理者権限なしで他の端末から接続できる） =====
+$STATUS = @{ 200 = 'OK'; 204 = 'No Content'; 400 = 'Bad Request'; 404 = 'Not Found'; 405 = 'Method Not Allowed'; 409 = 'Conflict'; 413 = 'Payload Too Large'; 500 = 'Internal Server Error' }
+function Reply($cn, [int]$code, [byte[]]$body, [string]$ct) {
+    $hd = 'HTTP/1.1 ' + $code + ' ' + $STATUS[$code] + "`r`nContent-Type: " + $ct + "`r`nContent-Length: " + $body.Length +
+          "`r`nCache-Control: no-store`r`nConnection: close`r`n`r`n"
+    $hb = [Text.Encoding]::ASCII.GetBytes($hd)
+    $cn.s.Write($hb, 0, $hb.Length)
+    if ($body.Length -gt 0 -and $cn.m -ne 'HEAD') { $cn.s.Write($body, 0, $body.Length) }
+    $cn.s.Flush()
+}
+function ReplyText($cn, [int]$code, [string]$txt, [string]$ct) { Reply $cn $code ($UTF8N.GetBytes($txt)) $ct }
+function ReplyJson($cn, $o, [int]$code = 200) { ReplyText $cn $code (JStr $o) 'application/json; charset=utf-8' }
+function ErrObj([string]$m) { $o = NewDict; $o['error'] = $m; return ,$o }
+
+# 受け取ったバイトから、リクエストがそろったか調べる（そろっていなければ $null）
+function TryParse($cn) {
+    $n = [int]$cn.buf.Length
+    if ($cn.hl -eq 0) {
+        $m = [Math]::Min($n, 65536)
+        $s = $LATIN1.GetString($cn.buf.GetBuffer(), 0, $m)
+        $i = $s.IndexOf("`r`n`r`n")
+        if ($i -lt 0) { if ($n -ge 65536) { return @{ err = 400 } }; return $null }
+        $lines = $s.Substring(0, $i) -split "`r`n"
+        $rl = $lines[0] -split ' '
+        if ($rl.Count -lt 2) { return @{ err = 400 } }
+        $cn.m = $rl[0].ToUpperInvariant(); $cn.u = $rl[1]
+        $cl = [long]0
+        foreach ($ln in $lines) { if ($ln -match '^content-length:\s*(\d+)\s*$') { $cl = [long]$Matches[1] } }
+        if ($cl -gt $MAX_BODY) { return @{ err = 413 } }
+        $cn.hl = $i + 4; $cn.cl = [int]$cl
+    }
+    if ($n -lt $cn.hl + $cn.cl) { return $null }
+    $body = [byte[]]::new($cn.cl)
+    if ($cn.cl -gt 0) { [Array]::Copy($cn.buf.GetBuffer(), $cn.hl, $body, 0, $cn.cl) }
+    $u = $cn.u; $qs = ''; $k = $u.IndexOf('?')
+    if ($k -ge 0) { $qs = $u.Substring($k + 1); $u = $u.Substring(0, $k) }
+    return @{ path = [Uri]::UnescapeDataString($u); qs = $qs; body = $body }
+}
+
+function Handle($cn, $rq) {
+    try {
+        $p = $rq.path
+        if ($cn.m -eq 'POST') {
+            if ($p -ne '/api/sync') { ReplyJson $cn (ErrObj 'not found') 404; return }
+            $j = $null
+            try { $j = JParse ($UTF8N.GetString($rq.body)) } catch { $j = $null }
+            if (-not (IsDict $j)) { ReplyJson $cn (ErrObj 'データが正しくありません') 400; return }
+            ReplyJson $cn (Sync $j); return
+        }
+        if ($cn.m -ne 'GET' -and $cn.m -ne 'HEAD') { ReplyJson $cn (ErrObj 'method') 405; return }
+        if ($p -eq '/api/books') {
+            $L2 = [System.Collections.Generic.List[object]]::new()
+            foreach ($f in @(BookFiles)) {
+                $o = NewDict; $o['name'] = [string]$f.Name
+                $o['t'] = [long]($f.LastWriteTimeUtc - [DateTime]::new(1970, 1, 1, 0, 0, 0, [DateTimeKind]::Utc)).TotalMilliseconds
+                $L2.Add($o)
+            }
+            ReplyJson $cn ($L2.ToArray()); return
+        }
+        if ($p -eq '/api/book') {
+            $nm = ''
+            foreach ($kv in ($rq.qs -split '&')) { $a = $kv -split '=', 2; if ($a[0] -eq 'name' -and $a.Count -eq 2) { $nm = [Uri]::UnescapeDataString($a[1]) } }
+            $nm = [IO.Path]::GetFileName($nm.Replace('\', '/'))
+            $f = @(BookFiles) | Where-Object { $_.Name -ceq $nm } | Select-Object -First 1
+            if (-not $nm -or -not $f) { ReplyJson $cn (ErrObj 'ファイルがありません') 404; return }
+            $b = $null
+            try { $b = [IO.File]::ReadAllBytes($f.FullName) } catch { ReplyJson $cn (ErrObj 'Excelで開いているため読めません') 409; return }
+            Reply $cn 200 $b 'application/octet-stream'; return
+        }
+        if ($p -eq '/favicon.ico') { Reply $cn 204 ([byte[]]::new(0)) 'image/x-icon'; return }
+        $f = $null
+        if ($p -eq '/' -or $p -eq '/index.html') { $f = FindHtml }
+        elseif (($p.EndsWith('.html') -or $p.EndsWith('.htm')) -and $p.IndexOf('/', 1) -lt 0 -and $p.IndexOf('\') -lt 0 -and $p.IndexOf('..') -lt 0) {
+            $f = Join-Path $BASE $p.Substring(1); if (-not [IO.File]::Exists($f)) { $f = $null }
+        } else { ReplyText $cn 404 '見つかりません' 'text/plain; charset=utf-8'; return }
+        if (-not $f) { ReplyText $cn 404 $NO_HTML 'text/html; charset=utf-8'; return }
+        Reply $cn 200 ([IO.File]::ReadAllBytes($f)) 'text/html; charset=utf-8'
+    } catch {
+        Log ('NG　' + $cn.m + ' ' + $rq.path + '（' + $_.Exception.Message + '）')
+        try { ReplyJson $cn (ErrObj $_.Exception.Message) 500 } catch {}
+    }
+}
+
+# ===== 黒い画面：クリックで止まらないように簡易編集モードを切る =====
+function NoQuickEdit {
+    if ($env:OS -ne 'Windows_NT') { return }
+    try {
+        Add-Type -Namespace ZangyoSrv -Name Con -MemberDefinition @'
+[DllImport("kernel32.dll")] public static extern IntPtr GetStdHandle(int h);
+[DllImport("kernel32.dll")] public static extern bool GetConsoleMode(IntPtr h, out uint m);
+[DllImport("kernel32.dll")] public static extern bool SetConsoleMode(IntPtr h, uint m);
+'@
+        $hd = [ZangyoSrv.Con]::GetStdHandle(-10); $md = [uint32]0
+        if ([ZangyoSrv.Con]::GetConsoleMode($hd, [ref]$md)) { [void][ZangyoSrv.Con]::SetConsoleMode($hd, [uint32](([long]$md -band 4294967231) -bor 128)) }
+    } catch {}
+}
+
+function MyIps {
+    try {
+        return @([System.Net.Dns]::GetHostAddresses([System.Net.Dns]::GetHostName()) |
+            Where-Object { $_.AddressFamily -eq [System.Net.Sockets.AddressFamily]::InterNetwork } |
+            ForEach-Object { $_.ToString() } |
+            Where-Object { -not $_.StartsWith('127.') -and -not $_.StartsWith('169.254.') } | Sort-Object -Unique)
+    } catch { return @() }
+}
+
+function Main {
+    try { $Host.UI.RawUI.WindowTitle = '残業管理サーバー（ポート ' + $PORT + '）　閉じるとサーバーが止まります' } catch {}
+    NoQuickEdit
+    Write-Host ('=' * 60)
+    Write-Host (' 残業管理 共有サーバー（PowerShell版）　ポート ' + $PORT)
+    Write-Host ' この黒い画面は閉じないでください（閉じるとサーバーが止まります）'
+    Write-Host ('=' * 60)
+    BackupDaily
+    Load
+    $lis = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Any, [int]$PORT)
+    try { $lis.ExclusiveAddressUse = $true } catch {}
+    try { $lis.Start() } catch {
+        Write-Host ''
+        Write-Host ('NG　ポート ' + $PORT + ' が使えません（' + $_.Exception.Message + '）')
+        Write-Host '　　すでにサーバーが動いていないか確認してください（黒い画面が2つ開いていないか）。'
+        Write-Host '　　他のアプリが使っている時は、このファイルをメモ帳で開き、先頭の $PORT を変えてください。'
+        return
+    }
+    $h = FindHtml
+    if ($h) { Write-Host (' アプリ　：' + [IO.Path]::GetFileName($h)) } else { Write-Host ' アプリ　：NG　.html がありません（このフォルダに置いてください）' }
+    Write-Host (' データ　：' + $DATA + '（' + $ENT.Count + '件）')
+    Write-Host (' 共用PC　：http://localhost:' + $PORT + '/')
+    $ips = @(MyIps)
+    foreach ($ip in $ips) { Write-Host (' 他の端末：http://' + $ip + ':' + $PORT + '/') }
+    if ($ips.Count -eq 0) { Write-Host (' 他の端末：http://（共用PCのIP）:' + $PORT + '/') }
+    Write-Host ' 止める時：この画面を閉じる（または Ctrl＋C）'
+    Write-Host ('=' * 60)
+    Log '起動しました'
+
+    $conns = [System.Collections.Generic.List[object]]::new()
+    try {
+        while ($true) {
+            while ($lis.Pending()) {
+                $tc = $lis.AcceptTcpClient(); $tc.NoDelay = $true
+                $st = $tc.GetStream(); $st.WriteTimeout = 30000
+                $conns.Add(@{ c = $tc; s = $st; buf = [IO.MemoryStream]::new(); t = [DateTime]::Now; hl = 0; cl = 0; m = ''; u = '' })
+            }
+            $did = $false
+            for ($i = $conns.Count - 1; $i -ge 0; $i--) {
+                $cn = $conns[$i]; $done = $false
+                try {
+                    $av = $cn.c.Available
+                    if ($av -gt 0) {
+                        $b = [byte[]]::new($av); $rd = $cn.s.Read($b, 0, $av)
+                        if ($rd -gt 0) { $cn.buf.Write($b, 0, $rd) }
+                        $cn.t = [DateTime]::Now; $did = $true
+                        $rq = TryParse $cn
+                        if ($null -ne $rq) {
+                            if ($rq.ContainsKey('err')) { ReplyText $cn ([int]$rq.err) 'error' 'text/plain; charset=utf-8' }
+                            else { Handle $cn $rq }
+                            $done = $true
+                        }
+                    } elseif ($cn.c.Client.Poll(0, [System.Net.Sockets.SelectMode]::SelectRead) -or ([DateTime]::Now - $cn.t).TotalSeconds -gt 30) {
+                        $done = $true      # 端末側が切った・30秒何も来ない
+                    }
+                } catch { $done = $true }
+                if ($done) {
+                    try { $cn.c.Client.Shutdown([System.Net.Sockets.SocketShutdown]::Send) } catch {}
+                    try { $cn.c.Close() } catch {}
+                    $conns.RemoveAt($i)
+                }
+            }
+            if (-not $did) { Start-Sleep -Milliseconds 15 }
+        }
+    } finally {
+        try { $lis.Stop() } catch {}
+        if ($global:DIRTY) { SaveSafe }
+        Log '止めました'
+    }
+}
+
+try { Main } catch {
+    Write-Host ($_ | Out-String)
+    Write-Host 'NG　サーバーを起動できませんでした。上の表示を作成者に見せてください。'
+}
